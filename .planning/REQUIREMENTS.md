@@ -95,13 +95,48 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated during roadmap creation) | | |
+| WAPP-01 | Phase 1 | Pending |
+| WAPP-02 | Phase 1 | Pending |
+| WAPP-03 | Phase 1 | Pending |
+| SCRP-01 | Phase 1 | Pending |
+| SCRP-02 | Phase 1 | Pending |
+| SCRP-03 | Phase 1 | Pending |
+| PLAT-06 | Phase 1 | Pending |
+| PLAT-07 | Phase 1 | Pending |
+| AGENT-01 | Phase 2 | Pending |
+| AGENT-02 | Phase 2 | Pending |
+| AGENT-03 | Phase 2 | Pending |
+| AGENT-04 | Phase 2 | Pending |
+| AGENT-05 | Phase 2 | Pending |
+| AGENT-06 | Phase 2 | Pending |
+| AGENT-07 | Phase 2 | Pending |
+| AGENT-08 | Phase 2 | Pending |
+| AGENT-09 | Phase 2 | Pending |
+| WAPP-04 | Phase 2 | Pending |
+| WAPP-07 | Phase 2 | Pending |
+| CRM-01 | Phase 3 | Pending |
+| CRM-02 | Phase 3 | Pending |
+| CRM-03 | Phase 3 | Pending |
+| CRM-04 | Phase 3 | Pending |
+| CRM-05 | Phase 3 | Pending |
+| CRM-06 | Phase 3 | Pending |
+| CRM-07 | Phase 3 | Pending |
+| WAPP-05 | Phase 3 | Pending |
+| WAPP-06 | Phase 3 | Pending |
+| PLAT-01 | Phase 4 | Pending |
+| PLAT-02 | Phase 4 | Pending |
+| PLAT-03 | Phase 4 | Pending |
+| PLAT-04 | Phase 4 | Pending |
+| PLAT-05 | Phase 4 | Pending |
+| CHAN-01 | Phase 4 | Pending |
+| CHAN-02 | Phase 4 | Pending |
+| CHAN-03 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 29 total
-- Mapped to phases: 0
-- Unmapped: 29 ⚠️
+- v1 requirements: 36 total (29 originally labeled + 7 PLAT items confirmed in file)
+- Mapped to phases: 36
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-17*
-*Last updated: 2026-03-17 after initial definition*
+*Last updated: 2026-03-17 after roadmap creation — traceability populated*
