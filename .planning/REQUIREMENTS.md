@@ -7,9 +7,9 @@
 
 ### WhatsApp
 
-- [ ] **WAPP-01**: Usuário pode conectar número WhatsApp via QR code (Evolution API)
-- [ ] **WAPP-02**: Usuário pode conectar múltiplos números WhatsApp simultaneamente
-- [ ] **WAPP-03**: Agente recebe e responde mensagens WhatsApp em tempo real
+- [x] **WAPP-01**: Usuário pode conectar número WhatsApp via QR code (Evolution API)
+- [x] **WAPP-02**: Usuário pode conectar múltiplos números WhatsApp simultaneamente
+- [x] **WAPP-03**: Agente recebe e responde mensagens WhatsApp em tempo real
 - [ ] **WAPP-04**: Agente envia carrossel de 3-5 fotos do veículo no WhatsApp
 - [ ] **WAPP-05**: Operador visualiza todas as conversas em inbox multichat
 - [ ] **WAPP-06**: Vendedor assume conversa e IA pausa automaticamente (handoff)
@@ -95,9 +95,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WAPP-01 | Phase 1 | Pending |
-| WAPP-02 | Phase 1 | Pending |
-| WAPP-03 | Phase 1 | Pending |
+| WAPP-01 | Phase 1 | Complete |
+| WAPP-02 | Phase 1 | Complete |
+| WAPP-03 | Phase 1 | Complete |
 | SCRP-01 | Phase 1 | Complete |
 | SCRP-02 | Phase 1 | Complete |
 | SCRP-03 | Phase 1 | Complete |

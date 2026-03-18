@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 Phase: 1 of 4 (Foundation)
 Plan: 4 of 4 in current phase
 Status: Executing
-Last activity: 2026-03-17 — Completed 01-03-PLAN.md (Autoscar scraper + Redis cache + Zod validation)
+Last activity: 2026-03-17 — Completed 01-02-PLAN.md (WhatsApp integration via Evolution API + BullMQ async pipeline)
 
 Progress: [██████░░░░] 19%
 
@@ -43,10 +43,11 @@ Progress: [██████░░░░] 19%
 | 01-foundation | 3 | 11 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min), 01-02 (3 min), 01-03 (3 min)
+- Last 5 plans: 01-01 (5 min), 01-02 (5 min), 01-03 (3 min)
 - Trend: stable
 
 *Updated after each plan completion*
+| Phase 01 P02 | 5min | 2 tasks | 9 files |
 | Phase 01 P03 | 3min | 2 tasks | 6 files |
 
 ## Accumulated Context
@@ -62,6 +63,8 @@ Recent decisions affecting current work:
 - [Setup]: Evolution API via Docker with persistent volumes — session loss on restart is a critical pitfall
 - [01-01]: Downgraded Prisma 7 to Prisma 6 — v7 removed datasource url from schema.prisma, breaking standard patterns
 - [01-01]: Removed deprecated docker-compose version key for modern Docker Compose compatibility
+- [01-02]: Lazy initialization pattern for Evolution API client and BullMQ queue — no env var reads at import time
+- [01-02]: Used BullMQ built-in connection URL instead of separate ioredis to avoid bundled type conflicts
 - [01-03]: Used named import { Redis } from ioredis for ESM/TypeScript compatibility
 - [01-03]: Fallback selector strategy with console.warn for monitoring selector degradation
 
@@ -78,5 +81,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-17
-Stopped at: Completed 01-03-PLAN.md. Ready for 01-04-PLAN.md.
+Stopped at: Completed 01-02-PLAN.md (WhatsApp integration). 01-03 also complete. Ready for 01-04-PLAN.md.
 Resume file: None
