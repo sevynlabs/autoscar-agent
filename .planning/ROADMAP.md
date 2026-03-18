@@ -27,7 +27,13 @@ Four phases that transform a blank repo into a fully operational AI SDR platform
   3. A message sent to a connected WhatsApp number is received by the system and a reply is sent back in real time
   4. Given a valid autoscar.com.br vehicle URL, the scraper returns structured data (model, year, km, price, photos); result is cached and re-requests skip the network call; failed scrapes surface a clear validation error
   5. API keys (Evolution API, OpenAI) are configured exclusively via `.env` — no hardcoded values exist anywhere
-**Plans**: TBD
+**Plans:** 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Docker stack + project scaffold + Prisma schema
+- [ ] 01-02-PLAN.md — WhatsApp integration (Evolution API client, webhook, BullMQ pipeline)
+- [ ] 01-03-PLAN.md — Autoscar.com.br scraper (Playwright + Cheerio + Redis cache + Zod)
+- [ ] 01-04-PLAN.md — Wire scraper into message worker + end-to-end verification
 
 ### Phase 2: AI Agent
 **Goal**: The AI SDR autonomously qualifies a lead from first WhatsApp message to seller notification, with no human intervention
@@ -72,7 +78,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/4 | Planned | - |
 | 2. AI Agent | 0/TBD | Not started | - |
 | 3. CRM + Multichat | 0/TBD | Not started | - |
 | 4. Platform + Channels | 0/TBD | Not started | - |
