@@ -1,0 +1,1 @@
+- Pre-existing TS error in src/queue/queues.ts and src/queue/workers/message.worker.ts: ioredis default import not constructable (uses `import Redis from 'ioredis'` instead of `import { Redis } from 'ioredis'`)

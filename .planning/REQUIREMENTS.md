@@ -45,9 +45,9 @@
 
 ### Scraper
 
-- [ ] **SCRP-01**: Scraper extrai dados do veículo (modelo, ano, km, preço, fotos)
-- [ ] **SCRP-02**: Scraper cacheia resultados para evitar requisições repetidas
-- [ ] **SCRP-03**: Scraper valida dados extraídos e alerta em caso de falha
+- [x] **SCRP-01**: Scraper extrai dados do veículo (modelo, ano, km, preço, fotos)
+- [x] **SCRP-02**: Scraper cacheia resultados para evitar requisições repetidas
+- [x] **SCRP-03**: Scraper valida dados extraídos e alerta em caso de falha
 
 ### Platform
 
@@ -98,9 +98,9 @@
 | WAPP-01 | Phase 1 | Pending |
 | WAPP-02 | Phase 1 | Pending |
 | WAPP-03 | Phase 1 | Pending |
-| SCRP-01 | Phase 1 | Pending |
-| SCRP-02 | Phase 1 | Pending |
-| SCRP-03 | Phase 1 | Pending |
+| SCRP-01 | Phase 1 | Complete |
+| SCRP-02 | Phase 1 | Complete |
+| SCRP-03 | Phase 1 | Complete |
 | PLAT-06 | Phase 1 | Complete |
 | PLAT-07 | Phase 1 | Complete |
 | AGENT-01 | Phase 2 | Pending |
