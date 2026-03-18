@@ -10,7 +10,7 @@ Four phases that transform a blank repo into a fully operational AI SDR platform
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Foundation** - Async infrastructure, Docker stack, WhatsApp connection, autoscar.com.br scraper
+- [x] **Phase 1: Foundation** - Async infrastructure, Docker stack, WhatsApp connection, autoscar.com.br scraper
 - [ ] **Phase 2: AI Agent** - Autonomous SDR qualification loop, photo carousel, CRM tool-calls, seller notification
 - [ ] **Phase 3: CRM + Multichat** - Full Kanban CRM, multichat inbox, human handoff, real-time WebSocket
 - [ ] **Phase 4: Platform + Channels** - Auth, dashboard analytics, Instagram DM, SMS, external API + webhooks
@@ -31,9 +31,9 @@ Four phases that transform a blank repo into a fully operational AI SDR platform
 
 Plans:
 - [x] 01-01-PLAN.md — Docker stack + project scaffold + Prisma schema
-- [ ] 01-02-PLAN.md — WhatsApp integration (Evolution API client, webhook, BullMQ pipeline)
-- [ ] 01-03-PLAN.md — Autoscar.com.br scraper (Playwright + Cheerio + Redis cache + Zod)
-- [ ] 01-04-PLAN.md — Wire scraper into message worker + end-to-end verification
+- [x] 01-02-PLAN.md — WhatsApp integration (Evolution API client, webhook, BullMQ pipeline)
+- [x] 01-03-PLAN.md — Autoscar.com.br scraper (Playwright + Cheerio + Redis cache + Zod)
+- [x] 01-04-PLAN.md — Wire scraper into message worker + end-to-end verification
 
 ### Phase 2: AI Agent
 **Goal**: The AI SDR autonomously qualifies a lead from first WhatsApp message to seller notification, with no human intervention
@@ -78,7 +78,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/4 | In Progress | - |
+| 1. Foundation | 4/4 | Complete | 2026-03-17 |
 | 2. AI Agent | 0/TBD | Not started | - |
 | 3. CRM + Multichat | 0/TBD | Not started | - |
 | 4. Platform + Channels | 0/TBD | Not started | - |

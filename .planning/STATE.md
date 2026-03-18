@@ -8,7 +8,7 @@ progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -22,33 +22,34 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation)
-Plan: 4 of 4 in current phase
-Status: Executing
-Last activity: 2026-03-17 — Completed 01-02-PLAN.md (WhatsApp integration via Evolution API + BullMQ async pipeline)
+Phase: 1 of 4 (Foundation) -- COMPLETE
+Plan: 4 of 4 in current phase (all done)
+Status: Phase 1 Complete
+Last activity: 2026-03-17 — Completed 01-04-PLAN.md (Scraper-worker integration + end-to-end pipeline verification)
 
-Progress: [██████░░░░] 19%
+Progress: [██████████] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 4 min
-- Total execution time: 0.18 hours
+- Total execution time: 0.25 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 3 | 11 min | 4 min |
+| 01-foundation | 4 | 15 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min), 01-02 (5 min), 01-03 (3 min)
+- Last 5 plans: 01-01 (5 min), 01-02 (5 min), 01-03 (3 min), 01-04 (4 min)
 - Trend: stable
 
 *Updated after each plan completion*
 | Phase 01 P02 | 5min | 2 tasks | 9 files |
 | Phase 01 P03 | 3min | 2 tasks | 6 files |
+| Phase 01 P04 | 4min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ Recent decisions affecting current work:
 - [01-02]: Used BullMQ built-in connection URL instead of separate ioredis to avoid bundled type conflicts
 - [01-03]: Used named import { Redis } from ioredis for ESM/TypeScript compatibility
 - [01-03]: Fallback selector strategy with console.warn for monitoring selector degradation
+- [01-04]: URL detection via regex for Phase 1 — simple routing replaced by AI classification in Phase 2
+- [01-04]: Echo reply preserved for non-URL messages as Phase 2 AI agent placeholder
 
 ### Pending Todos
 
@@ -81,5 +84,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-17
-Stopped at: Completed 01-02-PLAN.md (WhatsApp integration). 01-03 also complete. Ready for 01-04-PLAN.md.
+Stopped at: Completed 01-04-PLAN.md (Scraper-worker integration). Phase 1 Foundation complete. Ready for Phase 2 planning.
 Resume file: None
