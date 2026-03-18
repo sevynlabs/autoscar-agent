@@ -11,7 +11,7 @@ Four phases that transform a blank repo into a fully operational AI SDR platform
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Foundation** - Async infrastructure, Docker stack, WhatsApp connection, autoscar.com.br scraper
-- [ ] **Phase 2: AI Agent** - Autonomous SDR qualification loop, photo carousel, CRM tool-calls, seller notification
+- [x] **Phase 2: AI Agent** - Autonomous SDR qualification loop, photo carousel, CRM tool-calls, seller notification (completed 2026-03-18)
 - [ ] **Phase 3: CRM + Multichat** - Full Kanban CRM, multichat inbox, human handoff, real-time WebSocket
 - [ ] **Phase 4: Platform + Channels** - Auth, dashboard analytics, Instagram DM, SMS, external API + webhooks
 
@@ -45,7 +45,7 @@ Plans:
   3. Agent conducts a qualification conversation (interest, credit condition, city, payment method) and autonomously decides when the lead is qualified or disqualified
   4. Agent creates a CRM card at conversation start, updates lead data as the conversation progresses, and moves the card through pipeline stages automatically
   5. On qualification completion, agent generates a summary note and sends the qualified lead summary to the sellers WhatsApp group; follow-up messages are sent automatically to leads who go silent
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 02-01-PLAN.md — Prisma CRM schema expansion, seed pipeline, CRM + conversation services
@@ -84,6 +84,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete    | 2026-03-18 |
-| 2. AI Agent | 2/3 | In Progress|  |
+| 2. AI Agent | 2/3 | Complete    | 2026-03-18 |
 | 3. CRM + Multichat | 0/TBD | Not started | - |
 | 4. Platform + Channels | 0/TBD | Not started | - |
