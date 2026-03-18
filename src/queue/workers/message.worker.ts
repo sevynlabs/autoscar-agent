@@ -2,6 +2,7 @@ import { Worker, type Job } from 'bullmq';
 import { runAgentTurn } from '../../agent/agent.service.js';
 import { loadOrCreateConversation } from '../../conversation/conversation.service.js';
 import { evolutionClient } from '../../whatsapp/evolution.client.js';
+import prisma from '../../db/prisma.js';
 import { getFollowupQueue } from '../queues.js';
 import type { MessageJobData } from '../jobs/message.job.js';
 
@@ -40,7 +41,22 @@ export function startMessageWorker(): Worker {
         // 2. Load or create conversation
         const conversation = await loadOrCreateConversation(phoneNumber);
 
-        // 3. Run agentic loop
+        // 3. Check humanOverride — skip AI if operator has taken over
+        const lead = await prisma.lead.findFirst({
+          where: { phone: phoneNumber },
+        });
+        if (lead?.humanOverride === true) {
+          console.log(
+            JSON.stringify({
+              level: 'info',
+              msg: 'Human override active, skipping AI',
+              phone: phoneNumber,
+            }),
+          );
+          return;
+        }
+
+        // 4. Run agentic loop
         const reply = await runAgentTurn({
           instance,
           phoneNumber,
@@ -50,12 +66,12 @@ export function startMessageWorker(): Worker {
           lead: conversation.lead,
         });
 
-        // 4. Send reply to lead
+        // 5. Send reply to lead
         if (reply && reply.trim()) {
           await evolutionClient.sendText(instance, phoneNumber, reply);
         }
 
-        // 5. Schedule follow-up (Plan 03 will implement the worker)
+        // 6. Schedule follow-up (Plan 03 will implement the worker)
         try {
           const followupQueue = getFollowupQueue();
           await followupQueue.add(
