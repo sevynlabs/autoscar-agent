@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useSocket } from '@/hooks/useSocket';
 import { KanbanColumn } from './KanbanColumn';
 import { LeadCard, type Lead } from './LeadCard';
 
@@ -31,6 +32,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ stages, leads, pipelineId, onLeadClick }: KanbanBoardProps) {
+  useSocket();
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [localLeads, setLocalLeads] = useState<Lead[]>(leads);

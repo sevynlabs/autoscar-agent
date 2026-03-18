@@ -36,7 +36,6 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
     queryKey: ['messages', conversationId],
     queryFn: () => api.get(`/conversations/${conversationId}/messages`),
     enabled: !!conversationId,
-    refetchInterval: 5000,
   });
 
   useEffect(() => {
