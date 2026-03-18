@@ -45,7 +45,12 @@ Plans:
   3. Agent conducts a qualification conversation (interest, credit condition, city, payment method) and autonomously decides when the lead is qualified or disqualified
   4. Agent creates a CRM card at conversation start, updates lead data as the conversation progresses, and moves the card through pipeline stages automatically
   5. On qualification completion, agent generates a summary note and sends the qualified lead summary to the sellers WhatsApp group; follow-up messages are sent automatically to leads who go silent
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Prisma CRM schema expansion, seed pipeline, CRM + conversation services
+- [ ] 02-02-PLAN.md — OpenAI agentic loop with 7 tool-calls, system prompt, replace echo-bot
+- [ ] 02-03-PLAN.md — WhatsApp photo carousel (sendMedia), follow-up queue + worker, seller notification
 
 ### Phase 3: CRM + Multichat
 **Goal**: Operators can manage all leads in a visual Kanban CRM and monitor all WhatsApp conversations simultaneously, with the ability to take over from the AI
@@ -79,6 +84,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete    | 2026-03-18 |
-| 2. AI Agent | 0/TBD | Not started | - |
+| 2. AI Agent | 0/3 | Not started | - |
 | 3. CRM + Multichat | 0/TBD | Not started | - |
 | 4. Platform + Channels | 0/TBD | Not started | - |
