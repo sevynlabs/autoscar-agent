@@ -31,12 +31,25 @@ model Vehicle {
 }
 
 model Pipeline {
-  id        String   @id @default(cuid())
-  name      String
-  stages    Stage[]
-  leads     Lead[]
-  tenantId  String?
-  createdAt DateTime @default(now())
+  id                 String               @id @default(cuid())
+  name               String
+  stages             Stage[]
+  leads              Lead[]
+  qualificationRules QualificationRule[]
+  tenantId           String?
+  createdAt          DateTime             @default(now())
+}
+
+model QualificationRule {
+  id           String   @id @default(cuid())
+  pipelineId   String
+  pipeline     Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  field        String
+  operator     String
+  value        String
+  stageTrigger String
+  tenantId     String?
+  createdAt    DateTime @default(now())
 }
 
 model Stage {
