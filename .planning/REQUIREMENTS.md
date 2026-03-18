@@ -11,8 +11,8 @@
 - [x] **WAPP-02**: Usuário pode conectar múltiplos números WhatsApp simultaneamente
 - [x] **WAPP-03**: Agente recebe e responde mensagens WhatsApp em tempo real
 - [x] **WAPP-04**: Agente envia carrossel de 3-5 fotos do veículo no WhatsApp
-- [ ] **WAPP-05**: Operador visualiza todas as conversas em inbox multichat
-- [ ] **WAPP-06**: Vendedor assume conversa e IA pausa automaticamente (handoff)
+- [x] **WAPP-05**: Operador visualiza todas as conversas em inbox multichat
+- [x] **WAPP-06**: Vendedor assume conversa e IA pausa automaticamente (handoff)
 - [x] **WAPP-07**: Agente envia resumo do lead qualificado para grupo de vendedores
 
 ### AI Agent
@@ -30,12 +30,12 @@
 ### CRM
 
 - [x] **CRM-01**: Usuário visualiza leads em Kanban com drag-and-drop
-- [ ] **CRM-02**: Usuário configura etapas do pipeline (criar, editar, reordenar, excluir)
-- [ ] **CRM-03**: Usuário configura regras de qualificação por pipeline
-- [ ] **CRM-04**: Usuário busca e filtra leads por nome, telefone, estágio, veículo
-- [ ] **CRM-05**: Usuário visualiza histórico de conversa e notas de cada lead
-- [ ] **CRM-06**: Usuário edita dados do lead manualmente
-- [ ] **CRM-07**: CRM atualiza em tempo real via WebSocket
+- [x] **CRM-02**: Usuário configura etapas do pipeline (criar, editar, reordenar, excluir)
+- [x] **CRM-03**: Usuário configura regras de qualificação por pipeline
+- [x] **CRM-04**: Usuário busca e filtra leads por nome, telefone, estágio, veículo
+- [x] **CRM-05**: Usuário visualiza histórico de conversa e notas de cada lead
+- [x] **CRM-06**: Usuário edita dados do lead manualmente
+- [x] **CRM-07**: CRM atualiza em tempo real via WebSocket
 
 ### Channels
 
@@ -115,14 +115,14 @@
 | WAPP-04 | Phase 2 | Complete |
 | WAPP-07 | Phase 2 | Complete |
 | CRM-01 | Phase 3 | Complete |
-| CRM-02 | Phase 3 | Pending |
-| CRM-03 | Phase 3 | Pending |
-| CRM-04 | Phase 3 | Pending |
-| CRM-05 | Phase 3 | Pending |
-| CRM-06 | Phase 3 | Pending |
-| CRM-07 | Phase 3 | Pending |
-| WAPP-05 | Phase 3 | Pending |
-| WAPP-06 | Phase 3 | Pending |
+| CRM-02 | Phase 3 | Complete |
+| CRM-03 | Phase 3 | Complete |
+| CRM-04 | Phase 3 | Complete |
+| CRM-05 | Phase 3 | Complete |
+| CRM-06 | Phase 3 | Complete |
+| CRM-07 | Phase 3 | Complete |
+| WAPP-05 | Phase 3 | Complete |
+| WAPP-06 | Phase 3 | Complete |
 | PLAT-01 | Phase 4 | Pending |
 | PLAT-02 | Phase 4 | Pending |
 | PLAT-03 | Phase 4 | Pending |
@@ -135,8 +135,8 @@
 **Coverage:**
 - v1 requirements: 36 total (29 originally labeled + 7 PLAT items confirmed in file)
 - Mapped to phases: 36
-- Unmapped: 0 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-17*
-*Last updated: 2026-03-17 after roadmap creation — traceability populated*
+*Last updated: 2026-03-18 after 03-01-PLAN.md completion — CRM backend API requirements marked complete*
