@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-18T14:36:24.207Z"
+status: in-progress
+last_updated: "2026-03-18T15:12:41Z"
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 9
+  completed_plans: 9
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** O agente de IA deve atender o lead instantaneamente, identificar o veículo de interesse, buscar dados/fotos no portal e qualificar o lead de forma autônoma — sem intervenção humana até o momento de negociação.
-**Current focus:** Phase 2 — AI Agent
+**Current focus:** Phase 3 — CRM + Multichat
 
 ## Current Position
 
-Phase: 2 of 4 (AI Agent) -- COMPLETE
-Plan: 3 of 3 in current phase (all complete)
-Status: Phase 2 Complete -- Ready for Phase 3
-Last activity: 2026-03-18 — Completed 02-02-PLAN.md (AI agent agentic loop)
+Phase: 3 of 4 (CRM + Multichat) -- IN PROGRESS
+Plan: 2 of 5 in current phase (2 complete)
+Status: Completed 03-02-PLAN.md — Frontend scaffold
+Last activity: 2026-03-18 — Completed 03-02-PLAN.md (Next.js frontend scaffold)
 
-Progress: [████████████████░░░░] 50%
+Progress: [█████████████████████░░░░] 64%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 9
 - Average duration: 4 min
-- Total execution time: 0.38 hours
+- Total execution time: 0.53 hours
 
 **By Phase:**
 
@@ -42,9 +42,10 @@ Progress: [████████████████░░░░] 50%
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 15 min | 4 min |
 | 02-ai-agent | 3 | 8 min | 3 min |
+| 03-crm-multichat | 2 | 9 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (3 min), 01-04 (4 min), 02-01 (4 min), 02-02 (2 min), 02-03 (2 min)
+- Last 5 plans: 02-01 (4 min), 02-02 (2 min), 02-03 (2 min), 03-01 (4 min), 03-02 (5 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -54,6 +55,8 @@ Progress: [████████████████░░░░] 50%
 | Phase 02 P01 | 4min | 2 tasks | 10 files |
 | Phase 02 P03 | 2min | 2 tasks | 6 files |
 | Phase 02 P02 | 5min | 2 tasks | 4 files |
+| Phase 03 P01 | 4min | 2 tasks | 9 files |
+| Phase 03 P02 | 5min | 2 tasks | 39 files |
 
 ## Accumulated Context
 
@@ -83,6 +86,14 @@ Recent decisions affecting current work:
 - [Phase 02]: Used ChatCompletionMessageFunctionToolCall type narrowing for OpenAI v6 union compatibility
 - [Phase 02]: send_photos tool gracefully skips if sendMedia not available (Plan 03 dependency)
 - [Phase 02]: notify_sellers_group reads SELLERS_GROUP_JID from env with graceful skip
+- [03-01]: Used socket.io Server directly instead of fastify-socket.io (Fastify 5 incompatible)
+- [03-01]: Zod v4 validation on all route request bodies and query params
+- [03-01]: Stage reorder uses shift-up/shift-down strategy for contiguous order values
+- [03-01]: Operator reply endpoint sends via Evolution API and stores as role=human message
+- [03-02]: Next.js 16 installed (latest stable) -- API compatible with 15
+- [03-02]: Backend moved to port 3001 (APP_PORT env) to free 3000 for frontend
+- [03-02]: API proxy via Next.js rewrites (/api/backend -> Fastify) avoids CORS for REST
+- [03-02]: Socket.IO client uses autoConnect: false -- components call connect() in useEffect
 
 ### Pending Todos
 
@@ -97,5 +108,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-18
-Stopped at: Completed 02-02-PLAN.md (AI agent agentic loop). Phase 2 fully complete. Ready for Phase 3.
+Stopped at: Completed 03-02-PLAN.md (Next.js frontend scaffold). Phase 3 in progress, plan 3 next.
 Resume file: None

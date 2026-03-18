@@ -62,10 +62,10 @@ Plans:
   3. Operator can search and filter leads by name, phone, stage, or vehicle and see the full conversation history and AI-generated notes for any lead
   4. Operator can edit any lead's data manually; CRM updates from both the agent and manual edits appear in real time for all connected users via WebSocket
   5. Vendor clicks a "take over" button in the multichat inbox and the AI immediately pauses for that conversation; all active conversations across multiple WhatsApp numbers are visible in a single inbox
-**Plans:** 5 plans
+**Plans:** 1/5 plans complete
 
 Plans:
-- [ ] 03-01-PLAN.md — Backend REST API routes + Socket.IO plugin + Prisma QualificationRule + humanOverride guard
+- [x] 03-01-PLAN.md — Backend REST API routes + Socket.IO plugin + Prisma QualificationRule + humanOverride guard
 - [ ] 03-02-PLAN.md — Next.js 15 frontend scaffold + Docker service + Nginx routing
 - [ ] 03-03-PLAN.md — Kanban CRM board with dnd-kit drag-and-drop + lead detail + edit form
 - [ ] 03-04-PLAN.md — Multichat inbox + human handoff + pipeline settings + qualification rules UI
@@ -92,5 +92,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete    | 2026-03-18 |
 | 2. AI Agent | 3/3 | Complete    | 2026-03-18 |
-| 3. CRM + Multichat | 0/5 | In Progress | - |
+| 3. CRM + Multichat | 1/5 | In Progress | - |
 | 4. Platform + Channels | 0/TBD | Not started | - |

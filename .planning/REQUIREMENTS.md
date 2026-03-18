@@ -29,7 +29,7 @@
 
 ### CRM
 
-- [ ] **CRM-01**: Usuário visualiza leads em Kanban com drag-and-drop
+- [x] **CRM-01**: Usuário visualiza leads em Kanban com drag-and-drop
 - [ ] **CRM-02**: Usuário configura etapas do pipeline (criar, editar, reordenar, excluir)
 - [ ] **CRM-03**: Usuário configura regras de qualificação por pipeline
 - [ ] **CRM-04**: Usuário busca e filtra leads por nome, telefone, estágio, veículo
@@ -114,7 +114,7 @@
 | AGENT-09 | Phase 2 | Complete |
 | WAPP-04 | Phase 2 | Complete |
 | WAPP-07 | Phase 2 | Complete |
-| CRM-01 | Phase 3 | Pending |
+| CRM-01 | Phase 3 | Complete |
 | CRM-02 | Phase 3 | Pending |
 | CRM-03 | Phase 3 | Pending |
 | CRM-04 | Phase 3 | Pending |
