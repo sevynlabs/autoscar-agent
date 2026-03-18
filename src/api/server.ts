@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import envPlugin from './plugins/env.js';
+import instanceRoutes from './routes/instance.js';
 
 export async function buildServer() {
   const fastify = Fastify({
@@ -22,6 +23,9 @@ export async function buildServer() {
   fastify.get('/health', async () => {
     return { status: 'ok' };
   });
+
+  // Instance management routes
+  await fastify.register(instanceRoutes);
 
   return fastify;
 }
