@@ -49,8 +49,8 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — Prisma CRM schema expansion, seed pipeline, CRM + conversation services
-- [ ] 02-02-PLAN.md — OpenAI agentic loop with 7 tool-calls, system prompt, replace echo-bot
-- [ ] 02-03-PLAN.md — WhatsApp photo carousel (sendMedia), follow-up queue + worker, seller notification
+- [x] 02-02-PLAN.md — OpenAI agentic loop with 7 tool-calls, system prompt, replace echo-bot
+- [x] 02-03-PLAN.md — WhatsApp photo carousel (sendMedia), follow-up queue + worker, seller notification
 
 ### Phase 3: CRM + Multichat
 **Goal**: Operators can manage all leads in a visual Kanban CRM and monitor all WhatsApp conversations simultaneously, with the ability to take over from the AI
@@ -62,7 +62,14 @@ Plans:
   3. Operator can search and filter leads by name, phone, stage, or vehicle and see the full conversation history and AI-generated notes for any lead
   4. Operator can edit any lead's data manually; CRM updates from both the agent and manual edits appear in real time for all connected users via WebSocket
   5. Vendor clicks a "take over" button in the multichat inbox and the AI immediately pauses for that conversation; all active conversations across multiple WhatsApp numbers are visible in a single inbox
-**Plans**: TBD
+**Plans:** 5 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Backend REST API routes + Socket.IO plugin + Prisma QualificationRule + humanOverride guard
+- [ ] 03-02-PLAN.md — Next.js 15 frontend scaffold + Docker service + Nginx routing
+- [ ] 03-03-PLAN.md — Kanban CRM board with dnd-kit drag-and-drop + lead detail + edit form
+- [ ] 03-04-PLAN.md — Multichat inbox + human handoff + pipeline settings + qualification rules UI
+- [ ] 03-05-PLAN.md — Socket.IO real-time wiring + full Phase 3 verification checkpoint
 
 ### Phase 4: Platform + Channels
 **Goal**: The platform has secure multi-user access, analytics visibility, Instagram and SMS channels, and an external API for third-party integrations
@@ -84,6 +91,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete    | 2026-03-18 |
-| 2. AI Agent | 2/3 | Complete    | 2026-03-18 |
-| 3. CRM + Multichat | 0/TBD | Not started | - |
+| 2. AI Agent | 3/3 | Complete    | 2026-03-18 |
+| 3. CRM + Multichat | 0/5 | In Progress | - |
 | 4. Platform + Channels | 0/TBD | Not started | - |
