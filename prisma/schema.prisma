@@ -29,3 +29,74 @@ model Vehicle {
   cachedAt  DateTime @default(now())
   tenantId  String?
 }
+
+model Pipeline {
+  id        String   @id @default(cuid())
+  name      String
+  stages    Stage[]
+  leads     Lead[]
+  tenantId  String?
+  createdAt DateTime @default(now())
+}
+
+model Stage {
+  id         String   @id @default(cuid())
+  name       String
+  order      Int
+  pipelineId String
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id])
+  leads      Lead[]
+  tenantId   String?
+}
+
+model Lead {
+  id            String        @id @default(cuid())
+  phone         String
+  name          String?
+  city          String?
+  creditStatus  String?
+  paymentMethod String?
+  vehicleUrl    String?
+  stageId       String?
+  stage         Stage?        @relation(fields: [stageId], references: [id])
+  pipelineId    String?
+  pipeline      Pipeline?     @relation(fields: [pipelineId], references: [id])
+  humanOverride Boolean       @default(false)
+  conversation  Conversation?
+  notes         LeadNote[]
+  tenantId      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([phone, pipelineId])
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  content   String
+  type      String   @default("ai")
+  tenantId  String?
+  createdAt DateTime @default(now())
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  leadId    String    @unique
+  lead      Lead      @relation(fields: [leadId], references: [id])
+  channel   String    @default("whatsapp")
+  messages  Message[]
+  tenantId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  role           String
+  content        String
+  createdAt      DateTime     @default(now())
+}
