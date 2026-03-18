@@ -30,7 +30,7 @@ Four phases that transform a blank repo into a fully operational AI SDR platform
 **Plans:** 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Docker stack + project scaffold + Prisma schema
+- [x] 01-01-PLAN.md — Docker stack + project scaffold + Prisma schema
 - [ ] 01-02-PLAN.md — WhatsApp integration (Evolution API client, webhook, BullMQ pipeline)
 - [ ] 01-03-PLAN.md — Autoscar.com.br scraper (Playwright + Cheerio + Redis cache + Zod)
 - [ ] 01-04-PLAN.md — Wire scraper into message worker + end-to-end verification
@@ -78,7 +78,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/4 | Planned | - |
+| 1. Foundation | 1/4 | In Progress | - |
 | 2. AI Agent | 0/TBD | Not started | - |
 | 3. CRM + Multichat | 0/TBD | Not started | - |
 | 4. Platform + Channels | 0/TBD | Not started | - |

@@ -56,8 +56,8 @@
 - [ ] **PLAT-03**: Dashboard com métricas de leads, conversões e performance
 - [ ] **PLAT-04**: API externa documentada para integração com sistemas terceiros
 - [ ] **PLAT-05**: Webhooks configuráveis para eventos (novo lead, qualificado, etc)
-- [ ] **PLAT-06**: Configuração de APIs (.env) — Evolution API + OpenAI
-- [ ] **PLAT-07**: Deploy via Docker Compose em VPS
+- [x] **PLAT-06**: Configuração de APIs (.env) — Evolution API + OpenAI
+- [x] **PLAT-07**: Deploy via Docker Compose em VPS
 
 ## v2 Requirements
 
@@ -101,8 +101,8 @@
 | SCRP-01 | Phase 1 | Pending |
 | SCRP-02 | Phase 1 | Pending |
 | SCRP-03 | Phase 1 | Pending |
-| PLAT-06 | Phase 1 | Pending |
-| PLAT-07 | Phase 1 | Pending |
+| PLAT-06 | Phase 1 | Complete |
+| PLAT-07 | Phase 1 | Complete |
 | AGENT-01 | Phase 2 | Pending |
 | AGENT-02 | Phase 2 | Pending |
 | AGENT-03 | Phase 2 | Pending |

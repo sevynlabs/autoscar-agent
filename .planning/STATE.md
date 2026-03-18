@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 1 of 4 (Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-17 — Roadmap created (4 phases, 36 requirements mapped)
+Plan: 1 of 4 in current phase
+Status: Executing
+Last activity: 2026-03-17 — Completed 01-01-PLAN.md (Docker stack + project scaffold + Prisma schema)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 6%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: 5 min
+- Total execution time: 0.08 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-foundation | 1 | 5 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: -
+- Last 5 plans: 01-01 (5 min)
 - Trend: -
 
 *Updated after each plan completion*
@@ -46,6 +46,8 @@ Recent decisions affecting current work:
 - [Setup]: BullMQ async queue is non-negotiable — Evolution API has 5s timeout, OpenAI calls take 5-15s
 - [Setup]: All DB tables must carry nullable `tenant_id` from day one for future SaaS migration
 - [Setup]: Evolution API via Docker with persistent volumes — session loss on restart is a critical pitfall
+- [01-01]: Downgraded Prisma 7 to Prisma 6 — v7 removed datasource url from schema.prisma, breaking standard patterns
+- [01-01]: Removed deprecated docker-compose version key for modern Docker Compose compatibility
 
 ### Pending Todos
 
@@ -60,5 +62,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-17
-Stopped at: Roadmap created, STATE.md initialized. Ready to plan Phase 1.
+Stopped at: Completed 01-01-PLAN.md. Ready for 01-02-PLAN.md (WhatsApp integration).
 Resume file: None
