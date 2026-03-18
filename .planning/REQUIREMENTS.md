@@ -10,10 +10,10 @@
 - [x] **WAPP-01**: Usuário pode conectar número WhatsApp via QR code (Evolution API)
 - [x] **WAPP-02**: Usuário pode conectar múltiplos números WhatsApp simultaneamente
 - [x] **WAPP-03**: Agente recebe e responde mensagens WhatsApp em tempo real
-- [ ] **WAPP-04**: Agente envia carrossel de 3-5 fotos do veículo no WhatsApp
+- [x] **WAPP-04**: Agente envia carrossel de 3-5 fotos do veículo no WhatsApp
 - [ ] **WAPP-05**: Operador visualiza todas as conversas em inbox multichat
 - [ ] **WAPP-06**: Vendedor assume conversa e IA pausa automaticamente (handoff)
-- [ ] **WAPP-07**: Agente envia resumo do lead qualificado para grupo de vendedores
+- [x] **WAPP-07**: Agente envia resumo do lead qualificado para grupo de vendedores
 
 ### AI Agent
 
@@ -24,7 +24,7 @@
 - [x] **AGENT-05**: Agente atualiza dados do lead no CRM conforme conversa avança
 - [x] **AGENT-06**: Agente move card no Kanban conforme etapa de qualificação
 - [x] **AGENT-07**: Agente gera nota resumo da qualificação para vendedor
-- [ ] **AGENT-08**: Agente executa follow-up automático por WhatsApp
+- [x] **AGENT-08**: Agente executa follow-up automático por WhatsApp
 - [x] **AGENT-09**: Agente mantém contexto da conversa entre mensagens
 
 ### CRM
@@ -110,10 +110,10 @@
 | AGENT-05 | Phase 2 | Complete |
 | AGENT-06 | Phase 2 | Complete |
 | AGENT-07 | Phase 2 | Complete |
-| AGENT-08 | Phase 2 | Pending |
+| AGENT-08 | Phase 2 | Complete |
 | AGENT-09 | Phase 2 | Complete |
-| WAPP-04 | Phase 2 | Pending |
-| WAPP-07 | Phase 2 | Pending |
+| WAPP-04 | Phase 2 | Complete |
+| WAPP-07 | Phase 2 | Complete |
 | CRM-01 | Phase 3 | Pending |
 | CRM-02 | Phase 3 | Pending |
 | CRM-03 | Phase 3 | Pending |

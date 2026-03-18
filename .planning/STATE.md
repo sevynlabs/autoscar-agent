@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in-progress
-last_updated: "2026-03-18T04:47:04Z"
+last_updated: "2026-03-18T04:53:00Z"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 7
 ---
 
 # Project State
@@ -23,28 +23,28 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 2 of 4 (AI Agent)
-Plan: 1 of 4 in current phase (02-01 complete)
+Plan: 3 of 4 in current phase (02-03 complete)
 Status: Executing Phase 2
-Last activity: 2026-03-18 — Completed 02-01-PLAN.md (CRM data layer + agent types)
+Last activity: 2026-03-18 — Completed 02-03-PLAN.md (outbound capabilities: sendMedia, follow-up queue)
 
-Progress: [████████████░░░░░░░░] 31%
+Progress: [██████████████████░░] 44%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 7
 - Average duration: 4 min
-- Total execution time: 0.32 hours
+- Total execution time: 0.38 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 15 min | 4 min |
-| 02-ai-agent | 1 | 4 min | 4 min |
+| 02-ai-agent | 3 | 8 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (5 min), 01-03 (3 min), 01-04 (4 min), 02-01 (4 min)
+- Last 5 plans: 01-03 (3 min), 01-04 (4 min), 02-01 (4 min), 02-02 (2 min), 02-03 (2 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -52,6 +52,7 @@ Progress: [████████████░░░░░░░░] 31%
 | Phase 01 P03 | 3min | 2 tasks | 6 files |
 | Phase 01 P04 | 4min | 2 tasks | 1 files |
 | Phase 02 P01 | 4min | 2 tasks | 10 files |
+| Phase 02 P03 | 2min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Recent decisions affecting current work:
 - [02-01]: Exposed postgres port 5433 for local dev access (5432 occupied by another container)
 - [02-01]: openai package installed as only new dependency for Phase 2
 - [02-01]: Conversation service creates orphan lead when no existing lead found for phone number
+- [02-03]: Follow-up worker concurrency 3 (lower than message worker 5) to avoid WhatsApp rate limits
+- [02-03]: MAX_FOLLOWUPS=2 with 48h delay between follow-ups
+- [02-03]: Worker getter pattern (startXWorker/getXWorker) for graceful shutdown consistency
 
 ### Pending Todos
 
@@ -89,5 +93,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-18
-Stopped at: Completed 02-01-PLAN.md (CRM data layer + agent types). Ready for 02-02-PLAN.md.
+Stopped at: Completed 02-03-PLAN.md (outbound capabilities). Ready for 02-04-PLAN.md.
 Resume file: None
