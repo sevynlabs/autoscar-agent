@@ -17,3 +17,20 @@ export function getMessageQueue(): Queue {
 
   return messageQueue!;
 }
+
+let followupQueue: Queue | null = null;
+
+export function getFollowupQueue(): Queue {
+  if (!followupQueue) {
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) {
+      throw new Error('REDIS_URL must be set');
+    }
+
+    followupQueue = new Queue('followups', {
+      connection: { url: redisUrl },
+    });
+  }
+
+  return followupQueue!;
+}

@@ -92,4 +92,21 @@ export const evolutionClient = {
     const { data } = await client.get<InstanceInfo[]>('/instance/fetchInstances');
     return data;
   },
+
+  async sendMedia(
+    instanceName: string,
+    to: string,
+    mediaUrl: string,
+    caption?: string,
+  ): Promise<void> {
+    const client = getClient();
+    await client.post(`/message/sendMedia/${instanceName}`, {
+      number: to,
+      mediatype: 'Image',
+      mimetype: 'image/jpeg',
+      media: mediaUrl,
+      caption: caption ?? '',
+      fileName: 'veiculo.jpg',
+    });
+  },
 };
