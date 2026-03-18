@@ -1,37 +1,11 @@
 import { Worker, type Job } from 'bullmq';
+import { runAgentTurn } from '../../agent/agent.service.js';
+import { loadOrCreateConversation } from '../../conversation/conversation.service.js';
 import { evolutionClient } from '../../whatsapp/evolution.client.js';
-import {
-  getVehicleData,
-  ScraperValidationError,
-  ScraperNavigationError,
-} from '../../scraper/scraper.service.js';
+import { getFollowupQueue } from '../queues.js';
 import type { MessageJobData } from '../jobs/message.job.js';
 
 let worker: Worker | null = null;
-
-const AUTOSCAR_URL_REGEX = /(https?:\/\/(www\.)?autoscar\.com\.br\S+)/i;
-
-function extractAutoscarUrl(text: string): string | null {
-  const match = text.match(AUTOSCAR_URL_REGEX);
-  return match ? match[1] : null;
-}
-
-function formatVehicleSummary(
-  data: { model: string; year: string; km: string; price: string; photos: string[] },
-  cached: boolean,
-): string {
-  return [
-    'Encontrei o veiculo:',
-    '',
-    data.model,
-    `Ano: ${data.year}`,
-    `KM: ${data.km}`,
-    `Preco: ${data.price}`,
-    `Fotos: ${data.photos.length} disponivel(is)`,
-    '',
-    cached ? '(dados do cache)' : '(dados atualizados)',
-  ].join('\n');
-}
 
 export function startMessageWorker(): Worker {
   const redisUrl = process.env.REDIS_URL;
@@ -55,69 +29,80 @@ export function startMessageWorker(): Worker {
       );
 
       try {
-        const url = extractAutoscarUrl(message);
+        // 1. Cancel any pending follow-up (lead replied)
+        try {
+          const followupQueue = getFollowupQueue();
+          await followupQueue.remove(`followup-${phoneNumber}`);
+        } catch {
+          /* followup queue may not exist yet — Plan 03 adds the worker */
+        }
 
-        if (url) {
-          console.log(
-            JSON.stringify({
-              level: 'info',
-              msg: 'URL detected',
-              jobId: job.id,
-              url,
-            }),
+        // 2. Load or create conversation
+        const conversation = await loadOrCreateConversation(phoneNumber);
+
+        // 3. Run agentic loop
+        const reply = await runAgentTurn({
+          instance,
+          phoneNumber,
+          userMessage: message,
+          conversationId: conversation.id,
+          history: conversation.recentMessages,
+          lead: conversation.lead,
+        });
+
+        // 4. Send reply to lead
+        if (reply && reply.trim()) {
+          await evolutionClient.sendText(instance, phoneNumber, reply);
+        }
+
+        // 5. Schedule follow-up (Plan 03 will implement the worker)
+        try {
+          const followupQueue = getFollowupQueue();
+          await followupQueue.add(
+            'followup',
+            {
+              leadId: conversation.lead?.id,
+              instance,
+              phoneNumber,
+              followupNumber: 1,
+            },
+            {
+              delay: 24 * 60 * 60 * 1000,
+              jobId: `followup-${phoneNumber}`,
+            },
           );
-
-          const result = await getVehicleData(url);
-
-          console.log(
-            JSON.stringify({
-              level: 'info',
-              msg: 'Scrape result',
-              jobId: job.id,
-              cached: result.cached,
-            }),
-          );
-
-          const summary = formatVehicleSummary(result.data, result.cached);
-          await evolutionClient.sendText(instance, phoneNumber, summary);
-        } else {
-          // No URL — echo reply (will be replaced by AI agent in Phase 2)
-          await evolutionClient.sendText(instance, phoneNumber, `[Echo] ${message}`);
+        } catch {
+          /* follow-up queue not available yet */
         }
 
         console.log(
           JSON.stringify({
             level: 'info',
-            msg: 'Reply sent',
+            msg: 'Agent reply sent',
             jobId: job.id,
             phone: phoneNumber,
           }),
         );
       } catch (err) {
-        if (err instanceof ScraperValidationError) {
-          const errorMsg = `Nao consegui extrair todos os dados do veiculo. Campos com problema: ${err.fields.join(', ')}`;
-          await evolutionClient.sendText(instance, phoneNumber, errorMsg);
-        } else if (err instanceof ScraperNavigationError) {
+        console.log(
+          JSON.stringify({
+            level: 'error',
+            msg: 'Unexpected error processing message',
+            jobId: job.id,
+            phone: phoneNumber,
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        );
+
+        // Send fallback message to lead
+        try {
           await evolutionClient.sendText(
             instance,
             phoneNumber,
-            'Nao consegui acessar a pagina do veiculo. Tente novamente em alguns minutos.',
+            'Desculpe, ocorreu um erro. Um vendedor vai entrar em contato.',
           );
-        } else {
-          console.log(
-            JSON.stringify({
-              level: 'error',
-              msg: 'Unexpected error processing message',
-              jobId: job.id,
-              phone: phoneNumber,
-              error: err instanceof Error ? err.message : String(err),
-            }),
-          );
-          await evolutionClient.sendText(
-            instance,
-            phoneNumber,
-            'Ocorreu um erro ao buscar os dados do veiculo.',
-          );
+        } catch {
+          /* if even fallback fails, let BullMQ retry handle it */
         }
       }
     },
