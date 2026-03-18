@@ -48,7 +48,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Prisma CRM schema expansion, seed pipeline, CRM + conversation services
+- [x] 02-01-PLAN.md — Prisma CRM schema expansion, seed pipeline, CRM + conversation services
 - [ ] 02-02-PLAN.md — OpenAI agentic loop with 7 tool-calls, system prompt, replace echo-bot
 - [ ] 02-03-PLAN.md — WhatsApp photo carousel (sendMedia), follow-up queue + worker, seller notification
 
@@ -84,6 +84,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete    | 2026-03-18 |
-| 2. AI Agent | 0/3 | Not started | - |
+| 2. AI Agent | 1/3 | In progress | - |
 | 3. CRM + Multichat | 0/TBD | Not started | - |
 | 4. Platform + Channels | 0/TBD | Not started | - |

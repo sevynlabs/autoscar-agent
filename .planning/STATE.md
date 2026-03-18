@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-18T03:28:48.341Z"
+status: in-progress
+last_updated: "2026-03-18T04:47:04Z"
 progress:
-  total_phases: 1
+  total_phases: 4
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 5
+  completed_plans: 5
 ---
 
 # Project State
@@ -18,38 +18,40 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** O agente de IA deve atender o lead instantaneamente, identificar o veículo de interesse, buscar dados/fotos no portal e qualificar o lead de forma autônoma — sem intervenção humana até o momento de negociação.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — AI Agent
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation) -- COMPLETE
-Plan: 4 of 4 in current phase (all done)
-Status: Phase 1 Complete
-Last activity: 2026-03-17 — Completed 01-04-PLAN.md (Scraper-worker integration + end-to-end pipeline verification)
+Phase: 2 of 4 (AI Agent)
+Plan: 1 of 4 in current phase (02-01 complete)
+Status: Executing Phase 2
+Last activity: 2026-03-18 — Completed 02-01-PLAN.md (CRM data layer + agent types)
 
-Progress: [██████████] 25%
+Progress: [████████████░░░░░░░░] 31%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 4 min
-- Total execution time: 0.25 hours
+- Total execution time: 0.32 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 15 min | 4 min |
+| 02-ai-agent | 1 | 4 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min), 01-02 (5 min), 01-03 (3 min), 01-04 (4 min)
+- Last 5 plans: 01-02 (5 min), 01-03 (3 min), 01-04 (4 min), 02-01 (4 min)
 - Trend: stable
 
 *Updated after each plan completion*
 | Phase 01 P02 | 5min | 2 tasks | 9 files |
 | Phase 01 P03 | 3min | 2 tasks | 6 files |
 | Phase 01 P04 | 4min | 2 tasks | 1 files |
+| Phase 02 P01 | 4min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -70,6 +72,9 @@ Recent decisions affecting current work:
 - [01-03]: Fallback selector strategy with console.warn for monitoring selector degradation
 - [01-04]: URL detection via regex for Phase 1 — simple routing replaced by AI classification in Phase 2
 - [01-04]: Echo reply preserved for non-URL messages as Phase 2 AI agent placeholder
+- [02-01]: Exposed postgres port 5433 for local dev access (5432 occupied by another container)
+- [02-01]: openai package installed as only new dependency for Phase 2
+- [02-01]: Conversation service creates orphan lead when no existing lead found for phone number
 
 ### Pending Todos
 
@@ -83,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17
-Stopped at: Completed 01-04-PLAN.md (Scraper-worker integration). Phase 1 Foundation complete. Ready for Phase 2 planning.
+Last session: 2026-03-18
+Stopped at: Completed 02-01-PLAN.md (CRM data layer + agent types). Ready for 02-02-PLAN.md.
 Resume file: None

@@ -20,12 +20,12 @@
 - [ ] **AGENT-01**: Agente identifica veículo de interesse do lead pela mensagem/anúncio
 - [ ] **AGENT-02**: Agente busca dados do veículo no portal autoscar.com.br via scraping
 - [ ] **AGENT-03**: Agente qualifica lead autonomamente (interesse, crédito, cidade, pagamento)
-- [ ] **AGENT-04**: Agente cria card no CRM automaticamente ao iniciar qualificação
-- [ ] **AGENT-05**: Agente atualiza dados do lead no CRM conforme conversa avança
-- [ ] **AGENT-06**: Agente move card no Kanban conforme etapa de qualificação
-- [ ] **AGENT-07**: Agente gera nota resumo da qualificação para vendedor
+- [x] **AGENT-04**: Agente cria card no CRM automaticamente ao iniciar qualificação
+- [x] **AGENT-05**: Agente atualiza dados do lead no CRM conforme conversa avança
+- [x] **AGENT-06**: Agente move card no Kanban conforme etapa de qualificação
+- [x] **AGENT-07**: Agente gera nota resumo da qualificação para vendedor
 - [ ] **AGENT-08**: Agente executa follow-up automático por WhatsApp
-- [ ] **AGENT-09**: Agente mantém contexto da conversa entre mensagens
+- [x] **AGENT-09**: Agente mantém contexto da conversa entre mensagens
 
 ### CRM
 
@@ -106,12 +106,12 @@
 | AGENT-01 | Phase 2 | Pending |
 | AGENT-02 | Phase 2 | Pending |
 | AGENT-03 | Phase 2 | Pending |
-| AGENT-04 | Phase 2 | Pending |
-| AGENT-05 | Phase 2 | Pending |
-| AGENT-06 | Phase 2 | Pending |
-| AGENT-07 | Phase 2 | Pending |
+| AGENT-04 | Phase 2 | Complete |
+| AGENT-05 | Phase 2 | Complete |
+| AGENT-06 | Phase 2 | Complete |
+| AGENT-07 | Phase 2 | Complete |
 | AGENT-08 | Phase 2 | Pending |
-| AGENT-09 | Phase 2 | Pending |
+| AGENT-09 | Phase 2 | Complete |
 | WAPP-04 | Phase 2 | Pending |
 | WAPP-07 | Phase 2 | Pending |
 | CRM-01 | Phase 3 | Pending |
