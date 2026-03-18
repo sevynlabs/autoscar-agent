@@ -2,6 +2,8 @@ import Fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import envPlugin from './plugins/env.js';
 import instanceRoutes from './routes/instance.js';
+import webhookRoutes from './routes/webhook.js';
+import scraperRoutes from './routes/scraper.js';
 
 export async function buildServer() {
   const fastify = Fastify({
@@ -26,6 +28,12 @@ export async function buildServer() {
 
   // Instance management routes
   await fastify.register(instanceRoutes);
+
+  // Webhook routes
+  await fastify.register(webhookRoutes);
+
+  // Scraper test routes
+  await fastify.register(scraperRoutes);
 
   return fastify;
 }
