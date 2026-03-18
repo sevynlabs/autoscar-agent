@@ -17,9 +17,9 @@
 
 ### AI Agent
 
-- [ ] **AGENT-01**: Agente identifica veículo de interesse do lead pela mensagem/anúncio
-- [ ] **AGENT-02**: Agente busca dados do veículo no portal autoscar.com.br via scraping
-- [ ] **AGENT-03**: Agente qualifica lead autonomamente (interesse, crédito, cidade, pagamento)
+- [x] **AGENT-01**: Agente identifica veículo de interesse do lead pela mensagem/anúncio
+- [x] **AGENT-02**: Agente busca dados do veículo no portal autoscar.com.br via scraping
+- [x] **AGENT-03**: Agente qualifica lead autonomamente (interesse, crédito, cidade, pagamento)
 - [x] **AGENT-04**: Agente cria card no CRM automaticamente ao iniciar qualificação
 - [x] **AGENT-05**: Agente atualiza dados do lead no CRM conforme conversa avança
 - [x] **AGENT-06**: Agente move card no Kanban conforme etapa de qualificação
@@ -103,9 +103,9 @@
 | SCRP-03 | Phase 1 | Complete |
 | PLAT-06 | Phase 1 | Complete |
 | PLAT-07 | Phase 1 | Complete |
-| AGENT-01 | Phase 2 | Pending |
-| AGENT-02 | Phase 2 | Pending |
-| AGENT-03 | Phase 2 | Pending |
+| AGENT-01 | Phase 2 | Complete |
+| AGENT-02 | Phase 2 | Complete |
+| AGENT-03 | Phase 2 | Complete |
 | AGENT-04 | Phase 2 | Complete |
 | AGENT-05 | Phase 2 | Complete |
 | AGENT-06 | Phase 2 | Complete |
