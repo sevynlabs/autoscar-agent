@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model WhatsAppInstance {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  evolutionInstanceId String
+  phoneNumber         String?
+  status              String   @default("disconnected")
+  tenantId            String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Vehicle {
+  id        String   @id @default(cuid())
+  portalUrl String   @unique
+  model     String
+  year      String
+  price     String
+  mileage   String
+  photos    String[]
+  cachedAt  DateTime @default(now())
+  tenantId  String?
+}
