@@ -63,10 +63,23 @@ services:
     build: .
     restart: always
     env_file: .env
+    environment:
+      - APP_PORT=3001
     depends_on:
       - postgres
       - redis
       - evolution-api
+    networks:
+      - autoscar-net
+
+  frontend:
+    build: ./frontend
+    restart: always
+    environment:
+      - BACKEND_URL=http://app:3001
+      - NEXT_PUBLIC_SOCKET_URL=http://localhost/socket.io
+    depends_on:
+      - app
     networks:
       - autoscar-net
 
@@ -81,6 +94,7 @@ services:
       - certbot_data:/etc/letsencrypt
     depends_on:
       - app
+      - frontend
       - evolution-api
     networks:
       - autoscar-net
