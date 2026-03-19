@@ -1,6 +1,6 @@
 import { Worker, type Job } from 'bullmq';
 import { runAgentTurn } from '../../agent/agent.service.js';
-import { getActiveAgent, isChannelEnabled } from '../../agent/agent.prompts.js';
+import { getActiveAgent, isChannelEnabled, isInstanceEnabled } from '../../agent/agent.prompts.js';
 import { loadOrCreateConversation } from '../../conversation/conversation.service.js';
 import { getChannel } from '../../channels/channel.manager.js';
 import prisma from '../../db/prisma.js';
@@ -45,10 +45,14 @@ export function startMessageWorker(): Worker {
         // 2. Load or create conversation (with channel)
         const conversation = await loadOrCreateConversation(phoneNumber, channelName);
 
-        // 3. Check if agent responds on this channel
+        // 3. Check if agent responds on this channel + instance
         const activeAgent = await getActiveAgent();
         if (!isChannelEnabled(activeAgent, channelName)) {
           console.log(JSON.stringify({ level: 'info', msg: 'Agent disabled for this channel', channel: channelName, phone: phoneNumber }));
+          return;
+        }
+        if (!isInstanceEnabled(activeAgent, instance)) {
+          console.log(JSON.stringify({ level: 'info', msg: 'Agent not assigned to this instance', instance, phone: phoneNumber }));
           return;
         }
 

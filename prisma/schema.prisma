@@ -124,6 +124,7 @@ model Agent {
   welcomeMessage    String?  @db.Text
   qualificationFields String[] @default(["interest", "creditStatus", "city", "paymentMethod"])
   channels          String[] @default(["whatsapp", "instagram", "sms"])
+  instances         String[] @default([])
   maxFollowups      Int      @default(2)
   followupDelayHours Int     @default(24)
   portalUrl         String   @default("https://www.autoscar.com.br")

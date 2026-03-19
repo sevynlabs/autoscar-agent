@@ -11,6 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Bot, Plus, Pencil, Trash2, Power, PowerOff, Save, X, Loader2, Brain, Zap, MessageSquare, Target, Users, Globe, Phone, Instagram, Smartphone } from 'lucide-react';
 
+interface WhatsAppInstance {
+  id: string;
+  name: string;
+  phoneNumber: string | null;
+  status: string;
+}
+
 interface Agent {
   id: string;
   name: string;
@@ -20,6 +27,7 @@ interface Agent {
   welcomeMessage: string | null;
   qualificationFields: string[];
   channels: string[];
+  instances: string[];
   maxFollowups: number;
   followupDelayHours: number;
   portalUrl: string;
@@ -96,6 +104,7 @@ export default function AgentSettingsPage() {
     welcomeMessage: '',
     qualificationFields: ['interest', 'creditStatus', 'city', 'paymentMethod'] as string[],
     channels: ['whatsapp', 'instagram', 'sms'] as string[],
+    instances: [] as string[],
     maxFollowups: 2,
     followupDelayHours: 24,
     portalUrl: 'https://www.autoscar.com.br',
@@ -108,6 +117,11 @@ export default function AgentSettingsPage() {
     queryFn: () => api.get('/agents'),
   });
 
+  const { data: connectedInstances } = useQuery<WhatsAppInstance[]>({
+    queryKey: ['instances'],
+    queryFn: () => api.get('/instances'),
+  });
+
   const { data: stats } = useQuery<AgentStats>({
     queryKey: ['agent-stats'],
     queryFn: () => api.get('/agent/stats'),
@@ -117,7 +131,7 @@ export default function AgentSettingsPage() {
     setForm({
       name: '', description: '', model: 'gpt-4o', systemPrompt: DEFAULT_PROMPT,
       welcomeMessage: '', qualificationFields: ['interest', 'creditStatus', 'city', 'paymentMethod'],
-      channels: ['whatsapp', 'instagram', 'sms'],
+      channels: ['whatsapp', 'instagram', 'sms'], instances: [],
       maxFollowups: 2, followupDelayHours: 24, portalUrl: 'https://www.autoscar.com.br',
       sellersGroupJid: '', temperature: 0.7,
     });
@@ -134,6 +148,7 @@ export default function AgentSettingsPage() {
       welcomeMessage: agent.welcomeMessage ?? '',
       qualificationFields: agent.qualificationFields,
       channels: agent.channels,
+      instances: agent.instances ?? [],
       maxFollowups: agent.maxFollowups,
       followupDelayHours: agent.followupDelayHours,
       portalUrl: agent.portalUrl,
@@ -166,6 +181,15 @@ export default function AgentSettingsPage() {
       channels: f.channels.includes(ch)
         ? f.channels.filter(c => c !== ch)
         : [...f.channels, ch],
+    }));
+  };
+
+  const toggleInstance = (inst: string) => {
+    setForm(f => ({
+      ...f,
+      instances: f.instances.includes(inst)
+        ? f.instances.filter(i => i !== inst)
+        : [...f.instances, inst],
     }));
   };
 
@@ -344,6 +368,47 @@ export default function AgentSettingsPage() {
               <p className="text-[11px] text-neutral-400">Desative canais para o agente não responder neles (mensagens ficam sem resposta automática)</p>
             </div>
 
+            {/* Connected Instances */}
+            {connectedInstances && connectedInstances.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-neutral-500 dark:text-neutral-400">Instâncias WhatsApp Conectadas</Label>
+                <p className="text-[11px] text-neutral-400 mb-2">Selecione quais números este agente atende. Vazio = atende todos.</p>
+                <div className="space-y-1.5">
+                  {connectedInstances.map(inst => {
+                    const active = form.instances.includes(inst.name);
+                    const isConn = inst.status === 'connected' || inst.status === 'open';
+                    return (
+                      <button key={inst.id} onClick={() => toggleInstance(inst.name)}
+                        className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left text-sm transition-all cursor-pointer border ${
+                          active
+                            ? 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20'
+                            : 'bg-neutral-50 dark:bg-white/[0.02] border-neutral-200 dark:border-white/[0.06] opacity-60'
+                        }`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          active ? 'bg-green-100 dark:bg-green-500/20' : 'bg-neutral-100 dark:bg-white/5'
+                        }`}>
+                          <Phone className={`h-4 w-4 ${active ? 'text-green-600 dark:text-green-400' : 'text-neutral-400'}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-medium ${active ? 'text-green-800 dark:text-green-300' : 'text-neutral-600 dark:text-neutral-400'}`}>
+                            {inst.name}
+                          </p>
+                          <p className="text-[11px] text-neutral-400 font-mono">
+                            {inst.phoneNumber ? `+${inst.phoneNumber}` : 'Sem número'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${isConn ? 'bg-green-500' : 'bg-neutral-300'}`} />
+                          <span className="text-xs text-neutral-400">{isConn ? 'Online' : 'Offline'}</span>
+                        </div>
+                        {active && <span className="text-green-600 dark:text-green-400 text-xs font-medium">Selecionado</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Follow-up + Portal + Sellers */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
@@ -410,6 +475,12 @@ export default function AgentSettingsPage() {
                     ) : null;
                   })}
                 </div>
+                {agent.instances?.length > 0 && (
+                  <p className="text-[11px] text-neutral-400 mt-1">
+                    <Phone className="h-3 w-3 inline mr-1" />
+                    {agent.instances.join(', ')}
+                  </p>
+                )}
                 {agent.description && <p className="text-xs text-neutral-400 mt-0.5">{agent.description}</p>}
               </div>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
