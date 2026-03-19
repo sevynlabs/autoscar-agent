@@ -1,5 +1,4 @@
 import { Worker, type Job } from 'bullmq';
-import { evolutionClient } from '../../whatsapp/evolution.client.js';
 import { getChannel } from '../../channels/channel.manager.js';
 import { appendMessages } from '../../conversation/conversation.service.js';
 import { emitNewMessage } from '../../realtime/emitter.js';
@@ -43,7 +42,8 @@ export function startFollowupWorker(): Worker {
       if (followupNumber <= MAX_WHATSAPP_FOLLOWUPS) {
         // WhatsApp follow-up
         const msgIndex = Math.min(followupNumber - 1, WHATSAPP_MESSAGES.length - 1);
-        await evolutionClient.sendText(instance, phoneNumber, WHATSAPP_MESSAGES[msgIndex]);
+        const waChannel = getChannel('whatsapp');
+        await waChannel.sendText(phoneNumber, instance, WHATSAPP_MESSAGES[msgIndex]);
 
         // Save to conversation
         if (leadId) {
