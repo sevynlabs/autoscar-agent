@@ -81,7 +81,15 @@ Plans:
   3. Operator can connect an Instagram account and the agent receives and responds to Instagram DMs using the same qualification flow; SMS follow-up messages are sent automatically after WhatsApp follow-up sequence completes
   4. All WhatsApp, Instagram, and SMS conversations are visible in a single unified chat interface
   5. Developer can register a webhook URL to receive events (new lead, lead qualified, stage changed) and can call the documented external REST API to read lead data
-**Plans**: TBD
+**Plans:** 6 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — JWT auth + user management (login, roles, admin CRUD)
+- [ ] 04-02-PLAN.md — Channel abstraction layer + Instagram DM integration
+- [ ] 04-03-PLAN.md — SMS channel (Twilio) + follow-up escalation
+- [ ] 04-04-PLAN.md — Dashboard analytics API + Recharts frontend
+- [ ] 04-05-PLAN.md — External API + webhook registry + event firing
+- [ ] 04-06-PLAN.md — Unified multichat inbox (all channels)
 
 ## Progress
 
@@ -93,4 +101,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 4/4 | Complete    | 2026-03-18 |
 | 2. AI Agent | 3/3 | Complete    | 2026-03-18 |
 | 3. CRM + Multichat | 5/5 | Complete    | 2026-03-19 |
-| 4. Platform + Channels | 0/TBD | Not started | - |
+| 4. Platform + Channels | 0/6 | Planned | - |
