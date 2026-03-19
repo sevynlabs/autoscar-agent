@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { LeadDetail } from '@/components/lead/LeadDetail';
 import type { Lead } from '@/components/kanban/LeadCard';
+import { Search, LayoutDashboard } from 'lucide-react';
 
 interface Pipeline {
   id: string;
@@ -40,16 +41,29 @@ export default function CRMPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b px-4 py-3 flex items-center gap-4">
-        <h1 className="text-lg font-bold">CRM</h1>
-        <Input
-          placeholder="Buscar por nome ou telefone..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="max-w-sm"
-        />
+      {/* Header */}
+      <div className="border-b border-white/[0.06] px-6 py-4 flex items-center gap-4 glass">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+            <LayoutDashboard className="h-4 w-4 text-indigo-400" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-white">CRM</h1>
+            <p className="text-xs text-slate-500">{pipeline?.name ?? 'Pipeline'}</p>
+          </div>
+        </div>
+        <div className="relative ml-auto max-w-sm w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <Input
+            placeholder="Buscar por nome ou telefone..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 bg-white/5 border-white/10 focus:border-indigo-500/50 h-9"
+          />
+        </div>
       </div>
 
+      {/* Kanban */}
       {pipeline && leads ? (
         <KanbanBoard
           stages={pipeline.stages}
@@ -58,7 +72,7 @@ export default function CRMPage() {
           onLeadClick={setSelectedLeadId}
         />
       ) : (
-        <div className="flex items-center justify-center flex-1 text-muted-foreground">
+        <div className="flex items-center justify-center flex-1 text-slate-500">
           Carregando...
         </div>
       )}

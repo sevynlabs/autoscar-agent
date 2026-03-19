@@ -2,8 +2,8 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { User, Clock } from 'lucide-react';
 
 export interface Lead {
   id: string;
@@ -50,27 +50,47 @@ export function LeadCard({ lead, isDragging, onClick }: LeadCardProps) {
   const latestNote = lead.notes?.[0];
 
   return (
-    <Card
+    <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      className="cursor-grab hover:shadow-md transition-shadow mb-2"
       onClick={onClick}
+      className="glass-card rounded-xl p-3.5 mb-2 cursor-grab hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200 border border-white/[0.06] group"
     >
-      <CardContent className="p-3 space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="font-medium text-sm truncate">{lead.name || lead.phone}</span>
-          <span className="text-xs text-muted-foreground">{timeAgo(lead.createdAt)}</span>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+            <User className="h-4 w-4 text-indigo-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-200 truncate">{lead.name || lead.phone}</p>
+            {lead.name && <p className="text-[11px] text-slate-500">{lead.phone}</p>}
+          </div>
         </div>
-        {lead.name && <p className="text-xs text-muted-foreground">{lead.phone}</p>}
+        <div className="flex items-center gap-1 text-[11px] text-slate-500 flex-shrink-0">
+          <Clock className="h-3 w-3" />
+          {timeAgo(lead.createdAt)}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1.5 mt-2.5">
         {lead.humanOverride && (
-          <Badge variant="outline" className="text-orange-600 border-orange-300 text-xs">Humano</Badge>
+          <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[10px] px-1.5 h-5">Humano</Badge>
         )}
-        {latestNote && (
-          <p className="text-xs text-muted-foreground truncate">{latestNote.content}</p>
+        {lead.city && (
+          <Badge className="bg-white/5 text-slate-400 border-white/10 text-[10px] px-1.5 h-5">{lead.city}</Badge>
         )}
-      </CardContent>
-    </Card>
+        {lead.creditStatus && (
+          <Badge className={`text-[10px] px-1.5 h-5 ${
+            lead.creditStatus === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-slate-400 border-white/10'
+          }`}>{lead.creditStatus}</Badge>
+        )}
+      </div>
+
+      {latestNote && (
+        <p className="text-[11px] text-slate-500 mt-2 truncate leading-relaxed">{latestNote.content}</p>
+      )}
+    </div>
   );
 }

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Send, Bot, User, Shield, MessageSquare } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -44,8 +45,11 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
 
   if (!conversationId) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground">
-        Selecione uma conversa
+      <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-3">
+        <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
+          <MessageSquare className="h-8 w-8 text-slate-600" />
+        </div>
+        <p className="text-sm">Selecione uma conversa</p>
       </div>
     );
   }
@@ -54,10 +58,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
     if (!message.trim() || !conversationId) return;
     setSending(true);
     try {
-      await api.post(`/conversations/${conversationId}/message`, {
-        content: message,
-        instance: 'default',
-      });
+      await api.post(`/conversations/${conversationId}/message`, { content: message, instance: 'default' });
       setMessage('');
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
@@ -79,48 +80,56 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Header */}
-      <div className="border-b px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{lead?.name || lead?.phone}</span>
+      <div className="border-b border-white/[0.06] px-5 py-3.5 flex items-center justify-between glass">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+            <User className="h-4 w-4 text-indigo-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-white">{lead?.name || lead?.phone}</p>
+            {lead?.name && <p className="text-[11px] text-slate-500">{lead.phone}</p>}
+          </div>
           {lead?.humanOverride && (
-            <Badge variant="outline" className="text-orange-600 border-orange-300">Modo humano</Badge>
+            <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-xs ml-2">Modo humano</Badge>
           )}
         </div>
         <div>
           {lead?.humanOverride ? (
-            <Button size="sm" variant="outline" onClick={() => handleHandoff(false)}>
-              Devolver para IA
+            <Button size="sm" variant="outline" onClick={() => handleHandoff(false)}
+              className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 cursor-pointer text-xs">
+              <Bot className="h-3.5 w-3.5 mr-1.5" /> Devolver para IA
             </Button>
           ) : (
-            <Button size="sm" variant="default" className="bg-orange-500 hover:bg-orange-600" onClick={() => handleHandoff(true)}>
-              Assumir conversa
+            <Button size="sm" onClick={() => handleHandoff(true)}
+              className="bg-orange-500/10 text-orange-400 border border-orange-500/30 hover:bg-orange-500/20 cursor-pointer text-xs">
+              <Shield className="h-3.5 w-3.5 mr-1.5" /> Assumir conversa
             </Button>
           )}
         </div>
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-3">
+      <ScrollArea className="flex-1">
+        <div className="p-5 space-y-3">
           {messages.map(msg => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === 'lead' ? 'justify-start' : 'justify-end'}`}
-            >
-              <div
-                className={`max-w-[70%] rounded-lg px-3 py-2 text-sm ${
-                  msg.role === 'lead'
-                    ? 'bg-muted'
-                    : msg.role === 'agent'
-                    ? 'bg-blue-100 text-blue-900'
-                    : 'bg-green-100 text-green-900'
-                }`}
-              >
-                <p className="text-xs font-medium mb-1">
-                  {msg.role === 'lead' ? 'Lead' : msg.role === 'agent' ? 'IA' : 'Operador'}
-                </p>
-                <p>{msg.content}</p>
-                <p className="text-xs opacity-60 mt-1">
+            <div key={msg.id} className={`flex ${msg.role === 'lead' ? 'justify-start' : 'justify-end'}`}>
+              <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${
+                msg.role === 'lead'
+                  ? 'bg-white/[0.06] text-slate-200 rounded-bl-md'
+                  : msg.role === 'agent'
+                  ? 'bg-indigo-500/10 text-indigo-100 border border-indigo-500/20 rounded-br-md'
+                  : 'bg-emerald-500/10 text-emerald-100 border border-emerald-500/20 rounded-br-md'
+              }`}>
+                <div className="flex items-center gap-1.5 mb-1">
+                  {msg.role === 'lead' && <User className="h-3 w-3 text-slate-500" />}
+                  {msg.role === 'agent' && <Bot className="h-3 w-3 text-indigo-400" />}
+                  {msg.role === 'human' && <Shield className="h-3 w-3 text-emerald-400" />}
+                  <span className="text-[10px] font-medium opacity-60">
+                    {msg.role === 'lead' ? 'Lead' : msg.role === 'agent' ? 'IA' : 'Operador'}
+                  </span>
+                </div>
+                <p className="leading-relaxed">{msg.content}</p>
+                <p className="text-[10px] opacity-40 mt-1">
                   {new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
@@ -131,22 +140,28 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
       </ScrollArea>
 
       {/* Input */}
-      <div className="border-t p-3 flex gap-2">
-        <Textarea
-          placeholder="Digite sua mensagem..."
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          className="min-h-[44px] max-h-[120px]"
-          onKeyDown={e => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-        />
-        <Button onClick={handleSend} disabled={sending || !message.trim()}>
-          Enviar
-        </Button>
+      <div className="border-t border-white/[0.06] p-4 glass">
+        <div className="flex gap-3 items-end">
+          <Textarea
+            placeholder="Digite sua mensagem..."
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            className="min-h-[44px] max-h-[120px] bg-white/5 border-white/10 focus:border-indigo-500/50 resize-none"
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+          />
+          <Button
+            onClick={handleSend}
+            disabled={sending || !message.trim()}
+            className="bg-indigo-600 hover:bg-indigo-500 h-11 w-11 p-0 cursor-pointer"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

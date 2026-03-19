@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Settings, BarChart3, Users, Webhook, LogOut } from 'lucide-react';
+import { BarChart3, LayoutDashboard, MessageSquare, Settings, Webhook, Users, LogOut, Car, Bot } from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -24,12 +24,32 @@ export function Sidebar() {
   );
 
   return (
-    <aside className="w-56 border-r bg-background flex flex-col h-full">
-      <div className="p-4 border-b">
-        <h1 className="text-lg font-bold">Autoscar</h1>
-        <p className="text-xs text-muted-foreground">CRM Automotivo</p>
+    <aside className="w-60 glass-card flex flex-col h-full border-r border-white/[0.06]">
+      {/* Logo */}
+      <div className="p-5 border-b border-white/[0.06]">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+            <Car className="h-5 w-5 text-indigo-400" />
+          </div>
+          <div>
+            <h1 className="text-base font-bold text-white">Autoscar</h1>
+            <p className="text-[11px] text-slate-500">Agent SDR</p>
+          </div>
+        </div>
       </div>
-      <nav className="flex-1 p-2 space-y-1">
+
+      {/* AI Status */}
+      <div className="px-4 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+          <Bot className="h-4 w-4 text-emerald-400" />
+          <span className="text-xs text-emerald-400 font-medium">IA Ativa</span>
+          <span className="ml-auto w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-3 space-y-1">
+        <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold px-3 mb-2">Menu</p>
         {visibleItems.map(item => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
@@ -37,25 +57,42 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? 'bg-accent text-accent-foreground font-medium'
-                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                  ? 'bg-indigo-500/10 text-indigo-400 font-medium border border-indigo-500/20'
+                  : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
               }`}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-[18px] w-[18px]" />
               {item.label}
+              {item.href === '/inbox' && (
+                <Badge className="ml-auto bg-indigo-500/20 text-indigo-300 text-[10px] px-1.5 py-0 h-5 border-0">
+                  AI
+                </Badge>
+              )}
             </Link>
           );
         })}
       </nav>
+
+      {/* User */}
       {user && (
-        <div className="p-3 border-t">
-          <p className="text-sm font-medium truncate">{user.name}</p>
-          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-          <Button variant="ghost" size="sm" className="w-full mt-2 justify-start" onClick={logout}>
-            <LogOut className="h-4 w-4 mr-2" /> Sair
-          </Button>
+        <div className="p-3 border-t border-white/[0.06]">
+          <div className="flex items-center gap-3 px-3 py-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-sm font-bold text-indigo-400">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-200 truncate">{user.name}</p>
+              <p className="text-[11px] text-slate-500 truncate">{user.role}</p>
+            </div>
+            <button
+              onClick={logout}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/[0.04] transition-colors cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
     </aside>

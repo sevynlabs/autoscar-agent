@@ -1,4 +1,4 @@
-const BASE_URL = '/api/backend';
+const BASE_URL = '/api';
 
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return {};

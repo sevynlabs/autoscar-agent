@@ -17,20 +17,25 @@ export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) 
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-[280px] max-w-[320px] bg-muted/50 rounded-lg p-3 flex flex-col ${
-        isOver ? 'ring-2 ring-primary/50' : ''
+      className={`min-w-[300px] max-w-[320px] rounded-xl flex flex-col transition-all duration-200 ${
+        isOver ? 'ring-1 ring-indigo-500/40 bg-indigo-500/5' : 'bg-white/[0.02]'
       }`}
     >
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-sm">{column.name}</h3>
-        <Badge variant="secondary" className="text-xs">{leads.length}</Badge>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+        <h3 className="text-sm font-semibold text-slate-200">{column.name}</h3>
+        <Badge className="bg-indigo-500/10 text-indigo-300 border-indigo-500/20 text-xs">{leads.length}</Badge>
       </div>
-      <div className="flex-1 min-h-[100px]">
+      <div className="flex-1 p-2 min-h-[200px] overflow-y-auto">
         <SortableContext items={leads.map(l => l.id)} strategy={verticalListSortingStrategy}>
           {leads.map(lead => (
             <LeadCard key={lead.id} lead={lead} onClick={() => onLeadClick(lead.id)} />
           ))}
         </SortableContext>
+        {leads.length === 0 && (
+          <div className="flex items-center justify-center h-24 text-xs text-slate-600">
+            Arraste leads aqui
+          </div>
+        )}
       </div>
     </div>
   );
