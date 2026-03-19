@@ -4,8 +4,14 @@ import prisma from '../db/prisma.js';
 export async function createInstance(name: string) {
   const result = await evolutionClient.createInstance(name);
 
-  const appBaseUrl = process.env.APP_BASE_URL || `http://app:${process.env.APP_PORT || 3001}`;
-  await evolutionClient.setWebhook(name, `${appBaseUrl}/webhook/whatsapp`);
+  // WEBHOOK_URL = public URL for Evolution to call back (ngrok, domain, etc)
+  // APP_BASE_URL = internal Docker URL (fallback for local Evolution)
+  const webhookBase = process.env.WEBHOOK_URL || process.env.APP_BASE_URL || `http://app:${process.env.APP_PORT || 3001}`;
+  try {
+    await evolutionClient.setWebhook(name, `${webhookBase}/webhook/whatsapp`);
+  } catch (err) {
+    console.warn('[instance] Failed to set webhook (Evolution may be external):', err instanceof Error ? err.message : err);
+  }
 
   const instance = await prisma.whatsAppInstance.create({
     data: {
