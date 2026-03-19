@@ -16,6 +16,12 @@ interface WhatsAppInstance {
   createdAt: string;
 }
 
+interface InstanceInfo {
+  profileName: string;
+  phoneNumber: string;
+  profilePictureUrl: string | null;
+}
+
 export default function ChannelsPage() {
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState('');
@@ -27,6 +33,7 @@ export default function ChannelsPage() {
   const [groups, setGroups] = useState<{ id: string; subject: string; size: number }[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [instanceInfos, setInstanceInfos] = useState<Record<string, InstanceInfo>>({});
 
   const { data: instances, isLoading } = useQuery<WhatsAppInstance[]>({
     queryKey: ['instances'],
@@ -34,14 +41,21 @@ export default function ChannelsPage() {
     refetchInterval: 10000,
   });
 
-  // Auto-close QR when instance connects
+  // Auto-close QR when instance connects + fetch profile info
   useEffect(() => {
-    if (qrData && instances) {
+    if (!instances) return;
+    if (qrData) {
       const inst = instances.find(i => i.name === qrData.name);
-      if (inst?.status === 'connected') {
-        setQrData(null);
-      }
+      if (inst?.status === 'connected') setQrData(null);
     }
+    // Fetch profile info for connected instances
+    instances.forEach(inst => {
+      if ((inst.status === 'connected' || inst.status === 'open') && !instanceInfos[inst.name]) {
+        api.get<InstanceInfo>(`/instances/${inst.name}/info`)
+          .then(info => setInstanceInfos(prev => ({ ...prev, [inst.name]: info })))
+          .catch(() => {});
+      }
+    });
   }, [instances, qrData]);
 
   const createNewInstance = async () => {
@@ -115,14 +129,26 @@ export default function ChannelsPage() {
         <div className="p-5 space-y-3">
           {/* Instance list */}
           {isLoading && <p className="text-sm text-neutral-400">Carregando...</p>}
-          {instances?.map(inst => (
+          {instances?.map(inst => {
+            const info = instanceInfos[inst.name];
+            const isConnected = inst.status === 'connected' || inst.status === 'open';
+            return (
             <div key={inst.id} className="flex items-center gap-3 p-3 rounded-lg bg-neutral-50 dark:bg-white/[0.02] border border-neutral-200 dark:border-white/[0.06] group">
-              <div className="w-9 h-9 rounded-lg bg-green-50 dark:bg-green-500/10 flex items-center justify-center">
-                <Phone className="h-4 w-4 text-green-600 dark:text-green-400" />
-              </div>
+              {info?.profilePictureUrl ? (
+                <img src={info.profilePictureUrl} alt={info.profileName} className="w-10 h-10 rounded-lg object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-500/10 flex items-center justify-center">
+                  <Phone className="h-4 w-4 text-green-600 dark:text-green-400" />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{inst.name}</p>
-                <p className="text-xs text-neutral-400">{inst.phoneNumber ?? 'Sem número'}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{inst.name}</p>
+                  {info?.profileName && <span className="text-xs text-neutral-400">({info.profileName})</span>}
+                </div>
+                <p className="text-xs text-neutral-400 font-mono">
+                  {info?.phoneNumber ? `+${info.phoneNumber}` : inst.phoneNumber ? `+${inst.phoneNumber}` : isConnected ? 'Carregando...' : 'Sem número'}
+                </p>
               </div>
               <Badge className={`text-xs ${statusColor(inst.status)}`}>
                 {inst.status === 'connected' || inst.status === 'open' ? 'Conectado' : inst.status === 'connecting' ? 'Conectando...' : 'Desconectado'}
@@ -138,7 +164,7 @@ export default function ChannelsPage() {
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
-          ))}
+          ); })}
 
           {/* QR Code display */}
           {qrData && (

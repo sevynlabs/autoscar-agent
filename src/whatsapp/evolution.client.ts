@@ -181,6 +181,26 @@ export const evolutionClient = {
   },
 
   /**
+   * Get instance profile info (number, name, picture)
+   */
+  async getInstanceInfo(instanceName: string): Promise<{ profileName: string; phoneNumber: string; profilePictureUrl: string | null }> {
+    const client = getClient();
+    try {
+      const { data } = await client.get(`/instance/fetchInstances`, {
+        params: { instanceName },
+      });
+      const inst = Array.isArray(data) ? data[0] : data;
+      return {
+        profileName: inst?.instance?.profileName ?? inst?.profileName ?? '',
+        phoneNumber: inst?.instance?.owner?.split('@')[0] ?? inst?.owner?.split('@')[0] ?? '',
+        profilePictureUrl: inst?.instance?.profilePictureUrl ?? inst?.profilePictureUrl ?? null,
+      };
+    } catch {
+      return { profileName: '', phoneNumber: '', profilePictureUrl: null };
+    }
+  },
+
+  /**
    * Fetch all WhatsApp groups for an instance
    */
   async fetchGroups(instanceName: string): Promise<{ id: string; subject: string; size: number }[]> {

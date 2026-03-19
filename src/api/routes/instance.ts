@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { createInstance, listInstances, getQrCode, deleteInstance, getConnectionState } from '../../whatsapp/instance.service.js';
 import { evolutionClient } from '../../whatsapp/evolution.client.js';
+import prisma from '../../db/prisma.js';
 
 const instanceRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /instances — Create a new WhatsApp instance (Baileys mode)
@@ -45,6 +46,20 @@ const instanceRoutes: FastifyPluginAsync = async (fastify) => {
     const { name } = request.params;
     await deleteInstance(name);
     return { deleted: true };
+  });
+
+  // GET /instances/:name/info — Get profile info (number, photo, name)
+  fastify.get<{ Params: { name: string } }>('/instances/:name/info', async (request) => {
+    const { name } = request.params;
+    const info = await evolutionClient.getInstanceInfo(name);
+    // Update phone in DB if available
+    if (info.phoneNumber) {
+      await prisma.whatsAppInstance.updateMany({
+        where: { name },
+        data: { phoneNumber: info.phoneNumber },
+      });
+    }
+    return info;
   });
 
   // GET /instances/:name/groups — List WhatsApp groups
