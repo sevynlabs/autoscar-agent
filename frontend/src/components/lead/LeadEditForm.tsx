@@ -41,23 +41,23 @@ export function LeadEditForm({ lead }: { lead: Lead }) {
     queryClient.invalidateQueries({ queryKey: ['lead', lead.id] });
   };
 
-  const inputClass = "bg-white/5 border-white/10 focus:border-red-500/50 h-9 text-sm";
+  const inputClass = "bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 focus:border-red-500/50 h-9 text-sm";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1.5">
-        <Label className="text-xs text-slate-400">Nome</Label>
+        <Label className="text-xs text-neutral-500 dark:text-neutral-400">Nome</Label>
         <Input {...register('name')} className={inputClass} />
       </div>
       <div className="space-y-1.5">
-        <Label className="text-xs text-slate-400">Cidade</Label>
+        <Label className="text-xs text-neutral-500 dark:text-neutral-400">Cidade</Label>
         <Input {...register('city')} className={inputClass} />
       </div>
       <div className="space-y-1.5">
-        <Label className="text-xs text-slate-400">Status de Crédito</Label>
+        <Label className="text-xs text-neutral-500 dark:text-neutral-400">Status de Crédito</Label>
         <Select defaultValue={lead.creditStatus ?? ''} onValueChange={v => v && setValue('creditStatus', v)}>
           <SelectTrigger className={inputClass}><SelectValue placeholder="Selecionar..." /></SelectTrigger>
-          <SelectContent className="bg-[#1e293b] border-white/10">
+          <SelectContent className="bg-white dark:bg-[#1e293b] border-neutral-200 dark:border-white/10">
             <SelectItem value="Aprovado">Aprovado</SelectItem>
             <SelectItem value="Pendente">Pendente</SelectItem>
             <SelectItem value="Reprovado">Reprovado</SelectItem>
@@ -66,10 +66,10 @@ export function LeadEditForm({ lead }: { lead: Lead }) {
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label className="text-xs text-slate-400">Forma de Pagamento</Label>
+        <Label className="text-xs text-neutral-500 dark:text-neutral-400">Forma de Pagamento</Label>
         <Select defaultValue={lead.paymentMethod ?? ''} onValueChange={v => v && setValue('paymentMethod', v)}>
           <SelectTrigger className={inputClass}><SelectValue placeholder="Selecionar..." /></SelectTrigger>
-          <SelectContent className="bg-[#1e293b] border-white/10">
+          <SelectContent className="bg-white dark:bg-[#1e293b] border-neutral-200 dark:border-white/10">
             <SelectItem value="Financiamento">Financiamento</SelectItem>
             <SelectItem value="A vista">À vista</SelectItem>
             <SelectItem value="Consorcio">Consórcio</SelectItem>
@@ -78,7 +78,7 @@ export function LeadEditForm({ lead }: { lead: Lead }) {
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label className="text-xs text-slate-400">URL do Veículo</Label>
+        <Label className="text-xs text-neutral-500 dark:text-neutral-400">URL do Veículo</Label>
         <Input {...register('vehicleUrl')} className={inputClass} placeholder="https://autoscar.com.br/..." />
       </div>
       <Button type="submit" disabled={isSubmitting} className="w-full bg-red-600 hover:bg-red-500 cursor-pointer h-9 text-sm mt-6">

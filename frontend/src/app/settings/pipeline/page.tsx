@@ -61,36 +61,36 @@ export default function PipelineSettingsPage() {
           <Settings className="h-5 w-5 text-red-600 dark:text-red-400" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-neutral-900 dark:text-white">Pipeline</h1>
-          <p className="text-xs text-slate-500">Configure etapas e regras de qualificação</p>
+          <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-900 dark:text-white">Pipeline</h1>
+          <p className="text-xs text-neutral-400 dark:text-neutral-500">Configure etapas e regras de qualificação</p>
         </div>
       </div>
 
       {/* Stages */}
-      <div className="glass-card rounded-xl border border-white/[0.06] overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
+      <div className="glass-card rounded-xl border border-neutral-200 dark:border-white/[0.06] overflow-hidden">
+        <div className="px-5 py-4 border-b border-neutral-200 dark:border-white/[0.06] flex items-center gap-2">
           <Layers className="h-4 w-4 text-red-600 dark:text-red-400" />
-          <h2 className="text-sm font-semibold text-neutral-900 dark:text-white">Etapas do Pipeline</h2>
+          <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-900 dark:text-white">Etapas do Pipeline</h2>
           <Badge className="ml-auto bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20 text-xs">{sortedStages.length}</Badge>
         </div>
         <div className="p-4 space-y-2">
           {sortedStages.map((stage, idx) => (
             <div key={stage.id} className="flex items-center gap-2 group">
-              <span className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-xs text-slate-400 font-mono">{idx + 1}</span>
+              <span className="w-7 h-7 rounded-lg bg-neutral-50 dark:bg-white/5 flex items-center justify-center text-xs text-neutral-500 dark:text-neutral-400 font-mono">{idx + 1}</span>
               <Input
                 defaultValue={stage.name}
-                className="flex-1 bg-white/5 border-white/10 focus:border-red-500/50 h-9 text-sm"
+                className="flex-1 bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 focus:border-red-500/50 h-9 text-sm"
                 onBlur={e => { if (e.target.value !== stage.name) renameStage(stage.id, e.target.value); }}
               />
               <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button size="icon" variant="ghost" onClick={() => reorderStage(stage, 'up')} disabled={idx === 0} className="h-7 w-7 text-slate-500 hover:text-white cursor-pointer"><ArrowUp className="h-3.5 w-3.5" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => reorderStage(stage, 'down')} disabled={idx === sortedStages.length - 1} className="h-7 w-7 text-slate-500 hover:text-white cursor-pointer"><ArrowDown className="h-3.5 w-3.5" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => deleteStage(stage.id)} className="h-7 w-7 text-slate-500 hover:text-red-400 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></Button>
+                <Button size="icon" variant="ghost" onClick={() => reorderStage(stage, 'up')} disabled={idx === 0} className="h-7 w-7 text-neutral-400 dark:text-neutral-500 hover:text-neutral-900 dark:text-white cursor-pointer"><ArrowUp className="h-3.5 w-3.5" /></Button>
+                <Button size="icon" variant="ghost" onClick={() => reorderStage(stage, 'down')} disabled={idx === sortedStages.length - 1} className="h-7 w-7 text-neutral-400 dark:text-neutral-500 hover:text-neutral-900 dark:text-white cursor-pointer"><ArrowDown className="h-3.5 w-3.5" /></Button>
+                <Button size="icon" variant="ghost" onClick={() => deleteStage(stage.id)} className="h-7 w-7 text-neutral-400 dark:text-neutral-500 hover:text-red-400 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></Button>
               </div>
             </div>
           ))}
-          <div className="flex gap-2 mt-3 pt-3 border-t border-white/[0.06]">
-            <Input placeholder="Nome da nova etapa" value={newStageName} onChange={e => setNewStageName(e.target.value)} className="bg-white/5 border-white/10 h-9 text-sm" />
+          <div className="flex gap-2 mt-3 pt-3 border-t border-neutral-200 dark:border-white/[0.06]">
+            <Input placeholder="Nome da nova etapa" value={newStageName} onChange={e => setNewStageName(e.target.value)} className="bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 h-9 text-sm" />
             <Button onClick={addStage} size="sm" className="bg-red-600 hover:bg-red-500 cursor-pointer h-9 px-4">
               <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar
             </Button>
@@ -99,35 +99,35 @@ export default function PipelineSettingsPage() {
       </div>
 
       {/* Rules */}
-      <div className="glass-card rounded-xl border border-white/[0.06] overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
+      <div className="glass-card rounded-xl border border-neutral-200 dark:border-white/[0.06] overflow-hidden">
+        <div className="px-5 py-4 border-b border-neutral-200 dark:border-white/[0.06] flex items-center gap-2">
           <Filter className="h-4 w-4 text-red-400" />
-          <h2 className="text-sm font-semibold text-neutral-900 dark:text-white">Regras de Qualificação</h2>
+          <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-900 dark:text-white">Regras de Qualificação</h2>
           <Badge className="ml-auto bg-red-500/10 text-red-300 border-red-500/20 text-xs">{rules?.length ?? 0}</Badge>
         </div>
         <div className="p-4 space-y-2">
           {rules?.map(rule => (
             <div key={rule.id} className="flex items-center justify-between glass rounded-lg px-4 py-3 group">
-              <span className="text-sm text-slate-300">
+              <span className="text-sm text-neutral-700 dark:text-neutral-300">
                 <span className="text-red-600 dark:text-red-300 font-medium">{rule.field}</span>
-                <span className="text-slate-500 mx-1.5">{rule.operator}</span>
-                <span className="text-white font-medium">{rule.value}</span>
-                <span className="text-slate-500 mx-1.5">→</span>
+                <span className="text-neutral-400 dark:text-neutral-500 mx-1.5">{rule.operator}</span>
+                <span className="text-neutral-900 dark:text-white font-medium">{rule.value}</span>
+                <span className="text-neutral-400 dark:text-neutral-500 mx-1.5">→</span>
                 <Badge className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20 text-xs">
                   {sortedStages.find(s => s.id === rule.stageTrigger)?.name || rule.stageTrigger}
                 </Badge>
               </span>
-              <Button size="icon" variant="ghost" onClick={() => deleteRule(rule.id)} className="h-7 w-7 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <Button size="icon" variant="ghost" onClick={() => deleteRule(rule.id)} className="h-7 w-7 text-neutral-400 dark:text-neutral-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
           ))}
-          {!rules?.length && <p className="text-sm text-slate-500 text-center py-4">Nenhuma regra configurada</p>}
+          {!rules?.length && <p className="text-sm text-neutral-400 dark:text-neutral-500 text-center py-4">Nenhuma regra configurada</p>}
 
-          <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/[0.06]">
+          <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-neutral-200 dark:border-white/[0.06]">
             <Select value={ruleForm.field} onValueChange={v => setRuleForm(f => ({ ...f, field: v ?? f.field }))}>
-              <SelectTrigger className="bg-white/5 border-white/10 h-9 text-sm"><SelectValue placeholder="Campo" /></SelectTrigger>
-              <SelectContent className="bg-[#1e293b] border-white/10">
+              <SelectTrigger className="bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 h-9 text-sm"><SelectValue placeholder="Campo" /></SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#1e293b] border-neutral-200 dark:border-white/10">
                 <SelectItem value="creditStatus">Status de Crédito</SelectItem>
                 <SelectItem value="city">Cidade</SelectItem>
                 <SelectItem value="paymentMethod">Forma de Pagamento</SelectItem>
@@ -135,17 +135,17 @@ export default function PipelineSettingsPage() {
               </SelectContent>
             </Select>
             <Select value={ruleForm.operator} onValueChange={v => setRuleForm(f => ({ ...f, operator: v ?? f.operator }))}>
-              <SelectTrigger className="bg-white/5 border-white/10 h-9 text-sm"><SelectValue placeholder="Operador" /></SelectTrigger>
-              <SelectContent className="bg-[#1e293b] border-white/10">
+              <SelectTrigger className="bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 h-9 text-sm"><SelectValue placeholder="Operador" /></SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#1e293b] border-neutral-200 dark:border-white/10">
                 <SelectItem value="equals">igual a</SelectItem>
                 <SelectItem value="contains">contém</SelectItem>
                 <SelectItem value="not_equals">diferente de</SelectItem>
               </SelectContent>
             </Select>
-            <Input placeholder="Valor" value={ruleForm.value} onChange={e => setRuleForm(f => ({ ...f, value: e.target.value }))} className="bg-white/5 border-white/10 h-9 text-sm" />
+            <Input placeholder="Valor" value={ruleForm.value} onChange={e => setRuleForm(f => ({ ...f, value: e.target.value }))} className="bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 h-9 text-sm" />
             <Select value={ruleForm.stageTrigger} onValueChange={v => setRuleForm(f => ({ ...f, stageTrigger: v ?? f.stageTrigger }))}>
-              <SelectTrigger className="bg-white/5 border-white/10 h-9 text-sm"><SelectValue placeholder="Mover para" /></SelectTrigger>
-              <SelectContent className="bg-[#1e293b] border-white/10">
+              <SelectTrigger className="bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 h-9 text-sm"><SelectValue placeholder="Mover para" /></SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#1e293b] border-neutral-200 dark:border-white/10">
                 {sortedStages.map(s => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
               </SelectContent>
             </Select>

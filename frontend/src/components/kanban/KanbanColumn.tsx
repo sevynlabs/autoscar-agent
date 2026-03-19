@@ -18,11 +18,11 @@ export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) 
     <div
       ref={setNodeRef}
       className={`min-w-[300px] max-w-[320px] rounded-xl flex flex-col transition-all duration-200 ${
-        isOver ? 'ring-1 ring-red-500/40 bg-red-500/5' : 'bg-white/[0.02]'
+        isOver ? 'ring-1 ring-red-500/40 bg-red-500/5' : 'bg-neutral-50/50 dark:bg-white/[0.02]'
       }`}
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-        <h3 className="text-sm font-semibold text-slate-200">{column.name}</h3>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-white/[0.06]">
+        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{column.name}</h3>
         <Badge className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20 text-xs">{leads.length}</Badge>
       </div>
       <div className="flex-1 p-2 min-h-[200px] overflow-y-auto">
@@ -32,7 +32,7 @@ export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) 
           ))}
         </SortableContext>
         {leads.length === 0 && (
-          <div className="flex items-center justify-center h-24 text-xs text-slate-600">
+          <div className="flex items-center justify-center h-24 text-xs text-neutral-500 dark:text-neutral-400">
             Arraste leads aqui
           </div>
         )}

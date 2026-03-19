@@ -132,27 +132,27 @@
   }
 }
 
-/* Utility classes */
+/* Utility classes — theme-aware */
 @layer utilities {
   .glass {
-    background: rgba(20, 20, 20, 0.6);
+    background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  .dark .glass {
+    background: rgba(20, 20, 20, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
   .glass-card {
-    background: rgba(20, 20, 20, 0.8);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-  }
-  .glass-light {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-  }
-  .glass-card-light {
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+  .dark .glass-card {
+    background: rgba(20, 20, 20, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: none;
   }
 }
 

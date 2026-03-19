@@ -45,9 +45,9 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
 
   if (!conversationId) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-3">
-        <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
-          <MessageSquare className="h-8 w-8 text-slate-600" />
+      <div className="flex-1 flex flex-col items-center justify-center text-neutral-400 dark:text-neutral-500 gap-3">
+        <div className="w-16 h-16 rounded-2xl bg-neutral-50 dark:bg-white/5 flex items-center justify-center">
+          <MessageSquare className="h-8 w-8 text-neutral-500 dark:text-neutral-400" />
         </div>
         <p className="text-sm">Selecione uma conversa</p>
       </div>
@@ -80,14 +80,14 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Header */}
-      <div className="border-b border-white/[0.06] px-5 py-3.5 flex items-center justify-between glass">
+      <div className="border-b border-neutral-200 dark:border-white/[0.06] px-5 py-3.5 flex items-center justify-between glass">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
             <User className="h-4 w-4 text-red-600 dark:text-red-400" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white">{lead?.name || lead?.phone}</p>
-            {lead?.name && <p className="text-[11px] text-slate-500">{lead.phone}</p>}
+            <p className="text-sm font-medium text-neutral-900 dark:text-white">{lead?.name || lead?.phone}</p>
+            {lead?.name && <p className="text-[11px] text-neutral-400 dark:text-neutral-500">{lead.phone}</p>}
           </div>
           {lead?.humanOverride && (
             <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-xs ml-2">Modo humano</Badge>
@@ -115,13 +115,13 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
             <div key={msg.id} className={`flex ${msg.role === 'lead' ? 'justify-start' : 'justify-end'}`}>
               <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${
                 msg.role === 'lead'
-                  ? 'bg-white/[0.06] text-slate-200 rounded-bl-md'
+                  ? 'bg-neutral-50 dark:bg-neutral-100 dark:bg-white/[0.06] text-neutral-800 dark:text-neutral-200 rounded-bl-md'
                   : msg.role === 'agent'
-                  ? 'bg-red-50 dark:bg-red-500/10 text-red-100 border border-red-200 dark:border-red-500/20 rounded-br-md'
-                  : 'bg-emerald-500/10 text-emerald-100 border border-emerald-500/20 rounded-br-md'
+                  ? 'bg-red-50 dark:bg-red-500/10 text-red-800 dark:text-red-100 border border-red-200 dark:border-red-500/20 rounded-br-md'
+                  : 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-100 border border-emerald-500/20 rounded-br-md'
               }`}>
                 <div className="flex items-center gap-1.5 mb-1">
-                  {msg.role === 'lead' && <User className="h-3 w-3 text-slate-500" />}
+                  {msg.role === 'lead' && <User className="h-3 w-3 text-neutral-400 dark:text-neutral-500" />}
                   {msg.role === 'agent' && <Bot className="h-3 w-3 text-red-600 dark:text-red-400" />}
                   {msg.role === 'human' && <Shield className="h-3 w-3 text-emerald-400" />}
                   <span className="text-[10px] font-medium opacity-60">
@@ -140,13 +140,13 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
       </ScrollArea>
 
       {/* Input */}
-      <div className="border-t border-white/[0.06] p-4 glass">
+      <div className="border-t border-neutral-200 dark:border-white/[0.06] p-4 glass">
         <div className="flex gap-3 items-end">
           <Textarea
             placeholder="Digite sua mensagem..."
             value={message}
             onChange={e => setMessage(e.target.value)}
-            className="min-h-[44px] max-h-[120px] bg-white/5 border-white/10 focus:border-red-500/50 resize-none"
+            className="min-h-[44px] max-h-[120px] bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 focus:border-red-500/50 resize-none"
             onKeyDown={e => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();

@@ -56,7 +56,7 @@ export function LeadCard({ lead, isDragging, onClick }: LeadCardProps) {
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className="glass-card rounded-xl p-3.5 mb-2 cursor-grab hover:border-red-500/30 hover:shadow-lg hover:shadow-red-500/5 transition-all duration-200 border border-white/[0.06] group"
+      className="glass-card rounded-xl p-3.5 mb-2 cursor-grab hover:border-red-500/30 hover:shadow-lg hover:shadow-red-500/5 transition-all duration-200 border border-neutral-200 dark:border-white/[0.06] group"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -64,11 +64,11 @@ export function LeadCard({ lead, isDragging, onClick }: LeadCardProps) {
             <User className="h-4 w-4 text-red-600 dark:text-red-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-200 truncate">{lead.name || lead.phone}</p>
-            {lead.name && <p className="text-[11px] text-slate-500">{lead.phone}</p>}
+            <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate">{lead.name || lead.phone}</p>
+            {lead.name && <p className="text-[11px] text-neutral-400 dark:text-neutral-500">{lead.phone}</p>}
           </div>
         </div>
-        <div className="flex items-center gap-1 text-[11px] text-slate-500 flex-shrink-0">
+        <div className="flex items-center gap-1 text-[11px] text-neutral-400 dark:text-neutral-500 flex-shrink-0">
           <Clock className="h-3 w-3" />
           {timeAgo(lead.createdAt)}
         </div>
@@ -79,17 +79,17 @@ export function LeadCard({ lead, isDragging, onClick }: LeadCardProps) {
           <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[10px] px-1.5 h-5">Humano</Badge>
         )}
         {lead.city && (
-          <Badge className="bg-white/5 text-slate-400 border-white/10 text-[10px] px-1.5 h-5">{lead.city}</Badge>
+          <Badge className="bg-neutral-50 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-white/10 text-[10px] px-1.5 h-5">{lead.city}</Badge>
         )}
         {lead.creditStatus && (
           <Badge className={`text-[10px] px-1.5 h-5 ${
-            lead.creditStatus === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-slate-400 border-white/10'
+            lead.creditStatus === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-neutral-50 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-white/10'
           }`}>{lead.creditStatus}</Badge>
         )}
       </div>
 
       {latestNote && (
-        <p className="text-[11px] text-slate-500 mt-2 truncate leading-relaxed">{latestNote.content}</p>
+        <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-2 truncate leading-relaxed">{latestNote.content}</p>
       )}
     </div>
   );
