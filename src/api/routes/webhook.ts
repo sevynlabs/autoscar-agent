@@ -1,103 +1,92 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { getMessageQueue } from '../../queue/queues.js';
 import prisma from '../../db/prisma.js';
-import { emitNewMessage } from '../../realtime/emitter.js';
 import type { MessageJobData } from '../../queue/jobs/message.job.js';
 
-interface EvolutionWebhookPayload {
-  event: string;
-  instance: string;
-  data: {
-    key?: {
-      remoteJid: string;
-      fromMe: boolean;
-      id: string;
-    };
-    message?: {
-      conversation?: string;
-      extendedTextMessage?: {
-        text?: string;
-      };
-    };
-    // CONNECTION_UPDATE fields
-    state?: string;
-    statusReason?: number;
-  };
+function extractPhone(remoteJid: string): string {
+  // Handle both @s.whatsapp.net and @lid formats
+  return remoteJid.replace(/@s\.whatsapp\.net$/, '').replace(/@lid$/, '');
 }
 
-function extractTextContent(data: EvolutionWebhookPayload['data']): string | null {
+function extractText(msg: any): string | null {
+  if (!msg) return null;
+  // Evolution v2 various message formats
   return (
-    data.message?.conversation ??
-    data.message?.extendedTextMessage?.text ??
+    msg.conversation ??
+    msg.extendedTextMessage?.text ??
+    msg.message?.conversation ??
+    msg.message?.extendedTextMessage?.text ??
     null
   );
 }
 
 const webhookRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/webhook/whatsapp', async (request, reply) => {
-    const body = request.body as EvolutionWebhookPayload;
-    const { event, instance, data } = body;
+    const body = request.body as any;
+    const event = body.event;
+    const instance = body.instance;
 
-    // ---- CONNECTION_UPDATE: sync instance status in DB ----
+    fastify.log.info({ event, instance }, 'Webhook received');
+
+    // ---- CONNECTION_UPDATE ----
     if (event === 'connection.update' || event === 'CONNECTION_UPDATE') {
-      const state = data.state; // 'open' | 'close' | 'connecting'
+      const state = body.data?.state;
       if (state) {
         const status = state === 'open' ? 'connected' : state === 'close' ? 'disconnected' : 'connecting';
-        await prisma.whatsAppInstance.updateMany({
-          where: { name: instance },
-          data: { status },
-        });
-        fastify.log.info({ instance, state: status }, 'WhatsApp connection updated');
+        await prisma.whatsAppInstance.updateMany({ where: { name: instance }, data: { status } });
+        fastify.log.info({ instance, state: status }, 'Connection updated');
       }
       return reply.send({ status: 'connection_updated' });
     }
 
-    // ---- QRCODE_UPDATED: just acknowledge ----
+    // ---- QRCODE ----
     if (event === 'qrcode.updated' || event === 'QRCODE_UPDATED') {
       return reply.send({ status: 'qr_acknowledged' });
     }
 
-    // ---- MESSAGES_UPSERT: process incoming message ----
-    if (event !== 'messages.upsert' && event !== 'MESSAGES_UPSERT') {
-      return reply.send({ status: 'ignored', reason: 'unhandled event' });
+    // ---- MESSAGES (upsert, update, set) ----
+    if (event === 'messages.upsert' || event === 'MESSAGES_UPSERT') {
+      // Evolution v2 sends data as array or object
+      const messages = Array.isArray(body.data) ? body.data : [body.data];
+
+      for (const msg of messages) {
+        const key = msg.key ?? msg;
+        const remoteJid = key.remoteJid ?? '';
+        const fromMe = key.fromMe ?? false;
+        const messageId = key.id ?? `${Date.now()}`;
+
+        // Skip self, group, status
+        if (fromMe) continue;
+        if (remoteJid.endsWith('@g.us')) continue;
+        if (remoteJid === 'status@broadcast') continue;
+
+        const text = extractText(msg) ?? extractText(msg.message);
+        if (!text) continue;
+
+        const phoneNumber = extractPhone(remoteJid);
+
+        fastify.log.info({ phone: phoneNumber, preview: text.substring(0, 50), messageId }, 'Message received');
+
+        const jobData: MessageJobData = {
+          instance,
+          phoneNumber,
+          message: text,
+          messageId,
+        };
+
+        const queue = getMessageQueue();
+        await queue.add('incoming-message', jobData, {
+          jobId: `msg-${instance}-${messageId}`,
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        });
+      }
+
+      return reply.send({ status: 'queued' });
     }
 
-    if (!data.key) {
-      return reply.send({ status: 'ignored', reason: 'no key' });
-    }
-
-    // Skip self-messages and group messages
-    if (data.key.fromMe) {
-      return reply.send({ status: 'ignored', reason: 'self message' });
-    }
-
-    if (data.key.remoteJid.endsWith('@g.us')) {
-      return reply.send({ status: 'ignored', reason: 'group message' });
-    }
-
-    const text = extractTextContent(data);
-    if (!text) {
-      return reply.send({ status: 'ignored', reason: 'no text content' });
-    }
-
-    const phoneNumber = data.key.remoteJid.replace(/@s\.whatsapp\.net$/, '');
-    const messageId = data.key.id;
-
-    const jobData: MessageJobData = {
-      instance,
-      phoneNumber,
-      message: text,
-      messageId,
-    };
-
-    const queue = getMessageQueue();
-    await queue.add('incoming-message', jobData, {
-      jobId: `msg-${instance}-${messageId}`,
-      removeOnComplete: 100,
-      removeOnFail: 50,
-    });
-
-    return reply.send({ status: 'queued' });
+    // ---- Ignore other events ----
+    return reply.send({ status: 'ignored', event });
   });
 };
 

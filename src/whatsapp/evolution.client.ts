@@ -106,8 +106,12 @@ export const evolutionClient = {
         webhookBase64: false,
         events: [
           'MESSAGES_UPSERT',
+          'MESSAGES_UPDATE',
+          'SEND_MESSAGE',
           'CONNECTION_UPDATE',
           'QRCODE_UPDATED',
+          'CONTACTS_UPSERT',
+          'CHATS_UPSERT',
         ],
       },
     });

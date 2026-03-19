@@ -34,6 +34,18 @@ export default function ChannelsPage() {
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [instanceInfos, setInstanceInfos] = useState<Record<string, InstanceInfo>>({});
+  const [webhookUrlInput, setWebhookUrlInput] = useState('');
+  const [webhookConfigured, setWebhookConfigured] = useState(false);
+
+  // Fetch current webhook URL on load
+  useEffect(() => {
+    api.get<{ webhookUrl: string | null; configured: boolean }>('/instances/webhook-url')
+      .then(res => {
+        if (res.webhookUrl) setWebhookUrlInput(res.webhookUrl);
+        setWebhookConfigured(res.configured);
+      })
+      .catch(() => {});
+  }, []);
 
   const { data: instances, isLoading } = useQuery<WhatsAppInstance[]>({
     queryKey: ['instances'],
@@ -62,7 +74,7 @@ export default function ChannelsPage() {
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      await api.post('/instances', { name: newName.trim() });
+      await api.post('/instances', { name: newName.trim(), webhookUrl: webhookUrlInput || undefined });
       setNewName('');
       queryClient.invalidateQueries({ queryKey: ['instances'] });
       // Auto-show QR
@@ -110,6 +122,47 @@ export default function ChannelsPage() {
           <p className="text-xs text-neutral-400 dark:text-neutral-500">Conecte WhatsApp, Instagram e SMS</p>
         </div>
       </div>
+
+      {/* ============ WEBHOOK URL CONFIG ============ */}
+      {!webhookConfigured && (
+        <div className="bg-yellow-50 dark:bg-yellow-500/5 rounded-xl border border-yellow-200 dark:border-yellow-500/20 p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <RefreshCw className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Configurar URL do Webhook</h3>
+              <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1 mb-3">
+                Para receber mensagens, informe o URL público onde esta aplicação está acessível.
+                Exemplo: <code className="bg-yellow-100 dark:bg-yellow-500/10 px-1 rounded">https://seudominio.com/api</code>
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://seudominio.com/api"
+                  value={webhookUrlInput}
+                  onChange={e => setWebhookUrlInput(e.target.value)}
+                  className="bg-white dark:bg-white/5 border-yellow-200 dark:border-yellow-500/20 h-9 text-sm flex-1"
+                />
+                <Button
+                  onClick={async () => {
+                    if (!webhookUrlInput) return;
+                    // Reconfigure webhook on all connected instances
+                    const insts = instances?.filter(i => i.status === 'connected' || i.status === 'open') ?? [];
+                    for (const inst of insts) {
+                      await api.post(`/instances/${inst.name}/webhook`, { webhookUrl: webhookUrlInput }).catch(() => {});
+                    }
+                    setWebhookConfigured(true);
+                    alert(`Webhook configurado em ${insts.length} instância(s). Adicione WEBHOOK_URL=${webhookUrlInput} no .env para persistir.`);
+                  }}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white cursor-pointer h-9 px-4 text-sm"
+                >
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ============ WHATSAPP ============ */}
       <div className="bg-white dark:bg-[#141414] rounded-xl border border-neutral-200 dark:border-white/[0.06] overflow-hidden shadow-sm">
