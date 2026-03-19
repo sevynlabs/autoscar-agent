@@ -5,27 +5,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Users, Shield, User } from 'lucide-react';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  createdAt: string;
-}
+interface UserType { id: string; email: string; name: string; role: string; createdAt: string; }
 
 export default function UsersPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({ email: '', password: '', name: '', role: 'operator' });
 
-  const { data: users } = useQuery<User[]>({
-    queryKey: ['users'],
-    queryFn: () => api.get('/users'),
-  });
+  const { data: users } = useQuery<UserType[]>({ queryKey: ['users'], queryFn: () => api.get('/users') });
 
   const addUser = async () => {
     if (!form.email || !form.password || !form.name) return;
@@ -42,48 +32,72 @@ export default function UsersPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Gerenciar Usuários</h1>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+          <Users className="h-5 w-5 text-indigo-400" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-white">Usuários</h1>
+          <p className="text-xs text-slate-500">Gerencie equipe e permissões</p>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader><CardTitle>Usuários</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
+      {/* User list */}
+      <div className="glass-card rounded-xl border border-white/[0.06] overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-white">Equipe</h2>
+          <Badge className="ml-auto bg-indigo-500/10 text-indigo-300 border-indigo-500/20 text-xs">{users?.length ?? 0}</Badge>
+        </div>
+        <div className="divide-y divide-white/[0.06]">
           {users?.map(user => (
-            <div key={user.id} className="flex items-center justify-between border rounded-lg p-3">
-              <div>
-                <span className="font-medium">{user.name}</span>
-                <span className="text-sm text-muted-foreground ml-2">{user.email}</span>
-                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="ml-2">
-                  {user.role}
-                </Badge>
+            <div key={user.id} className="flex items-center gap-3 px-5 py-3.5 group hover:bg-white/[0.02] transition-colors">
+              <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                {user.role === 'admin' ? <Shield className="h-4 w-4 text-indigo-400" /> : <User className="h-4 w-4 text-slate-400" />}
               </div>
-              <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteUser(user.id)}>
-                <Trash2 className="h-4 w-4" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-200">{user.name}</p>
+                <p className="text-xs text-slate-500">{user.email}</p>
+              </div>
+              <Badge className={`text-xs ${
+                user.role === 'admin'
+                  ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20'
+                  : 'bg-white/5 text-slate-400 border-white/10'
+              }`}>{user.role}</Badge>
+              <Button size="icon" variant="ghost" onClick={() => deleteUser(user.id)}
+                className="h-8 w-8 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader><CardTitle>Adicionar Usuário</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
+      {/* Add user */}
+      <div className="glass-card rounded-xl border border-white/[0.06] overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.06]">
+          <h2 className="text-sm font-semibold text-white">Adicionar Usuário</h2>
+        </div>
+        <div className="p-5 space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <Input placeholder="Nome" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-            <Input placeholder="Email" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-            <Input placeholder="Senha" type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
+            <Input placeholder="Nome" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              className="bg-white/5 border-white/10 h-9 text-sm" />
+            <Input placeholder="Email" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              className="bg-white/5 border-white/10 h-9 text-sm" />
+            <Input placeholder="Senha" type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              className="bg-white/5 border-white/10 h-9 text-sm" />
             <Select value={form.role} onValueChange={(v: string | null) => setForm(f => ({ ...f, role: v ?? f.role }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="bg-white/5 border-white/10 h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-[#1e293b] border-white/10">
                 <SelectItem value="operator">Operador</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={addUser} className="w-full">
-            <Plus className="h-4 w-4 mr-1" /> Adicionar
+          <Button onClick={addUser} className="w-full bg-indigo-600 hover:bg-indigo-500 cursor-pointer h-9 text-sm">
+            <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
