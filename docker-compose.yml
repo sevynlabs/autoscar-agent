@@ -84,6 +84,7 @@ services:
       - DATABASE_URL=postgresql://postgres.cytpszeczdxdcyuhldkz:%40Gratidao7%23@aws-1-sa-east-1.pooler.supabase.com:5432/postgres
       - EVOLUTION_API_URL=${EVOLUTION_API_URL:-http://evolution-api:8080}
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://app:3001}
     depends_on:
       - postgres
       - redis
