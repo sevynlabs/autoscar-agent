@@ -111,5 +111,35 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   role           String
   content        String
+  media          String[]
   createdAt      DateTime     @default(now())
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("operator")
+  tenantId     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  name      String
+  tenantId  String?
+  createdAt DateTime @default(now())
+}
+
+model WebhookEndpoint {
+  id        String   @id @default(cuid())
+  url       String
+  events    String[]
+  secret    String
+  active    Boolean  @default(true)
+  tenantId  String?
+  createdAt DateTime @default(now())
 }

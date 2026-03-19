@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import envPlugin from './plugins/env.js';
+import authPlugin from './plugins/auth.js';
 import { socketPlugin } from './plugins/socket.js';
 import instanceRoutes from './routes/instance.js';
 import webhookRoutes from './routes/webhook.js';
@@ -9,6 +10,12 @@ import scraperRoutes from './routes/scraper.js';
 import leadsRoutes from './routes/leads.js';
 import pipelinesRoutes from './routes/pipelines.js';
 import conversationsRoutes from './routes/conversations.js';
+import authRoutes from './routes/auth.js';
+import usersRoutes from './routes/users.js';
+import instagramWebhookRoutes from './routes/instagram-webhook.js';
+import dashboardRoutes from './routes/dashboard.js';
+import externalApiRoutes from './routes/external-api.js';
+import webhooksConfigRoutes from './routes/webhooks.js';
 
 export async function buildServer() {
   const fastify = Fastify({
@@ -32,6 +39,9 @@ export async function buildServer() {
     timeWindow: '1 minute',
   });
 
+  // Auth plugin — JWT verification on all routes except public
+  await fastify.register(authPlugin);
+
   // Socket.IO real-time plugin
   await fastify.register(socketPlugin);
 
@@ -40,11 +50,15 @@ export async function buildServer() {
     return { status: 'ok' };
   });
 
+  // Auth routes (public)
+  await fastify.register(authRoutes);
+
   // Instance management routes
   await fastify.register(instanceRoutes);
 
-  // Webhook routes
+  // Webhook routes (public — Evolution API + Instagram)
   await fastify.register(webhookRoutes);
+  await fastify.register(instagramWebhookRoutes);
 
   // Scraper test routes
   await fastify.register(scraperRoutes);
@@ -53,6 +67,18 @@ export async function buildServer() {
   await fastify.register(leadsRoutes);
   await fastify.register(pipelinesRoutes);
   await fastify.register(conversationsRoutes);
+
+  // User management routes (admin only)
+  await fastify.register(usersRoutes);
+
+  // Dashboard analytics
+  await fastify.register(dashboardRoutes);
+
+  // Webhook configuration
+  await fastify.register(webhooksConfigRoutes);
+
+  // External API (API key auth, separate from JWT)
+  await fastify.register(externalApiRoutes);
 
   return fastify;
 }
