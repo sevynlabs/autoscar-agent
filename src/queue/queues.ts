@@ -1,36 +1,32 @@
 import { Queue } from 'bullmq';
-import type { MessageJobData } from './jobs/message.job.js';
 
 let messageQueue: Queue | null = null;
+let followupQueue: Queue | null = null;
+let followupWorkflowQueue: Queue | null = null;
+
+function getRedisUrl(): string {
+  const url = process.env.REDIS_URL;
+  if (!url) throw new Error('REDIS_URL must be set');
+  return url;
+}
 
 export function getMessageQueue(): Queue {
   if (!messageQueue) {
-    const redisUrl = process.env.REDIS_URL;
-    if (!redisUrl) {
-      throw new Error('REDIS_URL must be set');
-    }
-
-    messageQueue = new Queue('messages', {
-      connection: { url: redisUrl },
-    });
+    messageQueue = new Queue('messages', { connection: { url: getRedisUrl() } });
   }
-
   return messageQueue!;
 }
 
-let followupQueue: Queue | null = null;
-
 export function getFollowupQueue(): Queue {
   if (!followupQueue) {
-    const redisUrl = process.env.REDIS_URL;
-    if (!redisUrl) {
-      throw new Error('REDIS_URL must be set');
-    }
-
-    followupQueue = new Queue('followups', {
-      connection: { url: redisUrl },
-    });
+    followupQueue = new Queue('followups', { connection: { url: getRedisUrl() } });
   }
-
   return followupQueue!;
+}
+
+export function getFollowupWorkflowQueue(): Queue {
+  if (!followupWorkflowQueue) {
+    followupWorkflowQueue = new Queue('followup-workflow', { connection: { url: getRedisUrl() } });
+  }
+  return followupWorkflowQueue!;
 }

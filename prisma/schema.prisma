@@ -74,9 +74,11 @@ model Lead {
   stage         Stage?        @relation(fields: [stageId], references: [id])
   pipelineId    String?
   pipeline      Pipeline?     @relation(fields: [pipelineId], references: [id])
-  humanOverride Boolean       @default(false)
-  conversation  Conversation?
-  notes         LeadNote[]
+  humanOverride    Boolean       @default(false)
+  followupAttempts Int           @default(0)
+  lastFollowupAt   DateTime?
+  conversation     Conversation?
+  notes            LeadNote[]
   tenantId      String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

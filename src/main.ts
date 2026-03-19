@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { buildServer } from './api/server.js';
 import { startMessageWorker, getMessageWorker } from './queue/workers/message.worker.js';
 import { startFollowupWorker, getFollowupWorker } from './queue/workers/followup.worker.js';
+import { startFollowupWorkflowWorker, getFollowupWorkflowWorker } from './queue/workers/followup-workflow.worker.js';
 
 async function main() {
   const server = await buildServer();
@@ -17,27 +18,27 @@ async function main() {
   }
 
   // Start BullMQ workers
-  const worker = startMessageWorker();
+  startMessageWorker();
   server.log.info('Message worker started (concurrency: 5)');
 
-  const fWorker = startFollowupWorker();
+  startFollowupWorker();
   server.log.info('Follow-up worker started (concurrency: 3)');
+
+  startFollowupWorkflowWorker();
+  server.log.info('Follow-up workflow started (daily at 9am)');
 
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     server.log.info(`Received ${signal}, shutting down gracefully...`);
 
     const messageWorker = getMessageWorker();
-    if (messageWorker) {
-      await messageWorker.close();
-      server.log.info('Message worker closed');
-    }
+    if (messageWorker) { await messageWorker.close(); server.log.info('Message worker closed'); }
 
     const followupWorker = getFollowupWorker();
-    if (followupWorker) {
-      await followupWorker.close();
-      server.log.info('Follow-up worker closed');
-    }
+    if (followupWorker) { await followupWorker.close(); server.log.info('Follow-up worker closed'); }
+
+    const wfWorker = getFollowupWorkflowWorker();
+    if (wfWorker) { await wfWorker.close(); server.log.info('Follow-up workflow worker closed'); }
 
     await server.close();
     server.log.info('Server closed');

@@ -18,6 +18,7 @@ import externalApiRoutes from './routes/external-api.js';
 import webhooksConfigRoutes from './routes/webhooks.js';
 import agentConfigRoutes from './routes/agent-config.js';
 import agentsRoutes from './routes/agents.js';
+import followupWorkflowRoutes from './routes/followup-workflow.js';
 
 export async function buildServer() {
   const fastify = Fastify({
@@ -76,6 +77,9 @@ export async function buildServer() {
   // Agent config + stats + CRUD
   await fastify.register(agentConfigRoutes);
   await fastify.register(agentsRoutes);
+
+  // Follow-up workflow
+  await fastify.register(followupWorkflowRoutes);
 
   // Dashboard analytics
   await fastify.register(dashboardRoutes);

@@ -34,13 +34,17 @@ export function startMessageWorker(): Worker {
       );
 
       try {
-        // 1. Cancel any pending follow-up (lead replied)
+        // 1. Cancel any pending follow-up + reset attempts (lead replied)
         try {
           const followupQueue = getFollowupQueue();
           await followupQueue.remove(`followup-${phoneNumber}`);
-        } catch {
-          /* followup queue may not exist yet — Plan 03 adds the worker */
-        }
+        } catch { /* ok */ }
+
+        // Reset follow-up attempts since lead responded
+        await prisma.lead.updateMany({
+          where: { phone: phoneNumber, followupAttempts: { gt: 0 } },
+          data: { followupAttempts: 0 },
+        });
 
         // 2. Load or create conversation (with channel)
         const conversation = await loadOrCreateConversation(phoneNumber, channelName);
