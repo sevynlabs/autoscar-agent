@@ -166,25 +166,18 @@ export async function executeToolCall(
     case 'send_photos': {
       const { photos } = SendPhotosArgs.parse(args);
       const toSend = photos.slice(0, 5);
-      // sendMedia will be added in Plan 03 — check if method exists
-      if (typeof (evolutionClient as Record<string, unknown>).sendMedia === 'function') {
-        for (let i = 0; i < toSend.length; i++) {
-          await (evolutionClient as unknown as {
-            sendMedia: (instance: string, to: string, photo: string, caption: string) => Promise<void>;
-          }).sendMedia(
-            ctx.instance,
-            ctx.phoneNumber,
-            toSend[i],
-            i === 0 ? 'Fotos do veiculo:' : '',
-          );
-          if (i < toSend.length - 1) {
-            await new Promise((r) => setTimeout(r, 2500));
-          }
+      for (let i = 0; i < toSend.length; i++) {
+        await evolutionClient.sendMedia(
+          ctx.instance,
+          ctx.phoneNumber,
+          toSend[i],
+          i === 0 ? 'Fotos do veiculo:' : '',
+        );
+        if (i < toSend.length - 1) {
+          await new Promise((r) => setTimeout(r, 2500));
         }
-        return { sent: toSend.length };
       }
-      console.warn('[agent-tools] sendMedia not available yet — skipping photo send (Plan 03 will add it)');
-      return { sent: 0, skipped: true, reason: 'sendMedia not implemented yet' };
+      return { sent: toSend.length };
     }
 
     case 'create_lead': {

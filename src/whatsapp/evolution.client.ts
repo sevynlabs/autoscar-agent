@@ -22,14 +22,10 @@ interface SendTextResponse {
   status: string;
 }
 
-interface InstanceInfo {
+interface ConnectionState {
   instance: {
     instanceName: string;
-    instanceId: string;
-    owner: string;
-    profileName: string;
-    profilePictureUrl: string | null;
-    status: string;
+    state: string; // 'open' | 'close' | 'connecting'
   };
 }
 
@@ -47,19 +43,33 @@ function getClient(): AxiosInstance {
       'Content-Type': 'application/json',
       apikey: apiKey,
     },
+    timeout: 15000,
   });
 }
 
 export const evolutionClient = {
+  /**
+   * Create a new WhatsApp instance using Baileys (QR code only, no API key needed from user)
+   */
   async createInstance(instanceName: string): Promise<CreateInstanceResponse> {
     const client = getClient();
     const { data } = await client.post<CreateInstanceResponse>('/instance/create', {
       instanceName,
       integration: 'WHATSAPP-BAILEYS',
+      qrcode: true,
+      rejectCall: false,
+      groupsIgnore: true,
+      alwaysOnline: false,
+      readMessages: false,
+      readStatus: false,
+      syncFullHistory: false,
     });
     return data;
   },
 
+  /**
+   * Get QR code for connecting WhatsApp (base64 image)
+   */
   async getQrCode(instanceName: string): Promise<string> {
     const client = getClient();
     const { data } = await client.get<QrCodeResponse>(
@@ -68,16 +78,41 @@ export const evolutionClient = {
     return data.base64;
   },
 
+  /**
+   * Get connection status of an instance
+   */
+  async getConnectionState(instanceName: string): Promise<string> {
+    const client = getClient();
+    try {
+      const { data } = await client.get<ConnectionState>(
+        `/instance/connectionState/${instanceName}`,
+      );
+      return data.instance?.state ?? 'unknown';
+    } catch {
+      return 'disconnected';
+    }
+  },
+
+  /**
+   * Set webhook URL for incoming messages
+   */
   async setWebhook(instanceName: string, webhookUrl: string): Promise<void> {
     const client = getClient();
     await client.post(`/webhook/set/${instanceName}`, {
       enabled: true,
       url: webhookUrl,
       webhookByEvents: false,
-      events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
+      events: [
+        'MESSAGES_UPSERT',
+        'CONNECTION_UPDATE',
+        'QRCODE_UPDATED',
+      ],
     });
   },
 
+  /**
+   * Send text message via WhatsApp
+   */
   async sendText(instanceName: string, to: string, text: string): Promise<SendTextResponse> {
     const client = getClient();
     const { data } = await client.post<SendTextResponse>(
@@ -87,12 +122,9 @@ export const evolutionClient = {
     return data;
   },
 
-  async listInstances(): Promise<InstanceInfo[]> {
-    const client = getClient();
-    const { data } = await client.get<InstanceInfo[]>('/instance/fetchInstances');
-    return data;
-  },
-
+  /**
+   * Send media (image) via WhatsApp with optional caption
+   */
   async sendMedia(
     instanceName: string,
     to: string,
@@ -102,11 +134,46 @@ export const evolutionClient = {
     const client = getClient();
     await client.post(`/message/sendMedia/${instanceName}`, {
       number: to,
-      mediatype: 'Image',
+      mediatype: 'image',
       mimetype: 'image/jpeg',
       media: mediaUrl,
       caption: caption ?? '',
       fileName: 'veiculo.jpg',
     });
+  },
+
+  /**
+   * List all instances from Evolution API
+   */
+  async listInstances(): Promise<{ instanceName: string; status: string }[]> {
+    const client = getClient();
+    try {
+      const { data } = await client.get('/instance/fetchInstances');
+      if (Array.isArray(data)) {
+        return data.map((i: any) => ({
+          instanceName: i.instance?.instanceName ?? i.instanceName ?? 'unknown',
+          status: i.instance?.status ?? i.status ?? 'unknown',
+        }));
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * Delete/logout an instance
+   */
+  async deleteInstance(instanceName: string): Promise<void> {
+    const client = getClient();
+    await client.delete(`/instance/delete/${instanceName}`);
+  },
+
+  /**
+   * Logout (disconnect) without deleting
+   */
+  async logoutInstance(instanceName: string): Promise<void> {
+    const client = getClient();
+    await client.delete(`/instance/logout/${instanceName}`);
   },
 };
