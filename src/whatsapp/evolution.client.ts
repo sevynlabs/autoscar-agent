@@ -99,14 +99,17 @@ export const evolutionClient = {
   async setWebhook(instanceName: string, webhookUrl: string): Promise<void> {
     const client = getClient();
     await client.post(`/webhook/set/${instanceName}`, {
-      enabled: true,
-      url: webhookUrl,
-      webhookByEvents: false,
-      events: [
-        'MESSAGES_UPSERT',
-        'CONNECTION_UPDATE',
-        'QRCODE_UPDATED',
-      ],
+      webhook: {
+        enabled: true,
+        url: webhookUrl,
+        webhookByEvents: false,
+        webhookBase64: false,
+        events: [
+          'MESSAGES_UPSERT',
+          'CONNECTION_UPDATE',
+          'QRCODE_UPDATED',
+        ],
+      },
     });
   },
 

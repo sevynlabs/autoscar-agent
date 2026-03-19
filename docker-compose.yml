@@ -38,22 +38,33 @@ services:
     image: atendai/evolution-api:v2.1.1
     restart: always
     environment:
+      SERVER_TYPE: http
+      SERVER_PORT: 8080
       SERVER_URL: http://evolution-api:8080
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
-      # Baileys mode — QR code connection
-      INSTANCE_MODE: container
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: 'true'
+      CORS_ORIGIN: '*'
+      CORS_METHODS: 'POST,GET,PUT,DELETE'
+      CORS_CREDENTIALS: 'true'
+      LOG_LEVEL: 'ERROR,WARN,INFO'
+      LOG_COLOR: 'true'
+      LOG_BAILEYS: 'error'
+      DEL_INSTANCE: 'false'
+      LANGUAGE: pt-BR
       # PostgreSQL persistence — survives restarts
       DATABASE_ENABLED: 'true'
       DATABASE_PROVIDER: postgresql
-      DATABASE_CONNECTION_URI: postgresql://autoscar:${POSTGRES_PASSWORD_ENCODED}@postgres:5432/evolution
+      DATABASE_CONNECTION_URI: postgresql://autoscar:${POSTGRES_PASSWORD}@postgres:5432/evolution
       DATABASE_SAVE_DATA_INSTANCE: 'true'
       DATABASE_SAVE_DATA_NEW_MESSAGE: 'true'
       DATABASE_SAVE_MESSAGE_UPDATE: 'true'
       DATABASE_SAVE_DATA_CONTACTS: 'true'
       DATABASE_SAVE_DATA_CHATS: 'true'
-      # Redis for cache
-      REDIS_ENABLED: 'true'
-      REDIS_URI: redis://redis:6379
+      # Redis cache (Evolution v2.1 uses CACHE_REDIS_*)
+      CACHE_REDIS_ENABLED: 'true'
+      CACHE_REDIS_URI: redis://redis:6379
+      CACHE_REDIS_PREFIX_KEY: 'autoscar-evo'
+      CACHE_REDIS_SAVE_INSTANCES: 'true'
       # Webhooks per-instance (configured by app)
       WEBHOOK_GLOBAL_ENABLED: 'false'
     volumes:
