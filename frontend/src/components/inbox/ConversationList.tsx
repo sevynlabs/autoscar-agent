@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 
 interface Conversation {
   id: string;
@@ -20,6 +21,12 @@ interface ConversationListProps {
   onSelect: (id: string) => void;
 }
 
+const channelConfig: Record<string, { label: string; color: string }> = {
+  whatsapp: { label: 'WhatsApp', color: 'text-green-600 border-green-300' },
+  instagram: { label: 'Instagram', color: 'text-purple-600 border-purple-300' },
+  sms: { label: 'SMS', color: 'text-blue-600 border-blue-300' },
+};
+
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -31,13 +38,15 @@ function timeAgo(dateStr: string) {
 
 export function ConversationList({ conversations, selectedId, onSelect }: ConversationListProps) {
   const [search, setSearch] = useState('');
+  const [channelFilter, setChannelFilter] = useState<string | null>(null);
 
   const filtered = conversations.filter(c => {
     const term = search.toLowerCase();
-    return (
+    const matchesSearch =
       (c.lead.name?.toLowerCase().includes(term) ?? false) ||
-      c.lead.phone.includes(term)
-    );
+      c.lead.phone.includes(term);
+    const matchesChannel = !channelFilter || c.channel === channelFilter;
+    return matchesSearch && matchesChannel;
   });
 
   const sorted = [...filtered].sort(
@@ -46,16 +55,31 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
 
   return (
     <div className="w-80 border-r flex flex-col h-full">
-      <div className="p-3 border-b">
+      <div className="p-3 border-b space-y-2">
         <Input
           placeholder="Buscar conversa..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+        <div className="flex gap-1">
+          <Button
+            size="sm" variant={channelFilter === null ? 'default' : 'outline'}
+            className="text-xs h-6 px-2" onClick={() => setChannelFilter(null)}
+          >Todos</Button>
+          {Object.entries(channelConfig).map(([key, cfg]) => (
+            <Button
+              key={key} size="sm"
+              variant={channelFilter === key ? 'default' : 'outline'}
+              className="text-xs h-6 px-2"
+              onClick={() => setChannelFilter(key)}
+            >{cfg.label}</Button>
+          ))}
+        </div>
       </div>
       <ScrollArea className="flex-1">
         {sorted.map(conv => {
           const latestMsg = conv.messages[conv.messages.length - 1];
+          const cfg = channelConfig[conv.channel] ?? channelConfig.whatsapp;
           return (
             <div
               key={conv.id}
@@ -71,7 +95,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
                 <span className="text-xs text-muted-foreground">{timeAgo(conv.updatedAt)}</span>
               </div>
               <div className="flex items-center gap-1 mt-1">
-                <Badge variant="outline" className="text-xs">WhatsApp</Badge>
+                <Badge variant="outline" className={`text-xs ${cfg.color}`}>{cfg.label}</Badge>
                 {conv.lead.humanOverride && (
                   <span className="w-2 h-2 rounded-full bg-orange-500" />
                 )}
