@@ -17,6 +17,7 @@ import dashboardRoutes from './routes/dashboard.js';
 import externalApiRoutes from './routes/external-api.js';
 import webhooksConfigRoutes from './routes/webhooks.js';
 import agentConfigRoutes from './routes/agent-config.js';
+import agentsRoutes from './routes/agents.js';
 
 export async function buildServer() {
   const fastify = Fastify({
@@ -72,8 +73,9 @@ export async function buildServer() {
   // User management routes (admin only)
   await fastify.register(usersRoutes);
 
-  // Agent config + stats
+  // Agent config + stats + CRUD
   await fastify.register(agentConfigRoutes);
+  await fastify.register(agentsRoutes);
 
   // Dashboard analytics
   await fastify.register(dashboardRoutes);

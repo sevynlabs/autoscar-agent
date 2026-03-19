@@ -115,6 +115,25 @@ model Message {
   createdAt      DateTime     @default(now())
 }
 
+model Agent {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  model             String   @default("gpt-4o")
+  systemPrompt      String   @db.Text
+  welcomeMessage    String?  @db.Text
+  qualificationFields String[] @default(["interest", "creditStatus", "city", "paymentMethod"])
+  maxFollowups      Int      @default(2)
+  followupDelayHours Int     @default(24)
+  portalUrl         String   @default("https://www.autoscar.com.br")
+  sellersGroupJid   String?
+  active            Boolean  @default(true)
+  temperature       Float    @default(0.7)
+  tenantId          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique

@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { appendMessages } from '../conversation/conversation.service.js';
-import { buildSystemPrompt } from './agent.prompts.js';
+import { buildSystemPrompt, getActiveAgent } from './agent.prompts.js';
 import { AGENT_TOOLS, executeToolCall } from './agent.tools.js';
 import type { AgentContext } from './agent.types.js';
 
@@ -21,8 +21,13 @@ function getOpenAI(): OpenAI {
 export async function runAgentTurn(ctx: AgentContext): Promise<string> {
   const client = getOpenAI();
 
+  // Load active agent config from DB (cached 1 min)
+  const activeAgent = await getActiveAgent();
+  const agentModel = activeAgent?.model ?? 'gpt-4o';
+  const agentTemp = activeAgent?.temperature ?? 0.7;
+
   const messages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: buildSystemPrompt(ctx.lead) },
+    { role: 'system', content: buildSystemPrompt(ctx.lead, activeAgent?.systemPrompt) },
     ...ctx.history,
     { role: 'user', content: ctx.userMessage },
   ];
@@ -38,7 +43,8 @@ export async function runAgentTurn(ctx: AgentContext): Promise<string> {
     iterations++;
 
     const response = await client.chat.completions.create({
-      model: 'gpt-4o',
+      model: agentModel,
+      temperature: agentTemp,
       messages,
       tools: AGENT_TOOLS,
       tool_choice: 'auto',
