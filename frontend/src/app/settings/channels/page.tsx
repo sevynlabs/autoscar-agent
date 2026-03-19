@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Plus, Trash2, QrCode, RefreshCw, Loader2, MessageSquare, Instagram, Smartphone } from 'lucide-react';
+import { Phone, Plus, Trash2, QrCode, RefreshCw, Loader2, MessageSquare, Instagram, Smartphone, Search, Users, Copy, Check } from 'lucide-react';
 
 interface WhatsAppInstance {
   id: string;
@@ -22,6 +22,11 @@ export default function ChannelsPage() {
   const [creating, setCreating] = useState(false);
   const [qrData, setQrData] = useState<{ name: string; base64: string } | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
+  const [groupSearch, setGroupSearch] = useState('');
+  const [groupInstance, setGroupInstance] = useState<string | null>(null);
+  const [groups, setGroups] = useState<{ id: string; subject: string; size: number }[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const { data: instances, isLoading } = useQuery<WhatsAppInstance[]>({
     queryKey: ['instances'],
@@ -151,6 +156,108 @@ export default function ChannelsPage() {
                 <Button size="sm" variant="ghost" onClick={() => setQrData(null)} className="text-xs cursor-pointer">
                   Fechar
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Group Search */}
+          {instances && instances.some(i => i.status === 'connected' || i.status === 'open') && (
+            <div className="rounded-xl bg-neutral-50 dark:bg-white/[0.02] border border-neutral-200 dark:border-white/[0.06] overflow-hidden">
+              <div className="px-4 py-3 border-b border-neutral-200 dark:border-white/[0.06] flex items-center gap-2">
+                <Users className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Buscar Grupo pelo Nome</h3>
+                <span className="text-xs text-neutral-400 ml-1">(para configurar grupo de vendedores)</span>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex gap-2">
+                  {instances.filter(i => i.status === 'connected' || i.status === 'open').length > 1 ? (
+                    <select
+                      value={groupInstance ?? ''}
+                      onChange={e => setGroupInstance(e.target.value || null)}
+                      className="bg-neutral-50 dark:bg-white/5 border border-neutral-200 dark:border-white/10 rounded-lg h-9 px-3 text-sm text-neutral-800 dark:text-neutral-200"
+                    >
+                      <option value="">Selecione instância</option>
+                      {instances.filter(i => i.status === 'connected' || i.status === 'open').map(i => (
+                        <option key={i.id} value={i.name}>{i.name}</option>
+                      ))}
+                    </select>
+                  ) : null}
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
+                    <Input
+                      placeholder="Nome do grupo..."
+                      value={groupSearch}
+                      onChange={e => setGroupSearch(e.target.value)}
+                      className="pl-9 bg-white dark:bg-white/5 border-neutral-200 dark:border-white/10 h-9 text-sm"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          const instName = groupInstance ?? instances.find(i => i.status === 'connected' || i.status === 'open')?.name;
+                          if (instName) {
+                            setGroupsLoading(true);
+                            api.get<{ id: string; subject: string; size: number }[]>(
+                              `/instances/${instName}/groups?search=${encodeURIComponent(groupSearch)}`
+                            ).then(setGroups).catch(() => setGroups([])).finally(() => setGroupsLoading(false));
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                  <Button
+                    onClick={() => {
+                      const instName = groupInstance ?? instances.find(i => i.status === 'connected' || i.status === 'open')?.name;
+                      if (instName) {
+                        setGroupsLoading(true);
+                        api.get<{ id: string; subject: string; size: number }[]>(
+                          `/instances/${instName}/groups?search=${encodeURIComponent(groupSearch)}`
+                        ).then(setGroups).catch(() => setGroups([])).finally(() => setGroupsLoading(false));
+                      }
+                    }}
+                    disabled={groupsLoading}
+                    className="bg-green-600 hover:bg-green-700 text-white cursor-pointer h-9 px-4 text-sm"
+                  >
+                    {groupsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Search className="h-3.5 w-3.5 mr-1" /> Buscar</>}
+                  </Button>
+                </div>
+
+                {/* Group results */}
+                {groups.length > 0 && (
+                  <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                    {groups.map(group => (
+                      <div key={group.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-white dark:bg-white/[0.03] border border-neutral-200 dark:border-white/[0.06] hover:border-green-300 dark:hover:border-green-500/30 transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-500/10 flex items-center justify-center">
+                          <Users className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate">{group.subject}</p>
+                          <p className="text-[11px] text-neutral-400 font-mono truncate">{group.id}</p>
+                        </div>
+                        <Badge className="bg-neutral-100 dark:bg-white/5 text-neutral-500 border-neutral-200 dark:border-white/10 text-[10px]">
+                          {group.size} membros
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(group.id);
+                            setCopiedId(group.id);
+                            setTimeout(() => setCopiedId(null), 2000);
+                          }}
+                          className="text-xs cursor-pointer h-7 px-2 border-green-200 dark:border-green-500/30 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10"
+                        >
+                          {copiedId === group.id ? <><Check className="h-3 w-3 mr-1" /> Copiado</> : <><Copy className="h-3 w-3 mr-1" /> Copiar JID</>}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {groups.length === 0 && !groupsLoading && groupSearch && (
+                  <p className="text-xs text-neutral-400 text-center py-3">Nenhum grupo encontrado. Deixe vazio para listar todos.</p>
+                )}
+
+                <p className="text-[11px] text-neutral-400">
+                  Copie o JID do grupo e cole no campo &quot;Grupo WhatsApp Vendedores&quot; nas configurações do Agente IA.
+                </p>
               </div>
             </div>
           )}

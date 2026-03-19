@@ -176,4 +176,25 @@ export const evolutionClient = {
     const client = getClient();
     await client.delete(`/instance/logout/${instanceName}`);
   },
+
+  /**
+   * Fetch all WhatsApp groups for an instance
+   */
+  async fetchGroups(instanceName: string): Promise<{ id: string; subject: string; size: number }[]> {
+    const client = getClient();
+    try {
+      const { data } = await client.get(`/group/fetchAllGroups/${instanceName}?getParticipants=false`);
+      if (Array.isArray(data)) {
+        return data.map((g: any) => ({
+          id: g.id ?? g.jid ?? '',
+          subject: g.subject ?? g.name ?? 'Sem nome',
+          size: g.size ?? g.participants?.length ?? 0,
+        }));
+      }
+      return [];
+    } catch (err) {
+      console.error(`[evolution] Failed to fetch groups for ${instanceName}:`, err);
+      return [];
+    }
+  },
 };

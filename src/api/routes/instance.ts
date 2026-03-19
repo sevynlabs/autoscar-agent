@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { createInstance, listInstances, getQrCode, deleteInstance, getConnectionState } from '../../whatsapp/instance.service.js';
+import { evolutionClient } from '../../whatsapp/evolution.client.js';
 
 const instanceRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /instances — Create a new WhatsApp instance (Baileys mode)
@@ -45,6 +46,24 @@ const instanceRoutes: FastifyPluginAsync = async (fastify) => {
     await deleteInstance(name);
     return { deleted: true };
   });
+
+  // GET /instances/:name/groups — List WhatsApp groups
+  fastify.get<{ Params: { name: string }; Querystring: { search?: string } }>(
+    '/instances/:name/groups',
+    async (request) => {
+      const { name } = request.params;
+      const { search } = request.query as { search?: string };
+
+      let groups = await evolutionClient.fetchGroups(name);
+
+      if (search) {
+        const term = search.toLowerCase();
+        groups = groups.filter(g => g.subject.toLowerCase().includes(term));
+      }
+
+      return groups;
+    },
+  );
 };
 
 export default instanceRoutes;
