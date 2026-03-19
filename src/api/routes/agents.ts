@@ -24,6 +24,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
       systemPrompt: string;
       welcomeMessage?: string;
       qualificationFields?: string[];
+      channels?: string[];
       maxFollowups?: number;
       followupDelayHours?: number;
       portalUrl?: string;
@@ -39,6 +40,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
         systemPrompt: body.systemPrompt,
         welcomeMessage: body.welcomeMessage,
         qualificationFields: body.qualificationFields ?? ['interest', 'creditStatus', 'city', 'paymentMethod'],
+        channels: body.channels ?? ['whatsapp', 'instagram', 'sms'],
         maxFollowups: body.maxFollowups ?? 2,
         followupDelayHours: body.followupDelayHours ?? 24,
         portalUrl: body.portalUrl ?? 'https://www.autoscar.com.br',
@@ -54,7 +56,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
     const body = request.body as Record<string, unknown>;
 
     const allowed = ['name', 'description', 'model', 'systemPrompt', 'welcomeMessage',
-      'qualificationFields', 'maxFollowups', 'followupDelayHours', 'portalUrl',
+      'qualificationFields', 'channels', 'maxFollowups', 'followupDelayHours', 'portalUrl',
       'sellersGroupJid', 'temperature', 'active'];
 
     const data: Record<string, unknown> = {};

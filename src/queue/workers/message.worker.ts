@@ -1,5 +1,6 @@
 import { Worker, type Job } from 'bullmq';
 import { runAgentTurn } from '../../agent/agent.service.js';
+import { getActiveAgent, isChannelEnabled } from '../../agent/agent.prompts.js';
 import { loadOrCreateConversation } from '../../conversation/conversation.service.js';
 import { getChannel } from '../../channels/channel.manager.js';
 import prisma from '../../db/prisma.js';
@@ -44,22 +45,23 @@ export function startMessageWorker(): Worker {
         // 2. Load or create conversation (with channel)
         const conversation = await loadOrCreateConversation(phoneNumber, channelName);
 
-        // 3. Check humanOverride — skip AI if operator has taken over
+        // 3. Check if agent responds on this channel
+        const activeAgent = await getActiveAgent();
+        if (!isChannelEnabled(activeAgent, channelName)) {
+          console.log(JSON.stringify({ level: 'info', msg: 'Agent disabled for this channel', channel: channelName, phone: phoneNumber }));
+          return;
+        }
+
+        // 4. Check humanOverride — skip AI if operator has taken over
         const lead = await prisma.lead.findFirst({
           where: { phone: phoneNumber },
         });
         if (lead?.humanOverride === true) {
-          console.log(
-            JSON.stringify({
-              level: 'info',
-              msg: 'Human override active, skipping AI',
-              phone: phoneNumber,
-            }),
-          );
+          console.log(JSON.stringify({ level: 'info', msg: 'Human override active, skipping AI', phone: phoneNumber }));
           return;
         }
 
-        // 4. Run agentic loop
+        // 5. Run agentic loop
         const reply = await runAgentTurn({
           instance,
           phoneNumber,

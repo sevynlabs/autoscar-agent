@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bot, Plus, Pencil, Trash2, Power, PowerOff, Save, X, Loader2, Brain, Zap, MessageSquare, Target, Users, Globe } from 'lucide-react';
+import { Bot, Plus, Pencil, Trash2, Power, PowerOff, Save, X, Loader2, Brain, Zap, MessageSquare, Target, Users, Globe, Phone, Instagram, Smartphone } from 'lucide-react';
 
 interface Agent {
   id: string;
@@ -19,6 +19,7 @@ interface Agent {
   systemPrompt: string;
   welcomeMessage: string | null;
   qualificationFields: string[];
+  channels: string[];
   maxFollowups: number;
   followupDelayHours: number;
   portalUrl: string;
@@ -50,6 +51,12 @@ const QUAL_FIELDS = [
   { value: 'paymentMethod', label: 'Forma de pagamento' },
   { value: 'tradeIn', label: 'Veículo de troca' },
   { value: 'budget', label: 'Orçamento' },
+];
+
+const CHANNEL_OPTIONS = [
+  { value: 'whatsapp', label: 'WhatsApp', icon: Phone, color: 'text-green-600 dark:text-green-400', activeBg: 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20' },
+  { value: 'instagram', label: 'Instagram', icon: Instagram, color: 'text-purple-600 dark:text-purple-400', activeBg: 'bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20' },
+  { value: 'sms', label: 'SMS', icon: Smartphone, color: 'text-blue-600 dark:text-blue-400', activeBg: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20' },
 ];
 
 const DEFAULT_PROMPT = `Voce e um SDR (Sales Development Representative) de uma concessionaria de veiculos.
@@ -88,6 +95,7 @@ export default function AgentSettingsPage() {
     systemPrompt: DEFAULT_PROMPT,
     welcomeMessage: '',
     qualificationFields: ['interest', 'creditStatus', 'city', 'paymentMethod'] as string[],
+    channels: ['whatsapp', 'instagram', 'sms'] as string[],
     maxFollowups: 2,
     followupDelayHours: 24,
     portalUrl: 'https://www.autoscar.com.br',
@@ -109,6 +117,7 @@ export default function AgentSettingsPage() {
     setForm({
       name: '', description: '', model: 'gpt-4o', systemPrompt: DEFAULT_PROMPT,
       welcomeMessage: '', qualificationFields: ['interest', 'creditStatus', 'city', 'paymentMethod'],
+      channels: ['whatsapp', 'instagram', 'sms'],
       maxFollowups: 2, followupDelayHours: 24, portalUrl: 'https://www.autoscar.com.br',
       sellersGroupJid: '', temperature: 0.7,
     });
@@ -124,6 +133,7 @@ export default function AgentSettingsPage() {
       systemPrompt: agent.systemPrompt,
       welcomeMessage: agent.welcomeMessage ?? '',
       qualificationFields: agent.qualificationFields,
+      channels: agent.channels,
       maxFollowups: agent.maxFollowups,
       followupDelayHours: agent.followupDelayHours,
       portalUrl: agent.portalUrl,
@@ -148,6 +158,15 @@ export default function AgentSettingsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const toggleChannel = (ch: string) => {
+    setForm(f => ({
+      ...f,
+      channels: f.channels.includes(ch)
+        ? f.channels.filter(c => c !== ch)
+        : [...f.channels, ch],
+    }));
   };
 
   const toggleActive = async (agent: Agent) => {
@@ -301,6 +320,30 @@ export default function AgentSettingsPage() {
               </div>
             </div>
 
+            {/* Channel Selection */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-neutral-500 dark:text-neutral-400">Canais que o Agente Responde</Label>
+              <div className="flex gap-3">
+                {CHANNEL_OPTIONS.map(ch => {
+                  const Icon = ch.icon;
+                  const active = form.channels.includes(ch.value);
+                  return (
+                    <button key={ch.value} onClick={() => toggleChannel(ch.value)}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer border ${
+                        active
+                          ? ch.activeBg
+                          : 'bg-neutral-100 dark:bg-white/5 text-neutral-400 border-neutral-200 dark:border-white/10 opacity-50'
+                      }`}>
+                      <Icon className={`h-4 w-4 ${active ? ch.color : 'text-neutral-400'}`} />
+                      {ch.label}
+                      {active && <span className="w-2 h-2 rounded-full bg-green-500" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-neutral-400">Desative canais para o agente não responder neles (mensagens ficam sem resposta automática)</p>
+            </div>
+
             {/* Follow-up + Portal + Sellers */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
@@ -360,6 +403,12 @@ export default function AgentSettingsPage() {
                       : 'bg-neutral-100 dark:bg-white/5 text-neutral-500 border-neutral-200 dark:border-white/10'
                   }`}>{agent.active ? 'Ativo' : 'Inativo'}</Badge>
                   <Badge className="bg-neutral-100 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-white/10 text-[10px]">{agent.model}</Badge>
+                  {agent.channels?.map(ch => {
+                    const opt = CHANNEL_OPTIONS.find(o => o.value === ch);
+                    return opt ? (
+                      <Badge key={ch} className={`text-[10px] ${opt.activeBg} ${opt.color}`}>{opt.label}</Badge>
+                    ) : null;
+                  })}
                 </div>
                 {agent.description && <p className="text-xs text-neutral-400 mt-0.5">{agent.description}</p>}
               </div>
