@@ -12,7 +12,7 @@ Four phases that transform a blank repo into a fully operational AI SDR platform
 
 - [x] **Phase 1: Foundation** - Async infrastructure, Docker stack, WhatsApp connection, autoscar.com.br scraper
 - [x] **Phase 2: AI Agent** - Autonomous SDR qualification loop, photo carousel, CRM tool-calls, seller notification (completed 2026-03-18)
-- [ ] **Phase 3: CRM + Multichat** - Full Kanban CRM, multichat inbox, human handoff, real-time WebSocket
+- [x] **Phase 3: CRM + Multichat** - Full Kanban CRM, multichat inbox, human handoff, real-time WebSocket (completed 2026-03-18)
 - [ ] **Phase 4: Platform + Channels** - Auth, dashboard analytics, Instagram DM, SMS, external API + webhooks
 
 ## Phase Details
@@ -62,14 +62,14 @@ Plans:
   3. Operator can search and filter leads by name, phone, stage, or vehicle and see the full conversation history and AI-generated notes for any lead
   4. Operator can edit any lead's data manually; CRM updates from both the agent and manual edits appear in real time for all connected users via WebSocket
   5. Vendor clicks a "take over" button in the multichat inbox and the AI immediately pauses for that conversation; all active conversations across multiple WhatsApp numbers are visible in a single inbox
-**Plans:** 2/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 - [x] 03-01-PLAN.md — Backend REST API routes + Socket.IO plugin + Prisma QualificationRule + humanOverride guard
-- [ ] 03-02-PLAN.md — Next.js 15 frontend scaffold + Docker service + Nginx routing
-- [ ] 03-03-PLAN.md — Kanban CRM board with dnd-kit drag-and-drop + lead detail + edit form
-- [ ] 03-04-PLAN.md — Multichat inbox + human handoff + pipeline settings + qualification rules UI
-- [ ] 03-05-PLAN.md — Socket.IO real-time wiring + full Phase 3 verification checkpoint
+- [x] 03-02-PLAN.md — Next.js 15 frontend scaffold + Docker service + Nginx routing
+- [x] 03-03-PLAN.md — Kanban CRM board with dnd-kit drag-and-drop + lead detail + edit form
+- [x] 03-04-PLAN.md — Multichat inbox + human handoff + pipeline settings + qualification rules UI
+- [x] 03-05-PLAN.md — Socket.IO real-time wiring + full Phase 3 verification checkpoint
 
 ### Phase 4: Platform + Channels
 **Goal**: The platform has secure multi-user access, analytics visibility, Instagram and SMS channels, and an external API for third-party integrations
@@ -92,5 +92,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete    | 2026-03-18 |
 | 2. AI Agent | 3/3 | Complete    | 2026-03-18 |
-| 3. CRM + Multichat | 2/5 | In Progress|  |
+| 3. CRM + Multichat | 5/5 | Complete | 2026-03-18 |
 | 4. Platform + Channels | 0/TBD | Not started | - |

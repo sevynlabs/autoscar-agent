@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in-progress
-last_updated: "2026-03-18T15:12:41Z"
+last_updated: "2026-03-18T23:43:38Z"
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 9
-  completed_plans: 9
+  total_phases: 4
+  completed_phases: 3
+  total_plans: 12
+  completed_plans: 12
 ---
 
 # Project State
@@ -22,19 +22,19 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 ## Current Position
 
-Phase: 3 of 4 (CRM + Multichat) -- IN PROGRESS
-Plan: 2 of 5 in current phase (2 complete)
-Status: Completed 03-02-PLAN.md — Frontend scaffold
-Last activity: 2026-03-18 — Completed 03-02-PLAN.md (Next.js frontend scaffold)
+Phase: 3 of 4 (CRM + Multichat) -- COMPLETE
+Plan: 5 of 5 in current phase (5 complete)
+Status: Completed 03-05-PLAN.md — Socket.IO real-time wiring + Phase 3 verification
+Last activity: 2026-03-18 — Completed 03-05-PLAN.md (Phase 3 complete)
 
-Progress: [█████████████████████░░░░] 64%
+Progress: [████████████████████████░] 86%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 12
 - Average duration: 4 min
-- Total execution time: 0.53 hours
+- Total execution time: 0.60 hours
 
 **By Phase:**
 
@@ -42,10 +42,10 @@ Progress: [█████████████████████░░
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 15 min | 4 min |
 | 02-ai-agent | 3 | 8 min | 3 min |
-| 03-crm-multichat | 2 | 9 min | 5 min |
+| 03-crm-multichat | 5 | 13 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (4 min), 02-02 (2 min), 02-03 (2 min), 03-01 (4 min), 03-02 (5 min)
+- Last 5 plans: 03-01 (4 min), 03-02 (5 min), 03-03 (2 min), 03-04 (2 min), 03-05 (2 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -57,6 +57,7 @@ Progress: [█████████████████████░░
 | Phase 02 P02 | 5min | 2 tasks | 4 files |
 | Phase 03 P01 | 4min | 2 tasks | 9 files |
 | Phase 03 P02 | 5min | 2 tasks | 39 files |
+| Phase 03 P05 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,8 @@ Recent decisions affecting current work:
 - [03-02]: Backend moved to port 3001 (APP_PORT env) to free 3000 for frontend
 - [03-02]: API proxy via Next.js rewrites (/api/backend -> Fastify) avoids CORS for REST
 - [03-02]: Socket.IO client uses autoConnect: false -- components call connect() in useEffect
+- [03-05]: useSocket hook as single integration point -- all real-time updates via TanStack Query cache invalidation
+- [03-05]: Socket singleton stays connected on cleanup (only listeners removed) to avoid reconnect overhead
 
 ### Pending Todos
 
@@ -108,5 +111,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-18
-Stopped at: Completed 03-02-PLAN.md (Next.js frontend scaffold). Phase 3 in progress, plan 3 next.
+Stopped at: Completed 03-05-PLAN.md (Socket.IO real-time wiring). Phase 3 complete, Phase 4 next.
 Resume file: None
