@@ -11,6 +11,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   { href: '/crm', label: 'CRM', icon: LayoutDashboard },
   { href: '/inbox', label: 'Inbox', icon: MessageSquare },
+  { href: '/settings/agent', label: 'Agente IA', icon: Bot },
   { href: '/settings/channels', label: 'Canais', icon: Phone },
   { href: '/settings/pipeline', label: 'Pipeline', icon: Settings },
   { href: '/settings/webhooks', label: 'Webhooks', icon: Webhook },

@@ -16,6 +16,7 @@ import instagramWebhookRoutes from './routes/instagram-webhook.js';
 import dashboardRoutes from './routes/dashboard.js';
 import externalApiRoutes from './routes/external-api.js';
 import webhooksConfigRoutes from './routes/webhooks.js';
+import agentConfigRoutes from './routes/agent-config.js';
 
 export async function buildServer() {
   const fastify = Fastify({
@@ -70,6 +71,9 @@ export async function buildServer() {
 
   // User management routes (admin only)
   await fastify.register(usersRoutes);
+
+  // Agent config + stats
+  await fastify.register(agentConfigRoutes);
 
   // Dashboard analytics
   await fastify.register(dashboardRoutes);
