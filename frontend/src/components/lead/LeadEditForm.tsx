@@ -60,7 +60,7 @@ export function LeadEditForm({ lead }: LeadEditFormProps) {
         <Label>Status de Crédito</Label>
         <Select
           defaultValue={lead.creditStatus ?? ''}
-          onValueChange={v => setValue('creditStatus', v)}
+          onValueChange={v => v && setValue('creditStatus', v)}
         >
           <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
           <SelectContent>
@@ -76,7 +76,7 @@ export function LeadEditForm({ lead }: LeadEditFormProps) {
         <Label>Forma de Pagamento</Label>
         <Select
           defaultValue={lead.paymentMethod ?? ''}
-          onValueChange={v => setValue('paymentMethod', v)}
+          onValueChange={v => v && setValue('paymentMethod', v)}
         >
           <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
           <SelectContent>

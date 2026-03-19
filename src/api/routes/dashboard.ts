@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { prisma } from '../../db/prisma.js';
+import prisma from '../../db/prisma.js';
 
 export default async function dashboardRoutes(fastify: FastifyInstance) {
   // GET /dashboard/stats?from=&to=

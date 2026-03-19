@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { prisma } from '../../db/prisma.js';
+import prisma from '../../db/prisma.js';
 
 async function apiKeyAuth(request: FastifyRequest, reply: FastifyReply) {
   const apiKey = request.headers['x-api-key'] as string;

@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { prisma } from '../../db/prisma.js';
+import prisma from '../../db/prisma.js';
 import { createToken } from '../plugins/auth.js';
 import bcrypt from 'bcrypt';
 

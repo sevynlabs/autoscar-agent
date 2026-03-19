@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { prisma } from '../../db/prisma.js';
+import prisma from '../../db/prisma.js';
 import { randomBytes } from 'crypto';
 
 export default async function webhooksRoutes(fastify: FastifyInstance) {

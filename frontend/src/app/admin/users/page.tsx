@@ -71,7 +71,7 @@ export default function UsersPage() {
             <Input placeholder="Nome" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             <Input placeholder="Email" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
             <Input placeholder="Senha" type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
-            <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
+            <Select value={form.role} onValueChange={(v: string | null) => setForm(f => ({ ...f, role: v ?? f.role }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="operator">Operador</SelectItem>

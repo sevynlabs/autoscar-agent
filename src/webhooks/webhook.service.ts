@@ -1,4 +1,4 @@
-import { prisma } from '../db/prisma.js';
+import prisma from '../db/prisma.js';
 import { createHmac } from 'crypto';
 
 export async function fireWebhooks(event: string, payload: Record<string, unknown>) {

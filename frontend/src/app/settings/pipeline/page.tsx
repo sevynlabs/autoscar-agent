@@ -165,7 +165,7 @@ export default function PipelineSettingsPage() {
           ))}
 
           <div className="grid grid-cols-2 gap-2 mt-3">
-            <Select value={ruleForm.field} onValueChange={v => setRuleForm(f => ({ ...f, field: v }))}>
+            <Select value={ruleForm.field} onValueChange={v => setRuleForm(f => ({ ...f, field: v ?? f.field }))}>
               <SelectTrigger><SelectValue placeholder="Campo" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="creditStatus">Status de Crédito</SelectItem>
@@ -174,7 +174,7 @@ export default function PipelineSettingsPage() {
                 <SelectItem value="interest">Interesse</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={ruleForm.operator} onValueChange={v => setRuleForm(f => ({ ...f, operator: v }))}>
+            <Select value={ruleForm.operator} onValueChange={v => setRuleForm(f => ({ ...f, operator: v ?? f.operator }))}>
               <SelectTrigger><SelectValue placeholder="Operador" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="equals">igual a</SelectItem>
@@ -187,7 +187,7 @@ export default function PipelineSettingsPage() {
               value={ruleForm.value}
               onChange={e => setRuleForm(f => ({ ...f, value: e.target.value }))}
             />
-            <Select value={ruleForm.stageTrigger} onValueChange={v => setRuleForm(f => ({ ...f, stageTrigger: v }))}>
+            <Select value={ruleForm.stageTrigger} onValueChange={v => setRuleForm(f => ({ ...f, stageTrigger: v ?? f.stageTrigger }))}>
               <SelectTrigger><SelectValue placeholder="Mover para etapa" /></SelectTrigger>
               <SelectContent>
                 {sortedStages.map(s => (
