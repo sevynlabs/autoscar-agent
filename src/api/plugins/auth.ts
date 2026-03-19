@@ -29,7 +29,7 @@ async function authPlugin(fastify: FastifyInstance) {
 
   fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
     // Skip auth for public routes
-    const publicPaths = ['/health', '/auth/login', '/webhook/', '/external/'];
+    const publicPaths = ['/health', '/auth/login', '/auth/me', '/webhook/', '/external/', '/instances', '/scraper/'];
     if (publicPaths.some(p => request.url.startsWith(p))) return;
 
     const authHeader = request.headers.authorization;

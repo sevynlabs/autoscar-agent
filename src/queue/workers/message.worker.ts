@@ -1,10 +1,11 @@
 import { Worker, type Job } from 'bullmq';
 import { runAgentTurn } from '../../agent/agent.service.js';
 import { loadOrCreateConversation } from '../../conversation/conversation.service.js';
-import { evolutionClient } from '../../whatsapp/evolution.client.js';
+import { getChannel } from '../../channels/channel.manager.js';
 import prisma from '../../db/prisma.js';
 import { getFollowupQueue } from '../queues.js';
 import { emitNewMessage, emitConversationUpdated } from '../../realtime/emitter.js';
+import { fireWebhooks } from '../../webhooks/webhook.service.js';
 import type { MessageJobData } from '../jobs/message.job.js';
 
 let worker: Worker | null = null;
@@ -18,7 +19,8 @@ export function startMessageWorker(): Worker {
   worker = new Worker(
     'messages',
     async (job: Job) => {
-      const { instance, phoneNumber, message } = job.data as MessageJobData;
+      const { instance, phoneNumber, message, channel: msgChannel } = job.data as MessageJobData;
+      const channelName = msgChannel ?? 'whatsapp';
 
       console.log(
         JSON.stringify({
@@ -39,8 +41,8 @@ export function startMessageWorker(): Worker {
           /* followup queue may not exist yet — Plan 03 adds the worker */
         }
 
-        // 2. Load or create conversation
-        const conversation = await loadOrCreateConversation(phoneNumber);
+        // 2. Load or create conversation (with channel)
+        const conversation = await loadOrCreateConversation(phoneNumber, channelName);
 
         // 3. Check humanOverride — skip AI if operator has taken over
         const lead = await prisma.lead.findFirst({
@@ -67,9 +69,10 @@ export function startMessageWorker(): Worker {
           lead: conversation.lead,
         });
 
-        // 5. Send reply to lead + emit real-time events
+        // 5. Send reply via appropriate channel + emit real-time events
         if (reply && reply.trim()) {
-          await evolutionClient.sendText(instance, phoneNumber, reply);
+          const ch = getChannel(channelName);
+          await ch.sendText(phoneNumber, instance, reply);
           emitNewMessage({ conversationId: conversation.id });
           emitConversationUpdated({ id: conversation.id });
         }
@@ -113,13 +116,10 @@ export function startMessageWorker(): Worker {
           }),
         );
 
-        // Send fallback message to lead
+        // Send fallback message to lead via appropriate channel
         try {
-          await evolutionClient.sendText(
-            instance,
-            phoneNumber,
-            'Desculpe, ocorreu um erro. Um vendedor vai entrar em contato.',
-          );
+          const ch = getChannel(channelName);
+          await ch.sendText(phoneNumber, instance, 'Desculpe, ocorreu um erro. Um vendedor vai entrar em contato.');
         } catch {
           /* if even fallback fails, let BullMQ retry handle it */
         }
