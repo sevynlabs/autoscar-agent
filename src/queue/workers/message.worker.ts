@@ -4,6 +4,7 @@ import { loadOrCreateConversation } from '../../conversation/conversation.servic
 import { evolutionClient } from '../../whatsapp/evolution.client.js';
 import prisma from '../../db/prisma.js';
 import { getFollowupQueue } from '../queues.js';
+import { emitNewMessage, emitConversationUpdated } from '../../realtime/emitter.js';
 import type { MessageJobData } from '../jobs/message.job.js';
 
 let worker: Worker | null = null;
@@ -66,9 +67,11 @@ export function startMessageWorker(): Worker {
           lead: conversation.lead,
         });
 
-        // 5. Send reply to lead
+        // 5. Send reply to lead + emit real-time events
         if (reply && reply.trim()) {
           await evolutionClient.sendText(instance, phoneNumber, reply);
+          emitNewMessage({ conversationId: conversation.id });
+          emitConversationUpdated({ id: conversation.id });
         }
 
         // 6. Schedule follow-up (Plan 03 will implement the worker)

@@ -1,5 +1,7 @@
 import prisma from '../db/prisma.js';
 import { getDefaultPipeline, getStageByName } from './pipeline.service.js';
+import { emitLeadCreated, emitLeadUpdated, emitLeadMoved } from '../realtime/emitter.js';
+import { fireWebhooks } from '../webhooks/webhook.service.js';
 
 export async function upsertLead(data: {
   phone: string;
@@ -9,7 +11,7 @@ export async function upsertLead(data: {
   const pipeline = await getDefaultPipeline();
   const novoStage = await getStageByName(pipeline.id, 'Novo');
 
-  return prisma.lead.upsert({
+  const lead = await prisma.lead.upsert({
     where: {
       phone_pipelineId: {
         phone: data.phone,
@@ -29,6 +31,10 @@ export async function upsertLead(data: {
     },
     include: { stage: true },
   });
+
+  emitLeadCreated(lead);
+  fireWebhooks('lead.created', { leadId: lead.id, phone: lead.phone, name: lead.name }).catch(() => {});
+  return lead;
 }
 
 export async function updateLead(
@@ -41,19 +47,24 @@ export async function updateLead(
     vehicleUrl?: string;
   },
 ) {
-  return prisma.lead.update({
+  const updated = await prisma.lead.update({
     where: { id: leadId },
     data,
     include: { stage: true },
   });
+  emitLeadUpdated(updated);
+  return updated;
 }
 
 export async function moveToStage(leadId: string, stageId: string) {
-  return prisma.lead.update({
+  const updated = await prisma.lead.update({
     where: { id: leadId },
     data: { stageId },
     include: { stage: true },
   });
+  emitLeadMoved(updated);
+  fireWebhooks('lead.stage_changed', { leadId, stageId, stage: updated.stage?.name }).catch(() => {});
+  return updated;
 }
 
 export async function addNote(

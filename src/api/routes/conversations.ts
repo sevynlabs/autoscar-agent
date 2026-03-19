@@ -29,6 +29,7 @@ export default async function conversationsRoutes(fastify: FastifyInstance) {
             name: true,
             phone: true,
             stage: true,
+            humanOverride: true,
           },
         },
         messages: {
@@ -45,12 +46,22 @@ export default async function conversationsRoutes(fastify: FastifyInstance) {
   fastify.get('/conversations/:id/messages', async (request) => {
     const { id } = request.params as { id: string };
 
-    const messages = await prisma.message.findMany({
-      where: { conversationId: id },
-      orderBy: { createdAt: 'asc' },
+    const conversation = await prisma.conversation.findUniqueOrThrow({
+      where: { id },
+      include: {
+        lead: {
+          select: { id: true, name: true, phone: true, humanOverride: true },
+        },
+        messages: { orderBy: { createdAt: 'asc' } },
+      },
     });
 
-    return messages;
+    return {
+      id: conversation.id,
+      leadId: conversation.leadId,
+      lead: conversation.lead,
+      messages: conversation.messages,
+    };
   });
 
   // POST /conversations/:id/message — operator reply

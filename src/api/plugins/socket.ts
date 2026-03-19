@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin';
 import { Server as SocketIOServer } from 'socket.io';
 import type { FastifyInstance } from 'fastify';
+import { setSocketIO } from '../../realtime/emitter.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -29,6 +30,7 @@ export const socketPlugin = fp(
     });
 
     fastify.decorate('io', io);
+    setSocketIO(io);
 
     fastify.addHook('onClose', async () => {
       io.close();

@@ -3,45 +3,38 @@ import prisma from '../db/prisma.js';
 
 export async function loadOrCreateConversation(
   phoneNumber: string,
+  channel: string = 'whatsapp',
   limit = 30,
 ) {
-  // Find lead by phone (any pipeline)
-  const lead = await prisma.lead.findFirst({
+  let lead = await prisma.lead.findFirst({
     where: { phone: phoneNumber },
     include: { stage: true },
   });
 
   if (!lead) {
-    // No lead yet -- create a conversation placeholder
-    const conversation = await prisma.conversation.create({
-      data: {
-        lead: {
-          create: {
-            phone: phoneNumber,
-          },
-        },
-      },
+    lead = await prisma.lead.create({
+      data: { phone: phoneNumber },
+      include: { stage: true },
     });
-    return { id: conversation.id, recentMessages: [] as ChatCompletionMessageParam[], lead: null };
   }
 
-  // Find or create conversation for this lead
   const conversation = await prisma.conversation.upsert({
     where: { leadId: lead.id },
-    create: { leadId: lead.id },
+    create: { leadId: lead.id, channel },
     update: {},
   });
 
-  // Load recent messages
   const messages = await prisma.message.findMany({
     where: { conversationId: conversation.id },
     orderBy: { createdAt: 'asc' },
     take: limit,
   });
 
-  const recentMessages: ChatCompletionMessageParam[] = messages.map((msg) =>
-    JSON.parse(msg.content) as ChatCompletionMessageParam,
-  );
+  // Map DB messages to OpenAI format for agent context
+  const recentMessages: ChatCompletionMessageParam[] = messages.map((msg) => ({
+    role: msg.role === 'lead' ? 'user' : 'assistant',
+    content: msg.content,
+  } as ChatCompletionMessageParam));
 
   return {
     id: conversation.id,
@@ -61,17 +54,16 @@ export async function loadOrCreateConversation(
 
 export async function appendMessages(
   conversationId: string,
-  messages: ChatCompletionMessageParam[],
+  messages: { role: string; content: string }[],
 ) {
   await prisma.message.createMany({
     data: messages.map((msg) => ({
       conversationId,
       role: msg.role,
-      content: JSON.stringify(msg),
+      content: msg.content,
     })),
   });
 
-  // Update conversation updatedAt
   await prisma.conversation.update({
     where: { id: conversationId },
     data: { updatedAt: new Date() },
