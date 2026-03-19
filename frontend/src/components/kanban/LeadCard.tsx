@@ -56,12 +56,12 @@ export function LeadCard({ lead, isDragging, onClick }: LeadCardProps) {
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className="glass-card rounded-xl p-3.5 mb-2 cursor-grab hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200 border border-white/[0.06] group"
+      className="glass-card rounded-xl p-3.5 mb-2 cursor-grab hover:border-red-500/30 hover:shadow-lg hover:shadow-red-500/5 transition-all duration-200 border border-white/[0.06] group"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
-            <User className="h-4 w-4 text-indigo-400" />
+          <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center flex-shrink-0">
+            <User className="h-4 w-4 text-red-600 dark:text-red-400" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-slate-200 truncate">{lead.name || lead.phone}</p>

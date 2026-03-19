@@ -44,11 +44,11 @@ export default function CRMPage() {
       {/* Header */}
       <div className="border-b border-white/[0.06] px-6 py-4 flex items-center gap-4 glass">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-            <LayoutDashboard className="h-4 w-4 text-indigo-400" />
+          <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+            <LayoutDashboard className="h-4 w-4 text-red-600 dark:text-red-400" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white">CRM</h1>
+            <h1 className="text-lg font-bold text-neutral-900 dark:text-white">CRM</h1>
             <p className="text-xs text-slate-500">{pipeline?.name ?? 'Pipeline'}</p>
           </div>
         </div>
@@ -58,7 +58,7 @@ export default function CRMPage() {
             placeholder="Buscar por nome ou telefone..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-9 bg-white/5 border-white/10 focus:border-indigo-500/50 h-9"
+            className="pl-9 bg-white/5 border-white/10 focus:border-red-500/50 h-9"
           />
         </div>
       </div>

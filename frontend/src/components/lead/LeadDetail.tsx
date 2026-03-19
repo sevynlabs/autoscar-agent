@@ -46,8 +46,8 @@ export function LeadDetail({ leadId, open, onClose }: LeadDetailProps) {
         {/* Header */}
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-              <User className="h-5 w-5 text-indigo-400" />
+            <div className="w-11 h-11 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+              <User className="h-5 w-5 text-red-600 dark:text-red-400" />
             </div>
             <div>
               <SheetTitle className="text-white text-base">{lead?.name || lead?.phone || 'Lead'}</SheetTitle>
@@ -62,7 +62,7 @@ export function LeadDetail({ leadId, open, onClose }: LeadDetailProps) {
           {lead && (
             <div className="flex gap-2 mt-3">
               {lead.stage && (
-                <Badge className="bg-indigo-500/10 text-indigo-300 border-indigo-500/20 text-xs">{lead.stage.name}</Badge>
+                <Badge className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20 text-xs">{lead.stage.name}</Badge>
               )}
               {lead.city && (
                 <Badge className="bg-white/5 text-slate-400 border-white/10 text-xs">{lead.city}</Badge>
@@ -87,13 +87,13 @@ export function LeadDetail({ leadId, open, onClose }: LeadDetailProps) {
         ) : (
           <Tabs defaultValue="conversa" className="flex flex-col h-[calc(100vh-160px)]">
             <TabsList className="mx-6 mt-4 bg-white/5 border border-white/[0.06] p-1 rounded-xl">
-              <TabsTrigger value="conversa" className="data-[state=active]:bg-indigo-500/10 data-[state=active]:text-indigo-300 rounded-lg text-xs gap-1.5 cursor-pointer">
+              <TabsTrigger value="conversa" className="data-[state=active]:bg-red-50 dark:bg-red-500/10 data-[state=active]:text-red-600 dark:text-red-300 rounded-lg text-xs gap-1.5 cursor-pointer">
                 <MessageSquare className="h-3.5 w-3.5" /> Conversa
               </TabsTrigger>
-              <TabsTrigger value="notas" className="data-[state=active]:bg-indigo-500/10 data-[state=active]:text-indigo-300 rounded-lg text-xs gap-1.5 cursor-pointer">
+              <TabsTrigger value="notas" className="data-[state=active]:bg-red-50 dark:bg-red-500/10 data-[state=active]:text-red-600 dark:text-red-300 rounded-lg text-xs gap-1.5 cursor-pointer">
                 <FileText className="h-3.5 w-3.5" /> Notas
               </TabsTrigger>
-              <TabsTrigger value="dados" className="data-[state=active]:bg-indigo-500/10 data-[state=active]:text-indigo-300 rounded-lg text-xs gap-1.5 cursor-pointer">
+              <TabsTrigger value="dados" className="data-[state=active]:bg-red-50 dark:bg-red-500/10 data-[state=active]:text-red-600 dark:text-red-300 rounded-lg text-xs gap-1.5 cursor-pointer">
                 <Settings2 className="h-3.5 w-3.5" /> Dados
               </TabsTrigger>
             </TabsList>
@@ -110,12 +110,12 @@ export function LeadDetail({ leadId, open, onClose }: LeadDetailProps) {
                         msg.role === 'lead'
                           ? 'bg-white/[0.06] text-slate-200 rounded-bl-md'
                           : msg.role === 'agent'
-                          ? 'bg-indigo-500/10 text-indigo-100 border border-indigo-500/20 rounded-br-md'
+                          ? 'bg-red-50 dark:bg-red-500/10 text-red-100 border border-red-200 dark:border-red-500/20 rounded-br-md'
                           : 'bg-emerald-500/10 text-emerald-100 border border-emerald-500/20 rounded-br-md'
                       }`}>
                         <div className="flex items-center gap-1.5 mb-1">
                           {msg.role === 'lead' && <User className="h-3 w-3 text-slate-500" />}
-                          {msg.role === 'agent' && <Bot className="h-3 w-3 text-indigo-400" />}
+                          {msg.role === 'agent' && <Bot className="h-3 w-3 text-red-600 dark:text-red-400" />}
                           {msg.role === 'human' && <Shield className="h-3 w-3 text-emerald-400" />}
                           <span className="text-[10px] font-medium opacity-60">
                             {msg.role === 'lead' ? 'Lead' : msg.role === 'agent' ? 'IA' : 'Operador'}
@@ -142,7 +142,7 @@ export function LeadDetail({ leadId, open, onClose }: LeadDetailProps) {
                     <div key={note.id} className="glass-card rounded-xl p-4 border border-white/[0.06]">
                       <div className="flex items-center gap-2 mb-2">
                         {note.type === 'ai' ? (
-                          <Badge className="bg-indigo-500/10 text-indigo-300 border-indigo-500/20 text-[10px]">
+                          <Badge className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20 text-[10px]">
                             <Bot className="h-3 w-3 mr-1" /> IA
                           </Badge>
                         ) : (
@@ -165,9 +165,9 @@ export function LeadDetail({ leadId, open, onClose }: LeadDetailProps) {
                     placeholder="Adicionar nota..."
                     value={noteContent}
                     onChange={e => setNoteContent(e.target.value)}
-                    className="min-h-[60px] bg-white/5 border-white/10 focus:border-indigo-500/50 resize-none"
+                    className="min-h-[60px] bg-white/5 border-white/10 focus:border-red-500/50 resize-none"
                   />
-                  <Button onClick={handleAddNote} size="sm" className="bg-indigo-600 hover:bg-indigo-500 cursor-pointer self-end">
+                  <Button onClick={handleAddNote} size="sm" className="bg-red-600 hover:bg-red-500 cursor-pointer self-end">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>

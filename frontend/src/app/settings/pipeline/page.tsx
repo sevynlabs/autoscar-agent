@@ -57,11 +57,11 @@ export default function PipelineSettingsPage() {
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-          <Settings className="h-5 w-5 text-indigo-400" />
+        <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+          <Settings className="h-5 w-5 text-red-600 dark:text-red-400" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">Pipeline</h1>
+          <h1 className="text-xl font-bold text-neutral-900 dark:text-white">Pipeline</h1>
           <p className="text-xs text-slate-500">Configure etapas e regras de qualificação</p>
         </div>
       </div>
@@ -69,9 +69,9 @@ export default function PipelineSettingsPage() {
       {/* Stages */}
       <div className="glass-card rounded-xl border border-white/[0.06] overflow-hidden">
         <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
-          <Layers className="h-4 w-4 text-indigo-400" />
-          <h2 className="text-sm font-semibold text-white">Etapas do Pipeline</h2>
-          <Badge className="ml-auto bg-indigo-500/10 text-indigo-300 border-indigo-500/20 text-xs">{sortedStages.length}</Badge>
+          <Layers className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <h2 className="text-sm font-semibold text-neutral-900 dark:text-white">Etapas do Pipeline</h2>
+          <Badge className="ml-auto bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20 text-xs">{sortedStages.length}</Badge>
         </div>
         <div className="p-4 space-y-2">
           {sortedStages.map((stage, idx) => (
@@ -79,7 +79,7 @@ export default function PipelineSettingsPage() {
               <span className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-xs text-slate-400 font-mono">{idx + 1}</span>
               <Input
                 defaultValue={stage.name}
-                className="flex-1 bg-white/5 border-white/10 focus:border-indigo-500/50 h-9 text-sm"
+                className="flex-1 bg-white/5 border-white/10 focus:border-red-500/50 h-9 text-sm"
                 onBlur={e => { if (e.target.value !== stage.name) renameStage(stage.id, e.target.value); }}
               />
               <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -91,7 +91,7 @@ export default function PipelineSettingsPage() {
           ))}
           <div className="flex gap-2 mt-3 pt-3 border-t border-white/[0.06]">
             <Input placeholder="Nome da nova etapa" value={newStageName} onChange={e => setNewStageName(e.target.value)} className="bg-white/5 border-white/10 h-9 text-sm" />
-            <Button onClick={addStage} size="sm" className="bg-indigo-600 hover:bg-indigo-500 cursor-pointer h-9 px-4">
+            <Button onClick={addStage} size="sm" className="bg-red-600 hover:bg-red-500 cursor-pointer h-9 px-4">
               <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar
             </Button>
           </div>
@@ -101,19 +101,19 @@ export default function PipelineSettingsPage() {
       {/* Rules */}
       <div className="glass-card rounded-xl border border-white/[0.06] overflow-hidden">
         <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
-          <Filter className="h-4 w-4 text-purple-400" />
-          <h2 className="text-sm font-semibold text-white">Regras de Qualificação</h2>
-          <Badge className="ml-auto bg-purple-500/10 text-purple-300 border-purple-500/20 text-xs">{rules?.length ?? 0}</Badge>
+          <Filter className="h-4 w-4 text-red-400" />
+          <h2 className="text-sm font-semibold text-neutral-900 dark:text-white">Regras de Qualificação</h2>
+          <Badge className="ml-auto bg-red-500/10 text-red-300 border-red-500/20 text-xs">{rules?.length ?? 0}</Badge>
         </div>
         <div className="p-4 space-y-2">
           {rules?.map(rule => (
             <div key={rule.id} className="flex items-center justify-between glass rounded-lg px-4 py-3 group">
               <span className="text-sm text-slate-300">
-                <span className="text-indigo-300 font-medium">{rule.field}</span>
+                <span className="text-red-600 dark:text-red-300 font-medium">{rule.field}</span>
                 <span className="text-slate-500 mx-1.5">{rule.operator}</span>
                 <span className="text-white font-medium">{rule.value}</span>
                 <span className="text-slate-500 mx-1.5">→</span>
-                <Badge className="bg-indigo-500/10 text-indigo-300 border-indigo-500/20 text-xs">
+                <Badge className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20 text-xs">
                   {sortedStages.find(s => s.id === rule.stageTrigger)?.name || rule.stageTrigger}
                 </Badge>
               </span>
@@ -150,7 +150,7 @@ export default function PipelineSettingsPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={addRule} className="w-full mt-2 bg-purple-600 hover:bg-purple-500 cursor-pointer h-9 text-sm">
+          <Button onClick={addRule} className="w-full mt-2 bg-red-700 hover:bg-red-500 cursor-pointer h-9 text-sm">
             <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar regra
           </Button>
         </div>

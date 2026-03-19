@@ -41,7 +41,7 @@ export function LeadEditForm({ lead }: { lead: Lead }) {
     queryClient.invalidateQueries({ queryKey: ['lead', lead.id] });
   };
 
-  const inputClass = "bg-white/5 border-white/10 focus:border-indigo-500/50 h-9 text-sm";
+  const inputClass = "bg-white/5 border-white/10 focus:border-red-500/50 h-9 text-sm";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -81,7 +81,7 @@ export function LeadEditForm({ lead }: { lead: Lead }) {
         <Label className="text-xs text-slate-400">URL do Veículo</Label>
         <Input {...register('vehicleUrl')} className={inputClass} placeholder="https://autoscar.com.br/..." />
       </div>
-      <Button type="submit" disabled={isSubmitting} className="w-full bg-indigo-600 hover:bg-indigo-500 cursor-pointer h-9 text-sm mt-6">
+      <Button type="submit" disabled={isSubmitting} className="w-full bg-red-600 hover:bg-red-500 cursor-pointer h-9 text-sm mt-6">
         {isSubmitting ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Salvando...</> : <><Save className="h-3.5 w-3.5 mr-1.5" /> Salvar alterações</>}
       </Button>
     </form>

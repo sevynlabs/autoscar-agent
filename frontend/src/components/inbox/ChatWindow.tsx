@@ -82,8 +82,8 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
       {/* Header */}
       <div className="border-b border-white/[0.06] px-5 py-3.5 flex items-center justify-between glass">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-            <User className="h-4 w-4 text-indigo-400" />
+          <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+            <User className="h-4 w-4 text-red-600 dark:text-red-400" />
           </div>
           <div>
             <p className="text-sm font-medium text-white">{lead?.name || lead?.phone}</p>
@@ -96,7 +96,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
         <div>
           {lead?.humanOverride ? (
             <Button size="sm" variant="outline" onClick={() => handleHandoff(false)}
-              className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 cursor-pointer text-xs">
+              className="border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:bg-red-500/10 cursor-pointer text-xs">
               <Bot className="h-3.5 w-3.5 mr-1.5" /> Devolver para IA
             </Button>
           ) : (
@@ -117,12 +117,12 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
                 msg.role === 'lead'
                   ? 'bg-white/[0.06] text-slate-200 rounded-bl-md'
                   : msg.role === 'agent'
-                  ? 'bg-indigo-500/10 text-indigo-100 border border-indigo-500/20 rounded-br-md'
+                  ? 'bg-red-50 dark:bg-red-500/10 text-red-100 border border-red-200 dark:border-red-500/20 rounded-br-md'
                   : 'bg-emerald-500/10 text-emerald-100 border border-emerald-500/20 rounded-br-md'
               }`}>
                 <div className="flex items-center gap-1.5 mb-1">
                   {msg.role === 'lead' && <User className="h-3 w-3 text-slate-500" />}
-                  {msg.role === 'agent' && <Bot className="h-3 w-3 text-indigo-400" />}
+                  {msg.role === 'agent' && <Bot className="h-3 w-3 text-red-600 dark:text-red-400" />}
                   {msg.role === 'human' && <Shield className="h-3 w-3 text-emerald-400" />}
                   <span className="text-[10px] font-medium opacity-60">
                     {msg.role === 'lead' ? 'Lead' : msg.role === 'agent' ? 'IA' : 'Operador'}
@@ -146,7 +146,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
             placeholder="Digite sua mensagem..."
             value={message}
             onChange={e => setMessage(e.target.value)}
-            className="min-h-[44px] max-h-[120px] bg-white/5 border-white/10 focus:border-indigo-500/50 resize-none"
+            className="min-h-[44px] max-h-[120px] bg-white/5 border-white/10 focus:border-red-500/50 resize-none"
             onKeyDown={e => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -157,7 +157,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
           <Button
             onClick={handleSend}
             disabled={sending || !message.trim()}
-            className="bg-indigo-600 hover:bg-indigo-500 h-11 w-11 p-0 cursor-pointer"
+            className="bg-red-600 hover:bg-red-500 h-11 w-11 p-0 cursor-pointer"
           >
             <Send className="h-4 w-4" />
           </Button>

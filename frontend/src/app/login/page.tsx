@@ -31,74 +31,44 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-[#0a0e1a]">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl" />
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-white dark:bg-[#0a0a0a]">
+      {/* Background accents */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/5 dark:bg-red-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-600/5 dark:bg-red-600/10 rounded-full blur-3xl" />
       </div>
 
-      {/* Login card */}
       <div className="relative z-10 w-full max-w-md mx-4">
-        <div className="glass rounded-2xl p-8 glow-primary">
-          {/* Logo */}
+        <div className="bg-white dark:bg-[#141414] border border-neutral-200 dark:border-white/10 rounded-2xl p-8 shadow-xl shadow-red-500/5">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-500/10 mb-4">
-              <Car className="h-8 w-8 text-indigo-400" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-500/10 mb-4">
+              <Car className="h-8 w-8 text-red-600 dark:text-red-400" />
             </div>
-            <h1 className="text-2xl font-bold gradient-text">Autoscar Agent</h1>
-            <p className="text-sm text-muted-foreground mt-1">Plataforma de Atendimento Automotivo com IA</p>
+            <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Autoscar Agent</h1>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Plataforma de Atendimento Automotivo com IA</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm text-slate-300">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                className="bg-white/5 border-white/10 focus:border-indigo-500/50 h-11 placeholder:text-slate-500"
-              />
+              <Label htmlFor="email" className="text-sm text-neutral-700 dark:text-neutral-300">Email</Label>
+              <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required
+                className="h-11 bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 focus:border-red-500/50 placeholder:text-neutral-400" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm text-slate-300">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                className="bg-white/5 border-white/10 focus:border-indigo-500/50 h-11 placeholder:text-slate-500"
-              />
+              <Label htmlFor="password" className="text-sm text-neutral-700 dark:text-neutral-300">Senha</Label>
+              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required
+                className="h-11 bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 focus:border-red-500/50 placeholder:text-neutral-400" />
             </div>
-
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">
-                <p className="text-sm text-red-400">{error}</p>
+              <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg px-4 py-2.5">
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
               </div>
             )}
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-all duration-200 cursor-pointer"
-            >
-              {loading ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Entrando...</>
-              ) : (
-                'Entrar'
-              )}
+            <Button type="submit" disabled={loading} className="w-full h-11 bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500 text-white font-medium cursor-pointer transition-colors">
+              {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Entrando...</> : 'Entrar'}
             </Button>
           </form>
-
-          <p className="text-xs text-center text-slate-500 mt-6">
-            Autoscar Agent v1.0 — SDR com Inteligência Artificial
-          </p>
+          <p className="text-xs text-center text-neutral-400 mt-6">Autoscar Agent v1.0 — SDR com Inteligência Artificial</p>
         </div>
       </div>
     </div>

@@ -33,11 +33,11 @@ export default function UsersPage() {
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-          <Users className="h-5 w-5 text-indigo-400" />
+        <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+          <Users className="h-5 w-5 text-red-600 dark:text-red-400" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">Usuários</h1>
+          <h1 className="text-xl font-bold text-neutral-900 dark:text-white">Usuários</h1>
           <p className="text-xs text-slate-500">Gerencie equipe e permissões</p>
         </div>
       </div>
@@ -45,14 +45,14 @@ export default function UsersPage() {
       {/* User list */}
       <div className="glass-card rounded-xl border border-white/[0.06] overflow-hidden">
         <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-white">Equipe</h2>
-          <Badge className="ml-auto bg-indigo-500/10 text-indigo-300 border-indigo-500/20 text-xs">{users?.length ?? 0}</Badge>
+          <h2 className="text-sm font-semibold text-neutral-900 dark:text-white">Equipe</h2>
+          <Badge className="ml-auto bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20 text-xs">{users?.length ?? 0}</Badge>
         </div>
         <div className="divide-y divide-white/[0.06]">
           {users?.map(user => (
             <div key={user.id} className="flex items-center gap-3 px-5 py-3.5 group hover:bg-white/[0.02] transition-colors">
-              <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                {user.role === 'admin' ? <Shield className="h-4 w-4 text-indigo-400" /> : <User className="h-4 w-4 text-slate-400" />}
+              <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+                {user.role === 'admin' ? <Shield className="h-4 w-4 text-red-600 dark:text-red-400" /> : <User className="h-4 w-4 text-slate-400" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-slate-200">{user.name}</p>
@@ -60,7 +60,7 @@ export default function UsersPage() {
               </div>
               <Badge className={`text-xs ${
                 user.role === 'admin'
-                  ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20'
+                  ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20'
                   : 'bg-white/5 text-slate-400 border-white/10'
               }`}>{user.role}</Badge>
               <Button size="icon" variant="ghost" onClick={() => deleteUser(user.id)}
@@ -93,7 +93,7 @@ export default function UsersPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={addUser} className="w-full bg-indigo-600 hover:bg-indigo-500 cursor-pointer h-9 text-sm">
+          <Button onClick={addUser} className="w-full bg-red-600 hover:bg-red-500 cursor-pointer h-9 text-sm">
             <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar
           </Button>
         </div>

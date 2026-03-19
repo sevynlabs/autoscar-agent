@@ -17,10 +17,10 @@ interface DashboardStats {
 }
 
 const kpiCards = [
-  { key: 'totalLeads', label: 'Total de Leads', icon: Users, color: 'from-indigo-500/20 to-indigo-600/5', iconColor: 'text-indigo-400', borderColor: 'border-indigo-500/20' },
-  { key: 'qualifiedCount', label: 'Qualificados', icon: Target, color: 'from-emerald-500/20 to-emerald-600/5', iconColor: 'text-emerald-400', borderColor: 'border-emerald-500/20' },
-  { key: 'conversionRate', label: 'Taxa de Conversão', icon: TrendingUp, color: 'from-purple-500/20 to-purple-600/5', iconColor: 'text-purple-400', borderColor: 'border-purple-500/20', suffix: '%' },
-  { key: 'avgMessagesPerLead', label: 'Msgs/Lead (IA)', icon: MessageSquare, color: 'from-cyan-500/20 to-cyan-600/5', iconColor: 'text-cyan-400', borderColor: 'border-cyan-500/20' },
+  { key: 'totalLeads', label: 'Total de Leads', icon: Users, iconBg: 'bg-red-50 dark:bg-red-500/10', iconColor: 'text-red-600 dark:text-red-400', borderColor: 'border-neutral-200 dark:border-white/[0.06]' },
+  { key: 'qualifiedCount', label: 'Qualificados', icon: Target, iconBg: 'bg-green-50 dark:bg-green-500/10', iconColor: 'text-green-600 dark:text-green-400', borderColor: 'border-neutral-200 dark:border-white/[0.06]' },
+  { key: 'conversionRate', label: 'Taxa de Conversão', icon: TrendingUp, iconBg: 'bg-red-50 dark:bg-red-500/10', iconColor: 'text-red-600 dark:text-red-400', borderColor: 'border-neutral-200 dark:border-white/[0.06]', suffix: '%' },
+  { key: 'avgMessagesPerLead', label: 'Msgs/Lead (IA)', icon: MessageSquare, iconBg: 'bg-neutral-100 dark:bg-white/5', iconColor: 'text-neutral-600 dark:text-neutral-400', borderColor: 'border-neutral-200 dark:border-white/[0.06]' },
 ];
 
 export default function DashboardPage() {
@@ -42,7 +42,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Dashboard</h1>
           <p className="text-sm text-slate-400 mt-1">Visão geral do atendimento</p>
         </div>
         <div className="flex items-center gap-3">
@@ -61,14 +61,14 @@ export default function DashboardPage() {
           const raw = stats?.[kpi.key as keyof DashboardStats];
           const value = typeof raw === 'number' ? raw : 0;
           return (
-            <div key={kpi.key} className={`glass-card rounded-xl p-5 border ${kpi.borderColor} bg-gradient-to-br ${kpi.color} transition-all duration-300 hover:scale-[1.02] cursor-default`}>
+            <div key={kpi.key} className={`bg-white dark:bg-[#141414] rounded-xl p-5 border ${kpi.borderColor} transition-all duration-300 hover:scale-[1.02] cursor-default shadow-sm`}>
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">{kpi.label}</span>
-                <div className={`w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center`}>
+                <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">{kpi.label}</span>
+                <div className={`w-8 h-8 rounded-lg ${kpi.iconBg} flex items-center justify-center`}>
                   <Icon className={`h-4 w-4 ${kpi.iconColor}`} />
                 </div>
               </div>
-              <p className="text-3xl font-bold text-white">
+              <p className="text-3xl font-bold text-neutral-900 dark:text-white">
                 {value.toLocaleString('pt-BR')}{kpi.suffix ?? ''}
               </p>
             </div>
@@ -91,7 +91,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="w-full bg-white/5 rounded-full h-2">
                     <div
-                      className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full h-2 transition-all duration-500"
+                      className="bg-gradient-to-r from-red-500 to-red-600 rounded-full h-2 transition-all duration-500"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -115,7 +115,7 @@ export default function DashboardPage() {
                 <div key={item.date} className="flex-1 flex flex-col items-center gap-1 group cursor-default">
                   <span className="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">{item.count}</span>
                   <div
-                    className="w-full bg-gradient-to-t from-indigo-500 to-purple-400 rounded-t opacity-80 hover:opacity-100 transition-all duration-200"
+                    className="w-full bg-gradient-to-t from-red-500 to-red-600 rounded-t opacity-80 hover:opacity-100 transition-all duration-200"
                     style={{ height: `${Math.max(height, 4)}%` }}
                   />
                   <span className="text-[10px] text-slate-500">{item.date.slice(5)}</span>
