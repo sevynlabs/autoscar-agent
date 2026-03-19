@@ -45,7 +45,7 @@ services:
       # PostgreSQL persistence — survives restarts
       DATABASE_ENABLED: 'true'
       DATABASE_PROVIDER: postgresql
-      DATABASE_CONNECTION_URI: postgresql://autoscar:${POSTGRES_PASSWORD}@postgres:5432/evolution
+      DATABASE_CONNECTION_URI: postgresql://autoscar:${POSTGRES_PASSWORD_ENCODED}@postgres:5432/evolution
       DATABASE_SAVE_DATA_INSTANCE: 'true'
       DATABASE_SAVE_DATA_NEW_MESSAGE: 'true'
       DATABASE_SAVE_MESSAGE_UPDATE: 'true'
@@ -72,6 +72,7 @@ services:
       - APP_PORT=3001
       - APP_BASE_URL=http://app:3001
       - FRONTEND_URL=http://frontend:3000
+      - DATABASE_URL=postgresql://postgres.cytpszeczdxdcyuhldkz:%40Gratidao7%23@aws-1-sa-east-1.pooler.supabase.com:5432/postgres
     depends_on:
       - postgres
       - redis
