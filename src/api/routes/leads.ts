@@ -64,7 +64,8 @@ export default async function leadsRoutes(fastify: FastifyInstance) {
       where: { id },
       include: {
         stage: true,
-        notes: { orderBy: { createdAt: 'asc' } },
+        pipeline: true,
+        notes: { orderBy: { createdAt: 'desc' } },
         conversation: {
           include: {
             messages: { orderBy: { createdAt: 'asc' } },

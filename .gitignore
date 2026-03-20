@@ -1,5 +1,35 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build
+dist/
+frontend/.next/
+frontend/out/
+
+# Environment (NEVER commit)
 .env
+.env.local
+.env.production
+
+# Logs
 *.log
+npm-debug.log*
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Docker volumes
+postgres_data/
+redis_data/
+minio_data/
+evolution_instances/
+
+# Temp
+/tmp/
+*.swp

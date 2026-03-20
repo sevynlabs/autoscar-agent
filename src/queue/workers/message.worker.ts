@@ -79,12 +79,18 @@ export function startMessageWorker(): Worker {
           lead: conversation.lead,
         });
 
-        // 5. Send reply via appropriate channel + emit real-time events
+        // 6. Send reply via appropriate channel + emit real-time events
         if (reply && reply.trim()) {
-          const ch = getChannel(channelName);
-          await ch.sendText(phoneNumber, instance, reply);
+          // Emit to frontend regardless of send success
           emitNewMessage({ conversationId: conversation.id });
           emitConversationUpdated({ id: conversation.id });
+
+          try {
+            const ch = getChannel(channelName);
+            await ch.sendText(phoneNumber, instance, reply);
+          } catch (sendErr) {
+            console.log(JSON.stringify({ level: 'warn', msg: 'Failed to send reply (channel may be offline)', phone: phoneNumber, error: sendErr instanceof Error ? sendErr.message : String(sendErr) }));
+          }
         }
 
         // 6. Schedule follow-up (Plan 03 will implement the worker)

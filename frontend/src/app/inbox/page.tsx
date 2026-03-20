@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { useSocket } from '@/hooks/useSocket';
 import { ConversationList } from '@/components/inbox/ConversationList';
 import { ChatWindow } from '@/components/inbox/ChatWindow';
+import { LeadInfoPanel } from '@/components/inbox/LeadInfoPanel';
 
 export default function InboxPage() {
   useSocket();
@@ -16,6 +17,10 @@ export default function InboxPage() {
     queryFn: () => api.get<any[]>('/conversations'),
   });
 
+  // Find selected conversation to get leadId
+  const selectedConv = conversations?.find(c => c.id === selectedId);
+  const leadId = selectedConv?.leadId ?? null;
+
   return (
     <div className="flex h-full">
       <ConversationList
@@ -24,6 +29,7 @@ export default function InboxPage() {
         onSelect={setSelectedId}
       />
       <ChatWindow conversationId={selectedId} />
+      <LeadInfoPanel leadId={leadId} />
     </div>
   );
 }
