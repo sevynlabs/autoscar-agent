@@ -1,4 +1,5 @@
-import * as cheerio from 'cheerio';
+const API_BASE = 'https://dhqmwf73sb.execute-api.us-east-1.amazonaws.com/prd';
+const PHOTO_BASE = 'https://autoscar-storage-prd.s3.amazonaws.com/';
 
 export interface VehicleSearchResult {
   title: string;
@@ -7,106 +8,41 @@ export interface VehicleSearchResult {
   km: string;
   url: string;
   photo: string;
+  city: string;
+  state: string;
 }
 
-/**
- * Search vehicles on autoscar.com.br by keyword (model, brand, etc)
- * Uses the portal's search/listing pages
- */
 export async function searchVehicles(query: string, limit = 5): Promise<VehicleSearchResult[]> {
-  const searchUrl = `https://www.autoscar.com.br/comprar?q=${encodeURIComponent(query)}`;
-
-  console.log(`[scraper-search] Searching: ${searchUrl}`);
+  console.log(`[scraper-search] API search: "${query}"`);
 
   try {
-    const response = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'pt-BR,pt;q=0.9',
-      },
+    const res = await fetch(`${API_BASE}/advertisement?search=${encodeURIComponent(query)}&limit=${limit}`, {
+      headers: { 'Accept': 'application/json' },
     });
 
-    if (!response.ok) {
-      console.log(`[scraper-search] HTTP ${response.status} for ${searchUrl}`);
-      return [];
-    }
+    if (!res.ok) return [];
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
+    const json = await res.json() as any;
+    const items = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
 
-    const results: VehicleSearchResult[] = [];
+    return items.slice(0, limit).map((v: any) => {
+      const model = v.model ?? {};
+      const photos = v.photoUrl ?? [];
+      const firstPhoto = photos[0] ? `${PHOTO_BASE}${photos[0]}` : '';
 
-    // Try common listing card selectors
-    const cardSelectors = [
-      'a[href*="/comprar/"]',
-      '.card-vehicle',
-      '.vehicle-card',
-      '[class*="card"]',
-      '[class*="vehicle"]',
-      '[class*="listing"]',
-    ];
-
-    for (const selector of cardSelectors) {
-      $(selector).each((i, el) => {
-        if (results.length >= limit) return false;
-
-        const $el = $(el);
-        const href = $el.attr('href') ?? $el.find('a').first().attr('href') ?? '';
-        if (!href.includes('/comprar/') && !href.includes('autoscar')) return;
-
-        const fullUrl = href.startsWith('http') ? href : `https://www.autoscar.com.br${href}`;
-
-        const title = $el.find('h2, h3, [class*="title"], [class*="name"]').first().text().trim()
-          || $el.find('p').first().text().trim()
-          || $el.text().trim().substring(0, 60);
-
-        if (!title || title.length < 3) return;
-
-        // Avoid duplicates
-        if (results.some(r => r.url === fullUrl)) return;
-
-        const price = $el.find('[class*="price"], [class*="valor"]').first().text().trim()
-          || extractPrice($el.text());
-
-        const photo = $el.find('img').first().attr('src') ?? $el.find('img').first().attr('data-src') ?? '';
-
-        const detailText = $el.text();
-        const year = extractYear(detailText);
-        const km = extractKm(detailText);
-
-        results.push({
-          title: title.substring(0, 80),
-          price: price || 'Consulte',
-          year: year || '',
-          km: km || '',
-          url: fullUrl,
-          photo: photo.startsWith('http') ? photo : photo ? `https://www.autoscar.com.br${photo}` : '',
-        });
-      });
-
-      if (results.length > 0) break;
-    }
-
-    console.log(`[scraper-search] Found ${results.length} results for "${query}"`);
-    return results;
+      return {
+        title: `${model.brandName ?? ''} ${model.name ?? ''} ${model.version ?? ''}`.trim(),
+        price: v.price ? `R$ ${Number(v.price).toLocaleString('pt-BR')}` : 'Consulte',
+        year: `${model.fabricationYear ?? ''}/${model.modelYear ?? ''}`,
+        km: v.mileage ? `${Number(v.mileage).toLocaleString('pt-BR')} km` : '',
+        url: `https://www.autoscar.com.br/comprar/${v.id}`,
+        photo: firstPhoto,
+        city: v.city ?? '',
+        state: v.state ?? '',
+      };
+    });
   } catch (err) {
-    console.error(`[scraper-search] Error searching:`, err instanceof Error ? err.message : err);
+    console.error('[scraper-search] Error:', err instanceof Error ? err.message : err);
     return [];
   }
-}
-
-function extractPrice(text: string): string {
-  const match = text.match(/R\$\s*[\d.,]+/);
-  return match ? match[0] : '';
-}
-
-function extractYear(text: string): string {
-  const match = text.match(/20[1-2]\d[\/\-]?20?[1-2]?\d?/);
-  return match ? match[0] : '';
-}
-
-function extractKm(text: string): string {
-  const match = text.match(/[\d.,]+\s*km/i);
-  return match ? match[0] : '';
 }
