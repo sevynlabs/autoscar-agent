@@ -41,6 +41,7 @@ export async function updateLead(
   leadId: string,
   data: {
     name?: string;
+    email?: string;
     city?: string;
     creditStatus?: string;
     paymentMethod?: string;

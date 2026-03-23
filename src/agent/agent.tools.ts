@@ -84,9 +84,11 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
         type: 'object',
         properties: {
           name: { type: 'string', description: 'Nome do lead' },
+          email: { type: 'string', description: 'Email do lead' },
           city: { type: 'string', description: 'Cidade do lead' },
           credit_status: { type: 'string', description: 'Situacao de credito do lead' },
           payment_method: { type: 'string', description: 'Forma de pagamento preferida' },
+          vehicle_url: { type: 'string', description: 'URL ou ID do veiculo de interesse' },
         },
       },
     },
@@ -150,9 +152,11 @@ const CreateLeadArgs = z.object({
 });
 const UpdateLeadArgs = z.object({
   name: z.string().optional(),
+  email: z.string().optional(),
   city: z.string().optional(),
   credit_status: z.string().optional(),
   payment_method: z.string().optional(),
+  vehicle_url: z.string().optional(),
 });
 const MoveStageArgs = z.object({ stage_name: z.string() });
 const AddNoteArgs = z.object({ content: z.string() });
@@ -231,9 +235,11 @@ export async function executeToolCall(
       const data = UpdateLeadArgs.parse(args);
       const lead = await updateLead(ctx.lead.id, {
         name: data.name,
+        email: data.email,
         city: data.city,
         creditStatus: data.credit_status,
         paymentMethod: data.payment_method,
+        vehicleUrl: data.vehicle_url,
       });
       return { id: lead.id, name: lead.name, city: lead.city, stage: lead.stage?.name };
     }

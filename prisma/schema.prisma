@@ -66,6 +66,7 @@ model Lead {
   id            String        @id @default(cuid())
   phone         String
   name          String?
+  email         String?
   city          String?
   creditStatus  String?
   paymentMethod String?
