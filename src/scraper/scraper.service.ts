@@ -1,88 +1,91 @@
-import { ZodError } from 'zod';
 import type { Vehicle } from './vehicle.schema.js';
 import { getCachedVehicle, cacheVehicle } from './scraper.cache.js';
-import { scrapeVehicle } from './autoscar.scraper.js';
 
-// --- Custom error classes ---
-
-export class ScraperValidationError extends Error {
-  public readonly fields: string[];
-
-  constructor(zodError: ZodError) {
-    const fieldDetails = zodError.issues.map(
-      (issue) => `${issue.path.join('.')}: ${issue.message}`,
-    );
-    super(`Vehicle data validation failed: ${fieldDetails.join('; ')}`);
-    this.name = 'ScraperValidationError';
-    this.fields = zodError.issues.map((issue) => issue.path.join('.'));
-  }
-}
-
-export class ScraperNavigationError extends Error {
-  public readonly url: string;
-
-  constructor(url: string, cause: unknown) {
-    const causeMessage = cause instanceof Error ? cause.message : String(cause);
-    super(`Failed to navigate to ${url}: ${causeMessage}`);
-    this.name = 'ScraperNavigationError';
-    this.url = url;
-  }
-}
-
-// --- URL validation ---
-
-const VALID_ORIGINS = [
-  'https://autoscar.com.br',
-  'https://www.autoscar.com.br',
-];
-
-function isValidAutoscarUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    const origin = `${parsed.protocol}//${parsed.hostname}`;
-    return VALID_ORIGINS.some((valid) => origin === valid);
-  } catch {
-    return false;
-  }
-}
-
-// --- Service orchestrator ---
+const API_BASE = 'https://dhqmwf73sb.execute-api.us-east-1.amazonaws.com/prd';
+const PHOTO_BASE = 'https://autoscar-storage-prd.s3.amazonaws.com/';
 
 export interface VehicleResult {
   data: Vehicle;
   cached: boolean;
 }
 
-export async function getVehicleData(url: string): Promise<VehicleResult> {
-  if (!isValidAutoscarUrl(url)) {
-    throw new Error('URL must be from autoscar.com.br');
-  }
+/**
+ * Extract advertisement ID from autoscar URL
+ * Supports: /comprar/288509, /comprar/288509/toyota-hilux, etc.
+ */
+function extractAdId(url: string): string | null {
+  const match = url.match(/\/comprar\/(\d+)/);
+  if (match) return match[1];
+  // Try just a number (agent might pass just the ID)
+  const numMatch = url.match(/^(\d+)$/);
+  return numMatch ? numMatch[1] : null;
+}
 
-  // Step 1: Check cache
-  const cached = await getCachedVehicle(url);
+/**
+ * Get vehicle data from autoscar.com.br API (fast, reliable, no Playwright)
+ */
+export async function getVehicleData(urlOrId: string): Promise<VehicleResult> {
+  // Check cache first
+  const cached = await getCachedVehicle(urlOrId);
   if (cached) {
     return { data: cached, cached: true };
   }
 
-  // Step 2: Scrape
+  const adId = extractAdId(urlOrId) ?? urlOrId;
+  console.log(`[scraper-service] Fetching vehicle via API: ${adId}`);
+
   try {
-    const data = await scrapeVehicle(url);
+    const res = await fetch(`${API_BASE}/advertisement/${adId}`, {
+      headers: { 'Accept': 'application/json' },
+    });
 
-    // Step 3: Cache on success
-    await cacheVehicle(url, data);
-
-    return { data, cached: false };
-  } catch (err) {
-    if (err instanceof ZodError) {
-      const fieldNames = err.issues.map((i) => i.path.join('.'));
-      console.error(
-        `[scraper-service] Validation failed for ${url}. Missing/invalid fields: ${fieldNames.join(', ')}`,
-      );
-      throw new ScraperValidationError(err);
+    if (!res.ok) {
+      throw new Error(`API returned ${res.status} for ad ${adId}`);
     }
 
-    // Playwright timeout / navigation errors
-    console.error(`[scraper-service] Navigation/scrape error for ${url}:`, err);
-    throw new ScraperNavigationError(url, err);
+    const v = await res.json() as any;
+    const model = v.model ?? {};
+    const photos = (v.photoUrl ?? []).map((p: string) => `${PHOTO_BASE}${p}`);
+
+    const vehicle: Vehicle = {
+      model: `${model.brandName ?? ''} ${model.name ?? ''} ${model.version ?? ''}`.trim(),
+      year: `${model.fabricationYear ?? ''}/${model.modelYear ?? ''}`,
+      price: v.price ? `R$ ${Number(v.price).toLocaleString('pt-BR')}` : 'Consulte',
+      mileage: v.mileage ? `${Number(v.mileage).toLocaleString('pt-BR')} km` : '',
+      photos,
+    };
+
+    // Cache
+    await cacheVehicle(urlOrId, vehicle);
+
+    console.log(`[scraper-service] Vehicle: ${vehicle.model} | ${vehicle.price} | ${photos.length} photos`);
+    return { data: vehicle, cached: false };
+  } catch (err) {
+    console.error(`[scraper-service] API error for ${adId}:`, err instanceof Error ? err.message : err);
+
+    // Fallback: try search by ID
+    try {
+      const searchRes = await fetch(`${API_BASE}/advertisement?search=${adId}&limit=1`);
+      if (searchRes.ok) {
+        const json = await searchRes.json() as any;
+        const items = json.data ?? json;
+        if (Array.isArray(items) && items.length > 0) {
+          const v = items[0];
+          const m = v.model ?? {};
+          const photos = (v.photoUrl ?? []).map((p: string) => `${PHOTO_BASE}${p}`);
+          const vehicle: Vehicle = {
+            model: `${m.brandName ?? ''} ${m.name ?? ''} ${m.version ?? ''}`.trim(),
+            year: `${m.fabricationYear ?? ''}/${m.modelYear ?? ''}`,
+            price: v.price ? `R$ ${Number(v.price).toLocaleString('pt-BR')}` : 'Consulte',
+            mileage: v.mileage ? `${Number(v.mileage).toLocaleString('pt-BR')} km` : '',
+            photos,
+          };
+          await cacheVehicle(urlOrId, vehicle);
+          return { data: vehicle, cached: false };
+        }
+      }
+    } catch { /* fallback failed */ }
+
+    throw new Error(`Vehicle not found: ${urlOrId}`);
   }
 }
