@@ -31,13 +31,18 @@ export function Sidebar() {
     <aside className="w-60 bg-white dark:bg-[#0f0f0f] flex flex-col h-full border-r border-neutral-200 dark:border-white/[0.06]">
       {/* Logo */}
       <div className="p-5 border-b border-neutral-200 dark:border-white/[0.06]">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
-            <img src="/logo-autoscar.png" alt="Autoscar" className="h-7 w-7 object-contain" />
+        {/* Light mode: logo completa */}
+        <div className="dark:hidden flex items-center justify-center">
+          <img src="/logo-autoscar.png" alt="Autoscar" className="h-10 object-contain" />
+        </div>
+        {/* Dark mode: favicon + nome texto */}
+        <div className="hidden dark:flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center">
+            <img src="/favicon-autoscar.png" alt="Autoscar" className="h-6 w-6 object-contain" />
           </div>
           <div>
-            <h1 className="text-base font-bold text-neutral-900 dark:text-white">Autoscar</h1>
-            <p className="text-[11px] text-neutral-400">Agent SDR</p>
+            <h1 className="text-base font-bold text-white">Autoscar</h1>
+            <p className="text-[11px] text-neutral-500">Agent SDR</p>
           </div>
         </div>
       </div>
