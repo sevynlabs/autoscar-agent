@@ -51,7 +51,7 @@ export async function getVehicleData(urlOrId: string): Promise<VehicleResult> {
       model: `${model.brandName ?? ''} ${model.name ?? ''} ${model.version ?? ''}`.trim(),
       year: `${model.fabricationYear ?? ''}/${model.modelYear ?? ''}`,
       price: v.price ? `R$ ${Number(v.price).toLocaleString('pt-BR')}` : 'Consulte',
-      mileage: v.mileage ? `${Number(v.mileage).toLocaleString('pt-BR')} km` : '',
+      km: v.mileage ? `${Number(v.mileage).toLocaleString('pt-BR')} km` : '',
       photos,
     };
 
@@ -77,7 +77,7 @@ export async function getVehicleData(urlOrId: string): Promise<VehicleResult> {
             model: `${m.brandName ?? ''} ${m.name ?? ''} ${m.version ?? ''}`.trim(),
             year: `${m.fabricationYear ?? ''}/${m.modelYear ?? ''}`,
             price: v.price ? `R$ ${Number(v.price).toLocaleString('pt-BR')}` : 'Consulte',
-            mileage: v.mileage ? `${Number(v.mileage).toLocaleString('pt-BR')} km` : '',
+            km: v.mileage ? `${Number(v.mileage).toLocaleString('pt-BR')} km` : '',
             photos,
           };
           await cacheVehicle(urlOrId, vehicle);
