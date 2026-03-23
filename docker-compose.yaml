@@ -1,0 +1,67 @@
+# Production compose for Coolify deployment
+# Postgres is external (Coolify managed)
+# Evolution API is external (dinastia-evolution)
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - autoscar-net
+
+  app:
+    build: .
+    restart: always
+    environment:
+      - APP_PORT=3001
+      - APP_BASE_URL=http://app:3001
+      - FRONTEND_URL=http://frontend:3000
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379
+      - EVOLUTION_API_URL=${EVOLUTION_API_URL}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - JWT_SECRET=${JWT_SECRET:-autoscar-jwt-secret-change-me}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - SELLERS_GROUP_JID=${SELLERS_GROUP_JID:-}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-}
+      - MINIO_USER=${MINIO_USER:-}
+      - MINIO_PASSWORD=${MINIO_PASSWORD:-}
+      - NODE_ENV=production
+    depends_on:
+      - redis
+    networks:
+      - autoscar-net
+
+  frontend:
+    build: ./frontend
+    restart: always
+    environment:
+      - BACKEND_URL=http://app:3001
+    depends_on:
+      - app
+    networks:
+      - autoscar-net
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "3000:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+      - frontend
+    networks:
+      - autoscar-net
+
+volumes:
+  redis_data:
+
+networks:
+  autoscar-net:
+    driver: bridge
