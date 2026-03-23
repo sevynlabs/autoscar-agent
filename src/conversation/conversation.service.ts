@@ -1,5 +1,6 @@
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import prisma from '../db/prisma.js';
+import { getDefaultPipeline, getStageByName } from '../crm/pipeline.service.js';
 
 export async function loadOrCreateConversation(
   phoneNumber: string,
@@ -12,10 +13,31 @@ export async function loadOrCreateConversation(
   });
 
   if (!lead) {
+    // Auto-create lead in "Novo" stage with pipeline
+    const pipeline = await getDefaultPipeline().catch(() => null);
+    const novoStage = pipeline ? await getStageByName(pipeline.id, 'Novo') : null;
+
     lead = await prisma.lead.create({
-      data: { phone: phoneNumber },
+      data: {
+        phone: phoneNumber,
+        pipelineId: pipeline?.id ?? null,
+        stageId: novoStage?.id ?? null,
+      },
       include: { stage: true },
     });
+    console.log(`[conversation] Auto-created lead ${lead.id} in stage "${novoStage?.name ?? 'none'}" for ${phoneNumber}`);
+  } else if (!lead.pipelineId || !lead.stageId) {
+    // Fix orphan lead — assign to pipeline + Novo stage
+    const pipeline = await getDefaultPipeline().catch(() => null);
+    const novoStage = pipeline ? await getStageByName(pipeline.id, 'Novo') : null;
+    if (pipeline && novoStage) {
+      lead = await prisma.lead.update({
+        where: { id: lead.id },
+        data: { pipelineId: pipeline.id, stageId: novoStage.id },
+        include: { stage: true },
+      });
+      console.log(`[conversation] Fixed orphan lead ${lead.id} → stage "Novo"`);
+    }
   }
 
   const conversation = await prisma.conversation.upsert({
@@ -30,7 +52,6 @@ export async function loadOrCreateConversation(
     take: limit,
   });
 
-  // Map DB messages to OpenAI format for agent context
   const recentMessages: ChatCompletionMessageParam[] = messages.map((msg) => ({
     role: msg.role === 'lead' ? 'user' : 'assistant',
     content: msg.content,
