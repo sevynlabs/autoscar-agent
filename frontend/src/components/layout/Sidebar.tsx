@@ -33,7 +33,7 @@ export function Sidebar() {
       <div className="p-5 border-b border-neutral-200 dark:border-white/[0.06]">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
-            <Car className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <img src="/logo-autoscar.png" alt="Autoscar" className="h-7 w-7 object-contain" />
           </div>
           <div>
             <h1 className="text-base font-bold text-neutral-900 dark:text-white">Autoscar</h1>

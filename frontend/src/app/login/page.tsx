@@ -42,7 +42,7 @@ export default function LoginPage() {
         <div className="bg-white dark:bg-[#141414] border border-neutral-200 dark:border-white/10 rounded-2xl p-8 shadow-xl shadow-red-500/5">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-500/10 mb-4">
-              <Car className="h-8 w-8 text-red-600 dark:text-red-400" />
+              <img src="/logo-autoscar.png" alt="Autoscar" className="h-10 w-10 object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Autoscar Agent</h1>
             <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Plataforma de Atendimento Automotivo com IA</p>

@@ -8,6 +8,11 @@ import { AppShell } from "@/components/layout/AppShell";
 export const metadata: Metadata = {
   title: "Autoscar CRM",
   description: "CRM de atendimento automotivo com IA",
+  icons: {
+    icon: "/favicon-autoscar.png",
+    shortcut: "/favicon-autoscar.png",
+    apple: "/favicon-autoscar.png",
+  },
 };
 
 export default function RootLayout({
