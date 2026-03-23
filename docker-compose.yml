@@ -81,7 +81,7 @@ services:
       - APP_PORT=3001
       - APP_BASE_URL=http://app:3001
       - FRONTEND_URL=http://frontend:3000
-      - DATABASE_URL=postgresql://postgres.cytpszeczdxdcyuhldkz:%40Gratidao7%23@aws-1-sa-east-1.pooler.supabase.com:5432/postgres
+      - DATABASE_URL=postgres://postgres:%40Gratidao7%23@76.13.227.10:5433/postgres?sslmode=require
       - EVOLUTION_API_URL=${EVOLUTION_API_URL:-http://evolution-api:8080}
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
       - WEBHOOK_URL=${WEBHOOK_URL:-http://app:3001}
