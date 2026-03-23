@@ -1,6 +1,7 @@
 # Production compose for Coolify deployment
 # Postgres is external (Coolify managed)
 # Evolution API is external
+# Coolify proxy handles SSL + domain routing → frontend:3000
 
 services:
   redis:
@@ -39,21 +40,12 @@ services:
   frontend:
     build: ./frontend
     restart: always
+    ports:
+      - "3000:3000"
     environment:
       - BACKEND_URL=http://app:3001
     depends_on:
       - app
-    networks:
-      - autoscar-net
-
-  nginx:
-    build: ./nginx
-    restart: always
-    ports:
-      - "3000:80"
-    depends_on:
-      - app
-      - frontend
     networks:
       - autoscar-net
 
