@@ -4,6 +4,7 @@ import type {
   ChatCompletionMessageFunctionToolCall,
 } from 'openai/resources/chat/completions';
 import { getVehicleData } from '../scraper/scraper.service.js';
+import { searchVehicles } from '../scraper/autoscar.search.js';
 import { upsertLead, updateLead, moveToStage, addNote } from '../crm/lead.service.js';
 import { getDefaultPipeline, getStageByName } from '../crm/pipeline.service.js';
 import { evolutionClient } from '../whatsapp/evolution.client.js';
@@ -12,6 +13,21 @@ import type { AgentContext } from './agent.types.js';
 // ---------- Tool definitions for OpenAI ----------
 
 export const AGENT_TOOLS: ChatCompletionTool[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'search_vehicles',
+      description: 'Busca veiculos disponiveis no portal autoscar.com.br por modelo, marca ou tipo. Retorna lista com titulo, preco, ano, km, url e foto. Use quando o lead perguntar sobre opcoes de veiculos ou quiser ver o que tem disponivel.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Termo de busca: modelo, marca ou tipo do veiculo (ex: "civic", "corolla", "hilux", "suv")' },
+          limit: { type: 'number', description: 'Quantidade maxima de resultados (padrao 5)' },
+        },
+        required: ['query'],
+      },
+    },
+  },
   {
     type: 'function',
     function: {
@@ -124,6 +140,7 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
 
 // ---------- Zod schemas for argument validation ----------
 
+const SearchVehiclesArgs = z.object({ query: z.string(), limit: z.number().optional() });
 const ScrapeVehicleArgs = z.object({ url: z.string().url() });
 const SendPhotosArgs = z.object({ photos: z.array(z.string()) });
 const CreateLeadArgs = z.object({
@@ -150,6 +167,25 @@ export async function executeToolCall(
   const args: unknown = JSON.parse(toolCall.function.arguments);
 
   switch (toolCall.function.name) {
+    case 'search_vehicles': {
+      const { query, limit } = SearchVehiclesArgs.parse(args);
+      const results = await searchVehicles(query, limit ?? 5);
+      if (results.length === 0) {
+        return { found: 0, message: `Nenhum veiculo encontrado para "${query}" no portal autoscar.com.br` };
+      }
+      return {
+        found: results.length,
+        vehicles: results.map(v => ({
+          title: v.title,
+          price: v.price,
+          year: v.year,
+          km: v.km,
+          url: v.url,
+          hasPhoto: !!v.photo,
+        })),
+      };
+    }
+
     case 'scrape_vehicle': {
       const { url } = ScrapeVehicleArgs.parse(args);
       const result = await getVehicleData(url);
