@@ -37,18 +37,18 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
     return prisma.agent.create({
       data: {
         name: body.name,
-        description: body.description,
+        description: body.description || null,
         model: body.model ?? 'gpt-4o',
         systemPrompt: body.systemPrompt,
-        welcomeMessage: body.welcomeMessage,
+        welcomeMessage: body.welcomeMessage || null,
         qualificationFields: body.qualificationFields ?? ['interest', 'creditStatus', 'city', 'paymentMethod'],
         channels: body.channels ?? ['whatsapp', 'instagram', 'sms'],
         instances: body.instances ?? [],
         maxFollowups: body.maxFollowups ?? 2,
         followupDelayHours: body.followupDelayHours ?? 24,
-        portalUrl: body.portalUrl ?? 'https://www.autoscar.com.br',
-        triggerVehicleUrl: body.triggerVehicleUrl,
-        sellersGroupJid: body.sellersGroupJid,
+        portalUrl: body.portalUrl || 'https://www.autoscar.com.br',
+        triggerVehicleUrl: body.triggerVehicleUrl || null,
+        sellersGroupJid: body.sellersGroupJid || null,
         temperature: body.temperature ?? 0.7,
       },
     });

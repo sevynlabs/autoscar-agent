@@ -96,6 +96,7 @@ export default function AgentSettingsPage() {
   const [editing, setEditing] = useState<Agent | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -139,6 +140,7 @@ export default function AgentSettingsPage() {
     });
     setEditing(null);
     setCreating(true);
+    setSaveError(null);
   };
 
   const openEdit = (agent: Agent) => {
@@ -164,6 +166,7 @@ export default function AgentSettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       if (editing) {
         await api.patch(`/agents/${editing.id}`, form);
@@ -173,6 +176,9 @@ export default function AgentSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
       setCreating(false);
       setEditing(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+      setSaveError(msg);
     } finally {
       setSaving(false);
     }
@@ -452,6 +458,14 @@ export default function AgentSettingsPage() {
                 <Input value={form.sellersGroupJid} onChange={e => setForm(f => ({ ...f, sellersGroupJid: e.target.value }))} placeholder="120363xxx@g.us" className={inputClass} />
               </div>
             </div>
+
+            {/* Error message */}
+            {saveError && (
+              <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg px-4 py-3 text-sm text-red-700 dark:text-red-400">
+                <p className="font-medium">Erro ao salvar agente</p>
+                <p className="text-xs mt-1 opacity-80">{saveError}</p>
+              </div>
+            )}
 
             {/* Save */}
             <div className="flex justify-end gap-2 pt-3 border-t border-neutral-200 dark:border-white/[0.06]">
