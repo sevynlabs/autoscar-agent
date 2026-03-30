@@ -19,6 +19,7 @@ import webhooksConfigRoutes from './routes/webhooks.js';
 import agentConfigRoutes from './routes/agent-config.js';
 import agentsRoutes from './routes/agents.js';
 import followupWorkflowRoutes from './routes/followup-workflow.js';
+import adminRoutes from './routes/admin.js';
 
 export async function buildServer() {
   const fastify = Fastify({
@@ -88,6 +89,9 @@ export async function buildServer() {
 
   // Webhook configuration
   await fastify.register(webhooksConfigRoutes);
+
+  // Admin routes (CRM reset, etc.)
+  await fastify.register(adminRoutes);
 
   // External API (API key auth, separate from JWT)
   await fastify.register(externalApiRoutes);
