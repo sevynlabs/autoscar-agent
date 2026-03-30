@@ -12,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LeadEditForm } from './LeadEditForm';
 import type { Lead } from '@/components/kanban/LeadCard';
-import { User, Bot, Shield, MessageSquare, FileText, Settings2, Plus } from 'lucide-react';
+import { User, Bot, Shield, MessageSquare, FileText, Settings2, Plus, Trash2 } from 'lucide-react';
 
 interface LeadDetailProps {
   leadId: string | null;
@@ -23,6 +23,7 @@ interface LeadDetailProps {
 export function LeadDetail({ leadId, open, onClose }: LeadDetailProps) {
   const queryClient = useQueryClient();
   const [noteContent, setNoteContent] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const { data: lead, isLoading } = useQuery<Lead>({
     queryKey: ['lead', leadId],
@@ -35,6 +36,18 @@ export function LeadDetail({ leadId, open, onClose }: LeadDetailProps) {
     await api.post(`/leads/${leadId}/notes`, { content: noteContent, type: 'human' });
     setNoteContent('');
     queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+  };
+
+  const handleDelete = async () => {
+    if (!leadId || !confirm('Tem certeza que deseja excluir este lead? Todas as conversas e notas serão apagadas.')) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/leads/${leadId}`);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      onClose();
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const messages = lead?.conversation?.messages ?? [];
@@ -53,9 +66,21 @@ export function LeadDetail({ leadId, open, onClose }: LeadDetailProps) {
               <SheetTitle className="text-neutral-900 dark:text-white text-base">{lead?.name || lead?.phone || 'Lead'}</SheetTitle>
               {lead?.name && <p className="text-xs text-neutral-400 dark:text-neutral-500">{lead.phone}</p>}
             </div>
-            {lead?.humanOverride && (
-              <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-xs ml-auto">Humano</Badge>
-            )}
+            <div className="flex items-center gap-2 ml-auto">
+              {lead?.humanOverride && (
+                <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-xs">Humano</Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="h-8 w-8 p-0 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer"
+                title="Excluir lead"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Quick stats */}

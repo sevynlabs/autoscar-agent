@@ -121,6 +121,20 @@ export default async function leadsRoutes(fastify: FastifyInstance) {
     return updated;
   });
 
+  // DELETE /leads/:id
+  fastify.delete('/leads/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    // Delete related records first (foreign key constraints)
+    await prisma.message.deleteMany({ where: { conversation: { leadId: id } } });
+    await prisma.conversation.deleteMany({ where: { leadId: id } });
+    await prisma.leadNote.deleteMany({ where: { leadId: id } });
+    await prisma.lead.delete({ where: { id } });
+
+    fastify.io.emit('lead:deleted', { leadId: id });
+    return { deleted: true };
+  });
+
   // POST /leads/:id/notes
   fastify.post('/leads/:id/notes', async (request, reply) => {
     const { id } = request.params as { id: string };
