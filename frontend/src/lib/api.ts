@@ -8,13 +8,16 @@ function getAuthHeaders(): Record<string, string> {
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`;
+  const headers: Record<string, string> = {
+    ...getAuthHeaders(),
+    ...options?.headers as Record<string, string>,
+  };
+  if (options?.body) {
+    headers['Content-Type'] = 'application/json';
+  }
   const res = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders(),
-      ...options?.headers,
-    },
+    headers,
   });
 
   if (!res.ok) {
