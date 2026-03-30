@@ -10,7 +10,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const headers: Record<string, string> = {
     ...getAuthHeaders(),
-    ...options?.headers as Record<string, string>,
   };
   if (options?.body) {
     headers['Content-Type'] = 'application/json';
