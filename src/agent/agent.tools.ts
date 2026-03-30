@@ -174,16 +174,16 @@ export async function executeToolCall(
       const { url } = ScrapeVehicleArgs.parse(args);
       try {
         const result = await getVehicleData(url);
-        // Build the direct link to the vehicle on autoscar
-        const adIdMatch = url.match(/(\d{4,})\/?(\?.*)?$/);
-        const adId = adIdMatch ? adIdMatch[1] : '';
-        const vehicleLink = adId ? `https://www.autoscar.com.br/comprar/${adId}` : url;
         return {
           model: result.data.model,
           year: result.data.year,
           km: result.data.km,
           price: result.data.price,
-          link: vehicleLink,
+          color: result.data.color ?? 'Nao informado',
+          fuel: result.data.fuel ?? 'Nao informado',
+          transmission: result.data.transmission ?? 'Nao informado',
+          city: result.data.city ?? 'Nao informado',
+          link: result.fullUrl ?? url.split('?')[0],
         };
       } catch (err) {
         console.error('[scrape_vehicle] Error:', err instanceof Error ? err.message : err);

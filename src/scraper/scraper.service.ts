@@ -7,6 +7,7 @@ const PHOTO_BASE = 'https://autoscar-storage-prd.s3.amazonaws.com/';
 export interface VehicleResult {
   data: Vehicle;
   cached: boolean;
+  fullUrl?: string;
 }
 
 /**
@@ -54,21 +55,35 @@ export async function getVehicleData(urlOrId: string): Promise<VehicleResult> {
 
     const v = await res.json() as any;
     const model = v.model ?? {};
+    const user = v.user ?? {};
     const photos = (v.photoUrl ?? []).map((p: string) => `${PHOTO_BASE}${p}`);
 
     const vehicle: Vehicle = {
       model: `${model.brandName ?? ''} ${model.name ?? ''} ${model.version ?? ''}`.trim(),
       year: `${model.fabricationYear ?? ''}/${model.modelYear ?? ''}`,
       price: v.price ? `R$ ${Number(v.price).toLocaleString('pt-BR')}` : 'Consulte',
-      km: v.mileage ? `${Number(v.mileage).toLocaleString('pt-BR')} km` : '',
+      km: v.mileage ? `${Number(v.mileage).toLocaleString('pt-BR')} km` : 'Nao informado',
       photos,
+      color: v.color ?? undefined,
+      fuel: v.fuelType ?? undefined,
+      transmission: v.transmission ?? undefined,
+      city: v.city ?? undefined,
     };
+
+    // Build full autoscar URL
+    const state = (v.state ?? '').toLowerCase();
+    const city = (v.city ?? '').toLowerCase().replace(/\s+/g, '-');
+    const brand = (model.brandName ?? '').toLowerCase().replace(/\s+/g, '-');
+    const modelName = (model.name ?? '').toLowerCase().replace(/\s+/g, '-');
+    const version = (model.version ?? '').toLowerCase().replace(/[./]+/g, '.').replace(/\s+/g, '-');
+    const userId = user.id ?? '';
+    const fullUrl = `https://www.autoscar.com.br/carros/${state}/${city}/id${userId}/${brand}/${modelName}/${version}/${v.id}`;
 
     // Cache
     await cacheVehicle(urlOrId, vehicle);
 
-    console.log(`[scraper-service] Vehicle: ${vehicle.model} | ${vehicle.price} | ${photos.length} photos`);
-    return { data: vehicle, cached: false };
+    console.log(`[scraper-service] Vehicle: ${vehicle.model} | ${vehicle.price} | ${vehicle.km}`);
+    return { data: vehicle, cached: false, fullUrl };
   } catch (err) {
     console.error(`[scraper-service] API error for ${adId}:`, err instanceof Error ? err.message : err);
 
