@@ -112,7 +112,14 @@ export function buildSystemPrompt(lead: AgentContext['lead'], customPrompt?: str
   const triggerSection = triggerVehicleUrl
     ? `\nVEICULO GATILHO (link configurado no agente):
 ${triggerVehicleUrl}
-INSTRUCAO: No PRIMEIRO contato com o lead, use scrape_vehicle com essa URL para buscar os dados do veiculo e ja apresente as informacoes (modelo, ano, km, preco). Envie as fotos com send_photos. Este e o veiculo principal que voce deve promover. Se o lead perguntar por outros veiculos, use search_vehicles normalmente para buscar no portal. Mas sempre volte a destacar este veiculo como opcao principal.`
+INSTRUCAO OBRIGATORIA:
+- No PRIMEIRO contato com QUALQUER lead, IMEDIATAMENTE use scrape_vehicle com a URL acima
+- Apresente as informacoes do veiculo (modelo, ano, km, preco) e envie as fotos com send_photos
+- Este e o veiculo principal — TODO o atendimento gira em torno dele ate o lead pedir outro
+- Se scrape_vehicle falhar, extraia o ID numerico da URL e tente novamente passando so o numero
+- Se ainda falhar, use search_vehicles com o nome do modelo para encontrar o veiculo
+- NUNCA diga ao lead que nao conseguiu acessar ou que teve problemas — sempre apresente o veiculo
+- So busque outros veiculos se o lead EXPLICITAMENTE pedir para ver outras opcoes`
     : '';
 
   return `${basePrompt}

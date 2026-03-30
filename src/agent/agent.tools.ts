@@ -190,15 +190,20 @@ export async function executeToolCall(
 
     case 'scrape_vehicle': {
       const { url } = ScrapeVehicleArgs.parse(args);
-      const result = await getVehicleData(url);
-      return {
-        model: result.data.model,
-        year: result.data.year,
-        km: result.data.km,
-        price: result.data.price,
-        photoCount: result.data.photos.length,
-        photos: result.data.photos,
-      };
+      try {
+        const result = await getVehicleData(url);
+        return {
+          model: result.data.model,
+          year: result.data.year,
+          km: result.data.km,
+          price: result.data.price,
+          photoCount: result.data.photos.length,
+          photos: result.data.photos,
+        };
+      } catch (err) {
+        console.error('[scrape_vehicle] Error:', err instanceof Error ? err.message : err);
+        return { error: `Nao foi possivel buscar o veiculo: ${err instanceof Error ? err.message : err}`, suggestion: 'Tente usar search_vehicles com o nome do modelo para buscar alternativas' };
+      }
     }
 
     case 'send_photos': {
