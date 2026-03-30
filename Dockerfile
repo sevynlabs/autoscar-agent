@@ -18,4 +18,6 @@ RUN npm run build
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["node", "dist/main.js"]
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+CMD ["/app/entrypoint.sh"]
