@@ -32,31 +32,13 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'scrape_vehicle',
-      description: 'Busca dados e fotos do veiculo no autoscar.com.br',
+      description: 'Busca dados do veiculo no autoscar.com.br. Retorna modelo, ano, km, preco e link direto do anuncio.',
       parameters: {
         type: 'object',
         properties: {
           url: { type: 'string', description: 'URL do veiculo no autoscar.com.br' },
         },
         required: ['url'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'send_photos',
-      description: 'Envia fotos do veiculo para o lead via WhatsApp',
-      parameters: {
-        type: 'object',
-        properties: {
-          photos: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Array de URLs das fotos do veiculo',
-          },
-        },
-        required: ['photos'],
       },
     },
   },
@@ -142,7 +124,6 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
 
 const SearchVehiclesArgs = z.object({ query: z.string(), limit: z.number().optional() });
 const ScrapeVehicleArgs = z.object({ url: z.string() });
-const SendPhotosArgs = z.object({ photos: z.array(z.string()) });
 const CreateLeadArgs = z.object({
   name: z.string().optional(),
   phone: z.string().optional(),
@@ -182,8 +163,9 @@ export async function executeToolCall(
           price: v.price,
           year: v.year,
           km: v.km,
-          url: v.url,
-          hasPhoto: !!v.photo,
+          link: v.url,
+          city: v.city,
+          state: v.state,
         })),
       };
     }
@@ -192,35 +174,21 @@ export async function executeToolCall(
       const { url } = ScrapeVehicleArgs.parse(args);
       try {
         const result = await getVehicleData(url);
+        // Build the direct link to the vehicle on autoscar
+        const adIdMatch = url.match(/(\d{4,})\/?(\?.*)?$/);
+        const adId = adIdMatch ? adIdMatch[1] : '';
+        const vehicleLink = adId ? `https://www.autoscar.com.br/comprar/${adId}` : url;
         return {
           model: result.data.model,
           year: result.data.year,
           km: result.data.km,
           price: result.data.price,
-          photoCount: result.data.photos.length,
-          photos: result.data.photos,
+          link: vehicleLink,
         };
       } catch (err) {
         console.error('[scrape_vehicle] Error:', err instanceof Error ? err.message : err);
         return { error: `Nao foi possivel buscar o veiculo: ${err instanceof Error ? err.message : err}`, suggestion: 'Tente usar search_vehicles com o nome do modelo para buscar alternativas' };
       }
-    }
-
-    case 'send_photos': {
-      const { photos } = SendPhotosArgs.parse(args);
-      const toSend = photos.slice(0, 5);
-      for (let i = 0; i < toSend.length; i++) {
-        await evolutionClient.sendMedia(
-          ctx.instance,
-          ctx.phoneNumber,
-          toSend[i],
-          i === 0 ? 'Fotos do veiculo:' : '',
-        );
-        if (i < toSend.length - 1) {
-          await new Promise((r) => setTimeout(r, 2500));
-        }
-      }
-      return { sent: toSend.length };
     }
 
     case 'create_lead': {
