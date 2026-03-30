@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Performance: add ?connection_limit=10&pool_timeout=30 to DATABASE_URL
+
 model WhatsAppInstance {
   id                  String   @id @default(cuid())
   name                String   @unique
@@ -85,6 +87,10 @@ model Lead {
   updatedAt     DateTime      @updatedAt
 
   @@unique([phone, pipelineId])
+  @@index([stageId])
+  @@index([pipelineId])
+  @@index([createdAt])
+  @@index([updatedAt])
 }
 
 model LeadNote {
@@ -95,6 +101,8 @@ model LeadNote {
   type      String   @default("ai")
   tenantId  String?
   createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
 }
 
 model Conversation {
@@ -106,6 +114,9 @@ model Conversation {
   tenantId  String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([updatedAt])
+  @@index([channel])
 }
 
 model Message {
@@ -116,6 +127,9 @@ model Message {
   content        String
   media          String[]
   createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([role, createdAt])
 }
 
 model Agent {
@@ -131,6 +145,7 @@ model Agent {
   maxFollowups      Int      @default(2)
   followupDelayHours Int     @default(24)
   portalUrl         String   @default("https://www.autoscar.com.br")
+  triggerVehicleUrl  String?  @db.Text
   sellersGroupJid   String?
   active            Boolean  @default(true)
   temperature       Float    @default(0.7)

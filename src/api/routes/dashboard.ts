@@ -11,16 +11,38 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     if (to) dateFilter.lte = new Date(to);
     const where = from || to ? { createdAt: dateFilter } : {};
 
-    // Lead count by stage
-    const leadsByStage = await prisma.lead.groupBy({
-      by: ['stageId'],
-      _count: true,
-      where,
-    });
+    // Run independent queries in parallel instead of sequentially
+    const [leadsByStage, totalLeads, lastStage, messageStats, leadsWithConversation, leadsPerDayRaw] = await Promise.all([
+      // Lead count by stage
+      prisma.lead.groupBy({
+        by: ['stageId'],
+        _count: true,
+        where,
+      }),
+      // Total leads
+      prisma.lead.count({ where }),
+      // Last stage for conversion rate
+      prisma.stage.findFirst({ orderBy: { order: 'desc' } }),
+      // Agent message count
+      prisma.message.aggregate({
+        _count: true,
+        where: { role: 'agent', ...(from || to ? { createdAt: dateFilter } : {}) },
+      }),
+      // Conversations count
+      prisma.conversation.count({ where }),
+      // Leads per day — use raw SQL groupBy instead of loading all leads into memory
+      prisma.$queryRawUnsafe<Array<{ day: string; count: bigint }>>(
+        `SELECT DATE("createdAt") as day, COUNT(*)::bigint as count FROM "Lead"
+         ${from || to ? `WHERE "createdAt" ${from ? `>= '${new Date(from).toISOString()}'` : ''} ${from && to ? 'AND' : ''} ${to ? `<= '${new Date(to).toISOString()}'` : ''}` : ''}
+         GROUP BY DATE("createdAt") ORDER BY day ASC`
+      ),
+    ]);
 
     // Resolve stage names
     const stageIds = leadsByStage.map(l => l.stageId).filter(Boolean) as string[];
-    const stages = await prisma.stage.findMany({ where: { id: { in: stageIds } } });
+    const stages = stageIds.length > 0
+      ? await prisma.stage.findMany({ where: { id: { in: stageIds } } })
+      : [];
     const stageMap = new Map(stages.map(s => [s.id, s.name]));
 
     const leadsByStageNamed = leadsByStage.map(l => ({
@@ -28,39 +50,16 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       count: l._count,
     }));
 
-    // Total leads
-    const totalLeads = await prisma.lead.count({ where });
-
-    // Conversion rate (leads in last stage / total)
-    const lastStage = await prisma.stage.findFirst({ orderBy: { order: 'desc' } });
+    // Conversion rate
     const qualifiedCount = lastStage
       ? await prisma.lead.count({ where: { ...where, stageId: lastStage.id } })
       : 0;
     const conversionRate = totalLeads > 0 ? (qualifiedCount / totalLeads) * 100 : 0;
 
-    // Agent performance: avg messages per lead
-    const messageStats = await prisma.message.aggregate({
-      _count: true,
-      where: { role: 'agent', ...(from || to ? { createdAt: dateFilter } : {}) },
-    });
-
-    const leadsWithConversation = await prisma.conversation.count({ where });
+    // Avg messages per lead
     const avgMessagesPerLead = leadsWithConversation > 0
       ? messageStats._count / leadsWithConversation
       : 0;
-
-    // Leads per day for chart
-    const leads = await prisma.lead.findMany({
-      where,
-      select: { createdAt: true },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    const leadsPerDay: Record<string, number> = {};
-    for (const lead of leads) {
-      const day = lead.createdAt.toISOString().split('T')[0];
-      leadsPerDay[day] = (leadsPerDay[day] ?? 0) + 1;
-    }
 
     return {
       totalLeads,
@@ -68,7 +67,10 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       conversionRate: Math.round(conversionRate * 10) / 10,
       avgMessagesPerLead: Math.round(avgMessagesPerLead * 10) / 10,
       leadsByStage: leadsByStageNamed,
-      leadsPerDay: Object.entries(leadsPerDay).map(([date, count]) => ({ date, count })),
+      leadsPerDay: leadsPerDayRaw.map(r => ({
+        date: typeof r.day === 'string' ? r.day : new Date(r.day as any).toISOString().split('T')[0],
+        count: Number(r.count),
+      })),
     };
   });
 }

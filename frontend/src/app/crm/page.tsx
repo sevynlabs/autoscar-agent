@@ -32,12 +32,14 @@ export default function CRMPage() {
 
   const pipeline = pipelines?.[0];
 
-  const { data: leads } = useQuery<Lead[]>({
+  const { data: leadsData } = useQuery<{ leads: Lead[]; total: number }>({
     queryKey: ['leads', { pipelineId: pipeline?.id, search: debouncedSearch }],
     queryFn: () =>
       api.get(`/leads?pipelineId=${pipeline!.id}${debouncedSearch ? `&search=${debouncedSearch}` : ''}`),
     enabled: !!pipeline,
   });
+
+  const leads = leadsData?.leads;
 
   return (
     <div className="flex flex-col h-full">

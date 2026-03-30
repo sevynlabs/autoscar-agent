@@ -27,7 +27,7 @@ export async function runAgentTurn(ctx: AgentContext): Promise<string> {
   const agentTemp = activeAgent?.temperature ?? 0.7;
 
   const messages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: buildSystemPrompt(ctx.lead, activeAgent?.systemPrompt) },
+    { role: 'system', content: buildSystemPrompt(ctx.lead, activeAgent?.systemPrompt, activeAgent?.triggerVehicleUrl) },
     ...ctx.history,
     { role: 'user', content: ctx.userMessage },
   ];

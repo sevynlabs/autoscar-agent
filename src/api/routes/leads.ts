@@ -7,6 +7,8 @@ const leadQuerySchema = z.object({
   pipelineId: z.string().optional(),
   stageId: z.string().optional(),
   search: z.string().optional(),
+  limit: z.string().optional().transform((v) => Math.min(v ? parseInt(v, 10) : 100, 500)),
+  offset: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 0)),
 });
 
 const patchLeadSchema = z.object({
@@ -44,16 +46,21 @@ export default async function leadsRoutes(fastify: FastifyInstance) {
       ];
     }
 
-    const leads = await prisma.lead.findMany({
-      where,
-      include: {
-        stage: true,
-        notes: { take: 1, orderBy: { createdAt: 'desc' } },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
+    const [leads, total] = await Promise.all([
+      prisma.lead.findMany({
+        where,
+        include: {
+          stage: true,
+          notes: { take: 1, orderBy: { createdAt: 'desc' } },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: query.limit,
+        skip: query.offset,
+      }),
+      prisma.lead.count({ where }),
+    ]);
 
-    return leads;
+    return { leads, total, limit: query.limit, offset: query.offset };
   });
 
   // GET /leads/:id/detail

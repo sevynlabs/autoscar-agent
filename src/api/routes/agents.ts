@@ -29,6 +29,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
       maxFollowups?: number;
       followupDelayHours?: number;
       portalUrl?: string;
+      triggerVehicleUrl?: string;
       sellersGroupJid?: string;
       temperature?: number;
     };
@@ -46,6 +47,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
         maxFollowups: body.maxFollowups ?? 2,
         followupDelayHours: body.followupDelayHours ?? 24,
         portalUrl: body.portalUrl ?? 'https://www.autoscar.com.br',
+        triggerVehicleUrl: body.triggerVehicleUrl,
         sellersGroupJid: body.sellersGroupJid,
         temperature: body.temperature ?? 0.7,
       },
@@ -59,7 +61,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
 
     const allowed = ['name', 'description', 'model', 'systemPrompt', 'welcomeMessage',
       'qualificationFields', 'channels', 'instances', 'maxFollowups', 'followupDelayHours', 'portalUrl',
-      'sellersGroupJid', 'temperature', 'active'];
+      'triggerVehicleUrl', 'sellersGroupJid', 'temperature', 'active'];
 
     const data: Record<string, unknown> = {};
     for (const key of allowed) {

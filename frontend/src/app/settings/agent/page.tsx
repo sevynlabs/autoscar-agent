@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bot, Plus, Pencil, Trash2, Power, PowerOff, Save, X, Loader2, Brain, Zap, MessageSquare, Target, Users, Globe, Phone, Instagram, Smartphone } from 'lucide-react';
+import { Bot, Plus, Pencil, Trash2, Power, PowerOff, Save, X, Loader2, Brain, Zap, MessageSquare, Target, Users, Globe, Phone, Instagram, Smartphone, Car } from 'lucide-react';
 
 interface WhatsAppInstance {
   id: string;
@@ -31,6 +31,7 @@ interface Agent {
   maxFollowups: number;
   followupDelayHours: number;
   portalUrl: string;
+  triggerVehicleUrl: string | null;
   sellersGroupJid: string | null;
   active: boolean;
   temperature: number;
@@ -108,6 +109,7 @@ export default function AgentSettingsPage() {
     maxFollowups: 2,
     followupDelayHours: 24,
     portalUrl: 'https://www.autoscar.com.br',
+    triggerVehicleUrl: '',
     sellersGroupJid: '',
     temperature: 0.7,
   });
@@ -133,7 +135,7 @@ export default function AgentSettingsPage() {
       welcomeMessage: '', qualificationFields: ['interest', 'creditStatus', 'city', 'paymentMethod'],
       channels: ['whatsapp', 'instagram', 'sms'], instances: [],
       maxFollowups: 2, followupDelayHours: 24, portalUrl: 'https://www.autoscar.com.br',
-      sellersGroupJid: '', temperature: 0.7,
+      triggerVehicleUrl: '', sellersGroupJid: '', temperature: 0.7,
     });
     setEditing(null);
     setCreating(true);
@@ -152,6 +154,7 @@ export default function AgentSettingsPage() {
       maxFollowups: agent.maxFollowups,
       followupDelayHours: agent.followupDelayHours,
       portalUrl: agent.portalUrl,
+      triggerVehicleUrl: agent.triggerVehicleUrl ?? '',
       sellersGroupJid: agent.sellersGroupJid ?? '',
       temperature: agent.temperature,
     });
@@ -423,6 +426,20 @@ export default function AgentSettingsPage() {
                 <Label className="text-xs text-neutral-500 dark:text-neutral-400">Temperatura</Label>
                 <Input type="number" step="0.1" value={form.temperature} onChange={e => setForm(f => ({ ...f, temperature: parseFloat(e.target.value) || 0.7 }))} className={inputClass} />
               </div>
+            </div>
+
+            {/* Trigger Vehicle URL */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5">
+                <Car className="h-3.5 w-3.5 text-red-500" />
+                Link do Veículo Gatilho (opcional)
+              </Label>
+              <Input value={form.triggerVehicleUrl} onChange={e => setForm(f => ({ ...f, triggerVehicleUrl: e.target.value }))}
+                placeholder="https://www.autoscar.com.br/comprar/288509-toyota-hilux"
+                className={inputClass} />
+              <p className="text-[11px] text-neutral-400">
+                Cole o link de um veículo específico do portal. O agente vai buscar os dados e fotos desse carro automaticamente no primeiro contato e destacá-lo como opção principal. Ele ainda pode buscar outros veículos no portal se o lead pedir.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

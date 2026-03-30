@@ -45,26 +45,38 @@ export default async function conversationsRoutes(fastify: FastifyInstance) {
     return conversations;
   });
 
-  // GET /conversations/:id/messages
+  // GET /conversations/:id/messages?limit=100&offset=0
   fastify.get('/conversations/:id/messages', async (request) => {
     const { id } = request.params as { id: string };
+    const { limit: rawLimit, offset: rawOffset } = request.query as { limit?: string; offset?: string };
+    const limit = Math.min(rawLimit ? parseInt(rawLimit, 10) : 100, 500);
+    const offset = rawOffset ? parseInt(rawOffset, 10) : 0;
 
-    const conversation = await prisma.conversation.findUniqueOrThrow({
-      where: { id },
-      include: {
-        lead: {
-          select: { id: true, name: true, phone: true, humanOverride: true },
+    const [conversation, messages, totalMessages] = await Promise.all([
+      prisma.conversation.findUniqueOrThrow({
+        where: { id },
+        include: {
+          lead: {
+            select: { id: true, name: true, phone: true, humanOverride: true },
+          },
         },
-        messages: { orderBy: { createdAt: 'asc' } },
-      },
-    });
+      }),
+      prisma.message.findMany({
+        where: { conversationId: id },
+        orderBy: { createdAt: 'asc' },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.message.count({ where: { conversationId: id } }),
+    ]);
 
     return {
       id: conversation.id,
       leadId: conversation.leadId,
       channel: conversation.channel,
       lead: conversation.lead,
-      messages: conversation.messages,
+      messages,
+      totalMessages,
     };
   });
 

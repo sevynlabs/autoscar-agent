@@ -25,6 +25,8 @@ export async function buildServer() {
     logger: {
       level: 'info',
     },
+    connectionTimeout: 30_000,  // 30s to establish connection
+    requestTimeout: 60_000,     // 60s max per request
   });
 
   // Register env validation plugin — fails fast if required vars are missing
