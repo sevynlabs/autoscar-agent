@@ -3,8 +3,16 @@ import { buildServer } from './api/server.js';
 import { startMessageWorker, getMessageWorker } from './queue/workers/message.worker.js';
 import { startFollowupWorker, getFollowupWorker } from './queue/workers/followup.worker.js';
 import { startFollowupWorkflowWorker, getFollowupWorkflowWorker } from './queue/workers/followup-workflow.worker.js';
+import { ensureSeedData } from './db/seed.js';
 
 async function main() {
+  // Ensure admin user and default pipeline exist
+  try {
+    await ensureSeedData();
+  } catch (err) {
+    console.error('[seed] Failed to seed data:', err instanceof Error ? err.message : err);
+  }
+
   const server = await buildServer();
 
   const port = server.config.APP_PORT || 3000;
