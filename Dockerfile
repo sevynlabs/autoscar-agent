@@ -1,7 +1,4 @@
-FROM node:22-bookworm AS base
-
-# Install Playwright Chromium system dependencies
-RUN npx playwright install-deps chromium && npx playwright install chromium
+FROM node:22-bookworm-slim AS base
 
 WORKDIR /app
 
