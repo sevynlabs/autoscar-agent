@@ -18,4 +18,4 @@ RUN npm run build
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD npx prisma db push --skip-generate --accept-data-loss 2>&1 || echo "prisma db push failed, starting app anyway"; node dist/main.js
+CMD ["node", "dist/main.js"]
