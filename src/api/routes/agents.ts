@@ -16,7 +16,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
   });
 
   // POST /agents — create
-  fastify.post('/agents', async (request) => {
+  fastify.post('/agents', async (request, reply) => {
     const body = request.body as {
       name: string;
       description?: string;
@@ -34,24 +34,30 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
       temperature?: number;
     };
 
-    return prisma.agent.create({
-      data: {
-        name: body.name,
-        description: body.description || null,
-        model: body.model ?? 'gpt-4o',
-        systemPrompt: body.systemPrompt,
-        welcomeMessage: body.welcomeMessage || null,
-        qualificationFields: body.qualificationFields ?? ['interest', 'creditStatus', 'city', 'paymentMethod'],
-        channels: body.channels ?? ['whatsapp', 'instagram', 'sms'],
-        instances: body.instances ?? [],
-        maxFollowups: body.maxFollowups ?? 2,
-        followupDelayHours: body.followupDelayHours ?? 24,
-        portalUrl: body.portalUrl || 'https://www.autoscar.com.br',
-        triggerVehicleUrl: body.triggerVehicleUrl || null,
-        sellersGroupJid: body.sellersGroupJid || null,
-        temperature: body.temperature ?? 0.7,
-      },
-    });
+    try {
+      return await prisma.agent.create({
+        data: {
+          name: body.name,
+          description: body.description || null,
+          model: body.model ?? 'gpt-4o',
+          systemPrompt: body.systemPrompt,
+          welcomeMessage: body.welcomeMessage || null,
+          qualificationFields: body.qualificationFields ?? ['interest', 'creditStatus', 'city', 'paymentMethod'],
+          channels: body.channels ?? ['whatsapp', 'instagram', 'sms'],
+          instances: body.instances ?? [],
+          maxFollowups: body.maxFollowups ?? 2,
+          followupDelayHours: body.followupDelayHours ?? 24,
+          portalUrl: body.portalUrl || 'https://www.autoscar.com.br',
+          triggerVehicleUrl: body.triggerVehicleUrl || null,
+          sellersGroupJid: body.sellersGroupJid || null,
+          temperature: body.temperature ?? 0.7,
+        },
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      fastify.log.error({ err }, 'Failed to create agent');
+      return reply.code(500).send({ error: 'Failed to create agent', detail: message });
+    }
   });
 
   // PATCH /agents/:id — update
