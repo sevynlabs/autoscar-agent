@@ -77,6 +77,7 @@ export function startMessageWorker(): Worker {
           conversationId: conversation.id,
           history: conversation.recentMessages,
           lead: conversation.lead,
+          sellersGroupJid: activeAgent?.sellersGroupJid,
         });
 
         // 6. Send reply via appropriate channel + emit real-time events

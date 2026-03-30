@@ -6,6 +6,7 @@ export interface AgentContext {
   userMessage: string;
   conversationId: string;
   history: ChatCompletionMessageParam[];
+  sellersGroupJid?: string | null;
   lead: {
     id: string;
     name: string | null;

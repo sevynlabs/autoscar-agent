@@ -86,8 +86,6 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
           name: { type: 'string', description: 'Nome do lead' },
           email: { type: 'string', description: 'Email do lead' },
           city: { type: 'string', description: 'Cidade do lead' },
-          credit_status: { type: 'string', description: 'Situacao de credito do lead' },
-          payment_method: { type: 'string', description: 'Forma de pagamento preferida' },
           vehicle_url: { type: 'string', description: 'URL ou ID do veiculo de interesse' },
         },
       },
@@ -143,7 +141,7 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
 // ---------- Zod schemas for argument validation ----------
 
 const SearchVehiclesArgs = z.object({ query: z.string(), limit: z.number().optional() });
-const ScrapeVehicleArgs = z.object({ url: z.string().url() });
+const ScrapeVehicleArgs = z.object({ url: z.string() });
 const SendPhotosArgs = z.object({ photos: z.array(z.string()) });
 const CreateLeadArgs = z.object({
   name: z.string().optional(),
@@ -265,7 +263,7 @@ export async function executeToolCall(
 
     case 'notify_sellers_group': {
       const { summary } = NotifyArgs.parse(args);
-      const sellersJid = process.env.SELLERS_GROUP_JID;
+      const sellersJid = ctx.sellersGroupJid || process.env.SELLERS_GROUP_JID;
       if (!sellersJid) {
         console.warn('[agent-tools] SELLERS_GROUP_JID not configured — skipping notification');
         return { skipped: true, reason: 'SELLERS_GROUP_JID not configured' };
