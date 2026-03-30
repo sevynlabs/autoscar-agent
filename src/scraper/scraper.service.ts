@@ -14,11 +14,19 @@ export interface VehicleResult {
  * Supports: /comprar/288509, /comprar/288509/toyota-hilux, etc.
  */
 function extractAdId(url: string): string | null {
-  // Match /comprar/123456 in any URL format
-  const match = url.match(/\/comprar\/(\d+)/);
-  if (match) return match[1];
-  // Match any number sequence in the string (e.g. "288509" or URLs with ID somewhere)
-  const numMatch = url.match(/(\d{4,})/);
+  // Match /comprar/123456 in URL
+  const comprarMatch = url.match(/\/comprar\/(\d+)/);
+  if (comprarMatch) return comprarMatch[1];
+  // New autoscar URL format: /carros/mg/uberlandia/id5125/ford/ranger/.../242230
+  // The ad ID is the LAST number in the path (before any query string)
+  const pathOnly = url.split('?')[0];
+  const pathParts = pathOnly.split('/');
+  for (let i = pathParts.length - 1; i >= 0; i--) {
+    const num = pathParts[i].match(/^(\d{4,})$/);
+    if (num) return num[1];
+  }
+  // Fallback: just a plain number
+  const numMatch = url.match(/^(\d+)$/);
   return numMatch ? numMatch[1] : null;
 }
 
