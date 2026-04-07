@@ -31,7 +31,7 @@ interface Agent {
   maxFollowups: number;
   followupDelayHours: number;
   portalUrl: string;
-  triggerVehicleUrl: string | null;
+  triggerVehicleUrls: string[];
   sellersGroupJid: string | null;
   active: boolean;
   temperature: number;
@@ -132,7 +132,7 @@ export default function AgentSettingsPage() {
     maxFollowups: 2,
     followupDelayHours: 24,
     portalUrl: 'https://www.autoscar.com.br',
-    triggerVehicleUrl: '',
+    triggerVehicleUrls: [] as string[],
     sellersGroupJid: '',
     temperature: 0.7,
   });
@@ -158,7 +158,7 @@ export default function AgentSettingsPage() {
       welcomeMessage: '', qualificationFields: ['interest', 'creditStatus', 'city', 'paymentMethod'],
       channels: ['whatsapp', 'instagram', 'sms'], instances: [],
       maxFollowups: 2, followupDelayHours: 24, portalUrl: 'https://www.autoscar.com.br',
-      triggerVehicleUrl: '', sellersGroupJid: '', temperature: 0.7,
+      triggerVehicleUrls: [], sellersGroupJid: '', temperature: 0.7,
     });
     setEditing(null);
     setCreating(true);
@@ -178,7 +178,7 @@ export default function AgentSettingsPage() {
       maxFollowups: agent.maxFollowups,
       followupDelayHours: agent.followupDelayHours,
       portalUrl: agent.portalUrl,
-      triggerVehicleUrl: agent.triggerVehicleUrl ?? '',
+      triggerVehicleUrls: agent.triggerVehicleUrls ?? [],
       sellersGroupJid: agent.sellersGroupJid ?? '',
       temperature: agent.temperature,
     });
@@ -456,17 +456,36 @@ export default function AgentSettingsPage() {
               </div>
             </div>
 
-            {/* Trigger Vehicle URL */}
+            {/* Trigger Vehicle URLs */}
             <div className="space-y-1.5">
               <Label className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5">
                 <Car className="h-3.5 w-3.5 text-red-500" />
-                Link do Veículo Gatilho (opcional)
+                Links de Veículos Gatilho (opcional)
               </Label>
-              <Input value={form.triggerVehicleUrl} onChange={e => setForm(f => ({ ...f, triggerVehicleUrl: e.target.value }))}
-                placeholder="https://www.autoscar.com.br/comprar/288509-toyota-hilux"
-                className={inputClass} />
+              <div className="space-y-2">
+                {form.triggerVehicleUrls.map((url, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input value={url} onChange={e => {
+                      const updated = [...form.triggerVehicleUrls];
+                      updated[index] = e.target.value;
+                      setForm(f => ({ ...f, triggerVehicleUrls: updated }));
+                    }}
+                      placeholder="https://www.autoscar.com.br/comprar/288509-toyota-hilux"
+                      className={inputClass + ' flex-1'} />
+                    <Button size="icon" variant="ghost" onClick={() => {
+                      setForm(f => ({ ...f, triggerVehicleUrls: f.triggerVehicleUrls.filter((_, i) => i !== index) }));
+                    }} className="h-9 w-9 cursor-pointer text-neutral-400 hover:text-red-500 shrink-0">
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setForm(f => ({ ...f, triggerVehicleUrls: [...f.triggerVehicleUrls, ''] }))}
+                  className="cursor-pointer text-xs h-8 border-dashed border-neutral-300 dark:border-white/10 text-neutral-500 hover:text-red-600 hover:border-red-300 dark:hover:border-red-500/30">
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar link de gatilho
+                </Button>
+              </div>
               <p className="text-[11px] text-neutral-400">
-                Cole o link de um veículo específico do portal. O agente vai buscar os dados e fotos desse carro automaticamente no primeiro contato e destacá-lo como opção principal. Ele ainda pode buscar outros veículos no portal se o lead pedir.
+                Cole links de veículos do portal. O agente vai buscar os dados automaticamente no primeiro contato. Com 1 link, ele foca naquele veículo. Com vários, apresenta todos e pergunta qual interessa mais.
               </p>
             </div>
 

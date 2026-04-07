@@ -145,7 +145,7 @@ model Agent {
   maxFollowups      Int      @default(2)
   followupDelayHours Int     @default(24)
   portalUrl         String   @default("https://www.autoscar.com.br")
-  triggerVehicleUrl  String?  @db.Text
+  triggerVehicleUrls String[]  @default([])
   sellersGroupJid   String?
   active            Boolean  @default(true)
   temperature       Float    @default(0.7)
