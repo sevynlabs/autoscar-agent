@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import prisma from '../../db/prisma.js';
-import { createToken } from '../plugins/auth.js';
+import { createToken, verifyToken } from '../plugins/auth.js';
 import bcrypt from 'bcrypt';
 
 export default async function authRoutes(fastify: FastifyInstance) {
@@ -28,16 +28,24 @@ export default async function authRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // GET /auth/me
+  // GET /auth/me — public route, so we verify the token manually
   fastify.get('/auth/me', async (request, reply) => {
-    if (!request.userId) return reply.code(401).send({ error: 'Unauthorized' });
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
 
-    const user = await prisma.user.findUnique({
-      where: { id: request.userId },
-      select: { id: true, email: true, name: true, role: true },
-    });
+    try {
+      const payload = await verifyToken(authHeader.slice(7));
+      const user = await prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, email: true, name: true, role: true },
+      });
 
-    if (!user) return reply.code(404).send({ error: 'Usuário não encontrado' });
-    return user;
+      if (!user) return reply.code(404).send({ error: 'Usuário não encontrado' });
+      return user;
+    } catch {
+      return reply.code(401).send({ error: 'Invalid token' });
+    }
   });
 }
