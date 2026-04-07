@@ -1,7 +1,26 @@
 import prisma from './prisma.js';
 import bcrypt from 'bcrypt';
 
+async function ensureMigrations() {
+  // Migrate triggerVehicleUrl (single text) -> triggerVehicleUrls (text array)
+  try {
+    const cols: Array<{ column_name: string }> = await prisma.$queryRaw`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'Agent' AND column_name = 'triggerVehicleUrls'`;
+    if (cols.length === 0) {
+      await prisma.$executeRaw`ALTER TABLE "Agent" ADD COLUMN "triggerVehicleUrls" TEXT[] DEFAULT ARRAY[]::TEXT[]`;
+      await prisma.$executeRaw`UPDATE "Agent" SET "triggerVehicleUrls" = ARRAY["triggerVehicleUrl"] WHERE "triggerVehicleUrl" IS NOT NULL AND "triggerVehicleUrl" != ''`;
+      await prisma.$executeRaw`ALTER TABLE "Agent" DROP COLUMN IF EXISTS "triggerVehicleUrl"`;
+      console.log('[seed] Migrated triggerVehicleUrl -> triggerVehicleUrls');
+    }
+  } catch (err) {
+    console.log('[seed] Migration check skipped:', err instanceof Error ? err.message : err);
+  }
+}
+
 export async function ensureSeedData() {
+  await ensureMigrations();
+
   // Ensure default pipeline exists
   const pipeline = await prisma.pipeline.findFirst({ where: { name: 'Qualificacao' } });
   if (!pipeline) {
