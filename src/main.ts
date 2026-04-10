@@ -6,13 +6,6 @@ import { startFollowupWorkflowWorker, getFollowupWorkflowWorker } from './queue/
 import { ensureSeedData } from './db/seed.js';
 
 async function main() {
-  // Ensure admin user and default pipeline exist
-  try {
-    await ensureSeedData();
-  } catch (err) {
-    console.error('[seed] Failed to seed data:', err instanceof Error ? err.message : err);
-  }
-
   const server = await buildServer();
 
   const port = server.config.APP_PORT || 3000;
@@ -24,6 +17,12 @@ async function main() {
     server.log.error(err);
     process.exit(1);
   }
+
+  // Seed runs in background — the port is already open so /health and routes
+  // respond immediately instead of returning 504 while Postgres warms up.
+  ensureSeedData().catch((err) => {
+    server.log.error({ err }, '[seed] Failed to seed data');
+  });
 
   // Start BullMQ workers
   startMessageWorker();

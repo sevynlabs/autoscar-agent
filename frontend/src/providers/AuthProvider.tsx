@@ -27,15 +27,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem('auth_token');
-    if (stored) {
-      setToken(stored);
-      api.get<User>('/auth/me')
-        .then(setUser)
-        .catch(() => { localStorage.removeItem('auth_token'); setToken(null); })
-        .finally(() => setIsLoading(false));
-    } else {
+    if (!stored) {
       setIsLoading(false);
+      return;
     }
+    setToken(stored);
+
+    // 10s timeout — if the backend is cold/unreachable, fall back to login
+    // instead of leaving the user stuck on the loading screen forever.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10_000);
+
+    api.get<User>('/auth/me', { signal: ctrl.signal })
+      .then(setUser)
+      .catch(() => { localStorage.removeItem('auth_token'); setToken(null); })
+      .finally(() => { clearTimeout(timer); setIsLoading(false); });
+
+    return () => { clearTimeout(timer); ctrl.abort(); };
   }, []);
 
   const login = async (email: string, password: string) => {
