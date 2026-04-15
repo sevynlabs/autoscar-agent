@@ -60,4 +60,29 @@ export const api = {
   delete<T>(path: string, opts?: RequestOpts): Promise<T> {
     return request<T>(path, { method: 'DELETE', signal: opts?.signal });
   },
+
+  async download(path: string, filename: string, opts?: RequestOpts): Promise<void> {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'GET',
+      headers: { ...getAuthHeaders() },
+      signal: opts?.signal,
+    });
+    if (!res.ok) {
+      if (res.status === 401 && typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+        throw new Error('Session expired');
+      }
+      throw new Error(`API ${res.status}: ${res.statusText}`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 };

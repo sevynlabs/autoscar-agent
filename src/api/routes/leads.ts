@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod/v4';
+import ExcelJS from 'exceljs';
 import prisma from '../../db/prisma.js';
 import { updateLead, moveToStage, addNote } from '../../crm/lead.service.js';
 
@@ -7,9 +8,53 @@ const leadQuerySchema = z.object({
   pipelineId: z.string().optional(),
   stageId: z.string().optional(),
   search: z.string().optional(),
+  humanOverride: z.enum(['true', 'false']).optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
   limit: z.string().optional().transform((v) => Math.min(v ? parseInt(v, 10) : 100, 500)),
   offset: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 0)),
 });
+
+const leadExportQuerySchema = z.object({
+  pipelineId: z.string().optional(),
+  stageId: z.string().optional(),
+  search: z.string().optional(),
+  humanOverride: z.enum(['true', 'false']).optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+});
+
+function buildLeadWhere(q: {
+  pipelineId?: string;
+  stageId?: string;
+  search?: string;
+  humanOverride?: 'true' | 'false';
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const where: Record<string, unknown> = {};
+  if (q.pipelineId) where.pipelineId = q.pipelineId;
+  if (q.stageId) where.stageId = q.stageId;
+  if (q.humanOverride) where.humanOverride = q.humanOverride === 'true';
+  if (q.search) {
+    where.OR = [
+      { name: { contains: q.search, mode: 'insensitive' } },
+      { phone: { contains: q.search } },
+      { email: { contains: q.search, mode: 'insensitive' } },
+    ];
+  }
+  if (q.dateFrom || q.dateTo) {
+    const createdAt: Record<string, Date> = {};
+    if (q.dateFrom) createdAt.gte = new Date(q.dateFrom);
+    if (q.dateTo) {
+      const to = new Date(q.dateTo);
+      to.setHours(23, 59, 59, 999);
+      createdAt.lte = to;
+    }
+    where.createdAt = createdAt;
+  }
+  return where;
+}
 
 const patchLeadSchema = z.object({
   name: z.string().optional(),
@@ -32,19 +77,10 @@ const noteSchema = z.object({
 });
 
 export default async function leadsRoutes(fastify: FastifyInstance) {
-  // GET /leads?pipelineId=&stageId=&search=
+  // GET /leads?pipelineId=&stageId=&search=&humanOverride=&dateFrom=&dateTo=
   fastify.get('/leads', async (request, reply) => {
     const query = leadQuerySchema.parse(request.query);
-
-    const where: Record<string, unknown> = {};
-    if (query.pipelineId) where.pipelineId = query.pipelineId;
-    if (query.stageId) where.stageId = query.stageId;
-    if (query.search) {
-      where.OR = [
-        { name: { contains: query.search, mode: 'insensitive' } },
-        { phone: { contains: query.search } },
-      ];
-    }
+    const where = buildLeadWhere(query);
 
     const [leads, total] = await Promise.all([
       prisma.lead.findMany({
@@ -61,6 +97,89 @@ export default async function leadsRoutes(fastify: FastifyInstance) {
     ]);
 
     return { leads, total, limit: query.limit, offset: query.offset };
+  });
+
+  // GET /leads/export → .xlsx with all filters applied (no pagination)
+  fastify.get('/leads/export', async (request, reply) => {
+    const query = leadExportQuerySchema.parse(request.query);
+    const where = buildLeadWhere(query);
+
+    const leads = await prisma.lead.findMany({
+      where,
+      include: {
+        stage: true,
+        pipeline: true,
+        notes: { take: 1, orderBy: { createdAt: 'desc' } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Autoscar';
+    workbook.created = new Date();
+    const sheet = workbook.addWorksheet('Leads');
+
+    sheet.columns = [
+      { header: 'Nome', key: 'name', width: 28 },
+      { header: 'Telefone', key: 'phone', width: 18 },
+      { header: 'Email', key: 'email', width: 28 },
+      { header: 'Cidade', key: 'city', width: 18 },
+      { header: 'Pipeline', key: 'pipeline', width: 18 },
+      { header: 'Etapa', key: 'stage', width: 18 },
+      { header: 'Veículo (URL)', key: 'vehicleUrl', width: 50 },
+      { header: 'Forma de Pagamento', key: 'paymentMethod', width: 20 },
+      { header: 'Status de Crédito', key: 'creditStatus', width: 20 },
+      { header: 'Atendimento Humano', key: 'humanOverride', width: 20 },
+      { header: 'Follow-ups', key: 'followupAttempts', width: 12 },
+      { header: 'Criado em', key: 'createdAt', width: 20 },
+      { header: 'Atualizado em', key: 'updatedAt', width: 20 },
+      { header: 'Última Nota', key: 'lastNote', width: 60 },
+    ];
+
+    sheet.getRow(1).font = { bold: true };
+    sheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFDC2626' },
+    };
+    sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    sheet.getRow(1).alignment = { vertical: 'middle' };
+
+    for (const lead of leads) {
+      sheet.addRow({
+        name: lead.name ?? '',
+        phone: lead.phone,
+        email: lead.email ?? '',
+        city: lead.city ?? '',
+        pipeline: lead.pipeline?.name ?? '',
+        stage: lead.stage?.name ?? '',
+        vehicleUrl: lead.vehicleUrl ?? '',
+        paymentMethod: lead.paymentMethod ?? '',
+        creditStatus: lead.creditStatus ?? '',
+        humanOverride: lead.humanOverride ? 'Sim' : 'Não',
+        followupAttempts: lead.followupAttempts,
+        createdAt: lead.createdAt,
+        updatedAt: lead.updatedAt,
+        lastNote: lead.notes[0]?.content ?? '',
+      });
+    }
+
+    sheet.getColumn('createdAt').numFmt = 'dd/mm/yyyy hh:mm';
+    sheet.getColumn('updatedAt').numFmt = 'dd/mm/yyyy hh:mm';
+    sheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: sheet.columns.length },
+    };
+    sheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `leads-${stamp}.xlsx`;
+
+    reply
+      .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      .header('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(Buffer.from(buffer));
   });
 
   // GET /leads/:id/detail

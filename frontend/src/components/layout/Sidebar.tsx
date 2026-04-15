@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, LayoutDashboard, MessageSquare, Settings, Webhook, Users, LogOut, Car, Bot, Sun, Moon, Phone } from 'lucide-react';
+import { BarChart3, LayoutDashboard, List, MessageSquare, Settings, Webhook, Users, LogOut, Car, Bot, Sun, Moon, Phone } from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   { href: '/crm', label: 'CRM', icon: LayoutDashboard },
+  { href: '/crm/leads', label: 'Leads', icon: List },
   { href: '/inbox', label: 'Inbox', icon: MessageSquare },
   { href: '/settings/agent', label: 'Agente IA', icon: Bot },
   { href: '/settings/channels', label: 'Canais', icon: Phone },
@@ -26,6 +27,10 @@ export function Sidebar() {
   const visibleItems = navItems.filter(item =>
     !('adminOnly' in item && item.adminOnly) || user?.role === 'admin'
   );
+
+  const activeHref = visibleItems
+    .filter(item => pathname === item.href || pathname.startsWith(item.href + '/'))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
   return (
     <aside className="w-60 bg-white dark:bg-[#0f0f0f] flex flex-col h-full border-r border-neutral-200 dark:border-white/[0.06]">
@@ -60,7 +65,7 @@ export function Sidebar() {
       <nav className="flex-1 p-3 space-y-1">
         <p className="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold px-3 mb-2">Menu</p>
         {visibleItems.map(item => {
-          const isActive = pathname.startsWith(item.href);
+          const isActive = activeHref === item.href;
           const Icon = item.icon;
           return (
             <Link key={item.href} href={item.href}
