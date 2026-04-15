@@ -4,6 +4,7 @@ import { startMessageWorker, getMessageWorker } from './queue/workers/message.wo
 import { startFollowupWorker, getFollowupWorker } from './queue/workers/followup.worker.js';
 import { startFollowupWorkflowWorker, getFollowupWorkflowWorker } from './queue/workers/followup-workflow.worker.js';
 import { ensureSeedData } from './db/seed.js';
+import { startDbKeepalive, stopDbKeepalive } from './db/keepalive.js';
 
 async function main() {
   const server = await buildServer();
@@ -34,9 +35,14 @@ async function main() {
   startFollowupWorkflowWorker();
   server.log.info('Follow-up workflow started (daily at 9am)');
 
+  startDbKeepalive();
+  server.log.info('DB keepalive started (4 min interval)');
+
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     server.log.info(`Received ${signal}, shutting down gracefully...`);
+
+    stopDbKeepalive();
 
     const messageWorker = getMessageWorker();
     if (messageWorker) { await messageWorker.close(); server.log.info('Message worker closed'); }
