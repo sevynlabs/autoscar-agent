@@ -20,13 +20,7 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  icons: {
-    icon: "/favicon-autoscar.png",
-    shortcut: "/favicon-autoscar.png",
-    apple: [
-      { url: "/favicon-autoscar.png", sizes: "180x180", type: "image/png" },
-    ],
-  },
+  // icon.png and apple-icon.png in src/app are picked up automatically by Next
 };
 
 export const viewport: Viewport = {
