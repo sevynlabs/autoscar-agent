@@ -182,3 +182,20 @@ model WebhookEndpoint {
   tenantId  String?
   createdAt DateTime @default(now())
 }
+
+model FollowupConfig {
+  id                      String   @id @default("singleton")
+  enabled                 Boolean  @default(true)
+  maxAttempts             Int      @default(3)
+  minHoursBetween         Int      @default(20)
+  scanHour                Int      @default(9)
+  scanMinute              Int      @default(0)
+  skipWeekends            Boolean  @default(false)
+  skipIfLeadResponded     Boolean  @default(true)
+  useAgentPrompt          Boolean  @default(true)
+  customPromptTemplate    String?  @db.Text
+  exhaustedStageName      String   @default("Desqualificado")
+  tenantId                String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}

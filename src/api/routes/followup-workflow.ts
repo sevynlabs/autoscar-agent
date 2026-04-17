@@ -1,51 +1,63 @@
 import { FastifyInstance } from 'fastify';
 import prisma from '../../db/prisma.js';
 import { triggerFollowupScan } from '../../queue/workers/followup-workflow.worker.js';
+import { getFollowupConfig, buildScanCron } from '../../crm/followup-config.service.js';
 
 export default async function followupWorkflowRoutes(fastify: FastifyInstance) {
-  // POST /followup-workflow/trigger — manually trigger follow-up scan
   fastify.post('/followup-workflow/trigger', async () => {
+    const config = await getFollowupConfig();
+    if (!config.enabled) {
+      return { triggered: false, reason: 'Follow-up desativado na configuração' };
+    }
     return triggerFollowupScan();
   });
 
-  // GET /followup-workflow/status — check follow-up stage status
   fastify.get('/followup-workflow/status', async () => {
-    // Find follow-up stages
+    const config = await getFollowupConfig();
+
     const followupStages = await prisma.stage.findMany({
       where: { name: { contains: 'follow', mode: 'insensitive' } },
     });
 
     if (followupStages.length === 0) {
-      return { active: false, message: 'No Follow-up stage found. Create a stage named "Follow-up" to activate.' };
+      return {
+        active: false,
+        enabled: config.enabled,
+        message: 'Nenhum estágio "Follow-up" encontrado. Crie um estágio chamado "Follow-up" para ativar.',
+      };
     }
 
-    const stageIds = followupStages.map(s => s.id);
+    const stageIds = followupStages.map((s) => s.id);
 
-    // Count leads
     const totalLeads = await prisma.lead.count({ where: { stageId: { in: stageIds } } });
     const pendingFollowup = await prisma.lead.count({
       where: {
         stageId: { in: stageIds },
         humanOverride: false,
-        followupAttempts: { lt: 3 },
+        followupAttempts: { lt: config.maxAttempts },
       },
     });
     const exhausted = await prisma.lead.count({
-      where: { stageId: { in: stageIds }, followupAttempts: { gte: 3 } },
+      where: { stageId: { in: stageIds }, followupAttempts: { gte: config.maxAttempts } },
     });
+
+    const scheduleLabel = config.enabled
+      ? `${String(config.scanHour).padStart(2, '0')}:${String(config.scanMinute).padStart(2, '0')}${config.skipWeekends ? ' (seg–sex)' : ' (todos os dias)'}`
+      : 'Desativado';
 
     return {
       active: true,
-      stages: followupStages.map(s => ({ id: s.id, name: s.name, pipelineId: s.pipelineId })),
+      enabled: config.enabled,
+      stages: followupStages.map((s) => ({ id: s.id, name: s.name, pipelineId: s.pipelineId })),
       totalLeads,
       pendingFollowup,
       exhausted,
-      maxAttempts: 3,
-      schedule: 'Diariamente às 9h',
+      maxAttempts: config.maxAttempts,
+      schedule: scheduleLabel,
+      cron: buildScanCron(config.scanHour, config.scanMinute, config.skipWeekends),
     };
   });
 
-  // POST /followup-workflow/reset/:leadId — reset follow-up attempts for a lead
   fastify.post('/followup-workflow/reset/:leadId', async (request) => {
     const { leadId } = request.params as { leadId: string };
     await prisma.lead.update({

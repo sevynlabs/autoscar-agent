@@ -1,26 +1,37 @@
 import { Worker, type Job } from 'bullmq';
 import prisma from '../../db/prisma.js';
-import { getActiveAgent } from '../../agent/agent.prompts.js';
 import { runAgentTurn } from '../../agent/agent.service.js';
 import { loadOrCreateConversation } from '../../conversation/conversation.service.js';
 import { getChannel } from '../../channels/channel.manager.js';
 import { emitNewMessage, emitLeadMoved } from '../../realtime/emitter.js';
 import { fireWebhooks } from '../../webhooks/webhook.service.js';
 import { getFollowupWorkflowQueue } from '../queues.js';
+import { getFollowupConfig, buildScanCron } from '../../crm/followup-config.service.js';
 
-const FOLLOWUP_STAGE_NAME = 'Follow-up';
-const MAX_ATTEMPTS = 3; // after 3 attempts with no response, move to Desqualificado
-const SCAN_INTERVAL = '0 9 * * *'; // every day at 9am
+const FOLLOWUP_SCAN_JOB_ID = 'daily-followup-scan';
 
 let worker: Worker | null = null;
+
+function renderTemplate(template: string, vars: Record<string, string | number | null | undefined>): string {
+  return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
+    const v = vars[key];
+    return v === null || v === undefined ? '' : String(v);
+  });
+}
 
 /**
  * Scan all leads in "Follow-up" stage and trigger agent follow-up
  */
 async function scanFollowupLeads() {
-  console.log(JSON.stringify({ level: 'info', msg: 'Follow-up workflow: scanning leads...' }));
+  const config = await getFollowupConfig();
 
-  // Find the "Follow-up" stage across all pipelines
+  if (!config.enabled) {
+    console.log(JSON.stringify({ level: 'info', msg: 'Follow-up desativado pela configuração. Pulando scan.' }));
+    return;
+  }
+
+  console.log(JSON.stringify({ level: 'info', msg: 'Follow-up workflow: scanning leads...', config: { maxAttempts: config.maxAttempts, minHoursBetween: config.minHoursBetween } }));
+
   const followupStages = await prisma.stage.findMany({
     where: { name: { contains: 'follow', mode: 'insensitive' } },
   });
@@ -30,13 +41,12 @@ async function scanFollowupLeads() {
     return;
   }
 
-  const stageIds = followupStages.map(s => s.id);
+  const stageIds = followupStages.map((s) => s.id);
 
-  // Get all leads in follow-up stages
   const leads = await prisma.lead.findMany({
     where: {
       stageId: { in: stageIds },
-      humanOverride: false, // skip leads under human control
+      humanOverride: false,
     },
     include: {
       stage: true,
@@ -50,51 +60,53 @@ async function scanFollowupLeads() {
   const now = new Date();
 
   for (const lead of leads) {
-    // Skip if already followed up today
     if (lead.lastFollowupAt) {
       const hoursSince = (now.getTime() - lead.lastFollowupAt.getTime()) / (1000 * 60 * 60);
-      if (hoursSince < 20) { // less than 20 hours = already done today
-        console.log(JSON.stringify({ level: 'info', msg: 'Skipping lead (already followed up today)', leadId: lead.id, hoursSince: Math.round(hoursSince) }));
+      if (hoursSince < config.minHoursBetween) {
         continue;
       }
     }
 
-    // Check max attempts
-    if (lead.followupAttempts >= MAX_ATTEMPTS) {
-      console.log(JSON.stringify({ level: 'info', msg: 'Max follow-up attempts reached, moving to Desqualificado', leadId: lead.id, attempts: lead.followupAttempts }));
+    if (lead.followupAttempts >= config.maxAttempts) {
+      console.log(JSON.stringify({ level: 'info', msg: 'Max follow-up attempts reached', leadId: lead.id, attempts: lead.followupAttempts }));
 
-      // Find "Desqualificado" stage
-      const desqStage = await prisma.stage.findFirst({
-        where: { pipelineId: lead.pipelineId!, name: { contains: 'desqualificad', mode: 'insensitive' } },
+      const exhaustedStage = await prisma.stage.findFirst({
+        where: {
+          pipelineId: lead.pipelineId!,
+          name: { contains: config.exhaustedStageName, mode: 'insensitive' },
+        },
       });
 
-      if (desqStage) {
-        await prisma.lead.update({
-          where: { id: lead.id },
-          data: { stageId: desqStage.id },
-        });
-        emitLeadMoved({ id: lead.id, stageId: desqStage.id });
+      if (exhaustedStage) {
+        await prisma.lead.update({ where: { id: lead.id }, data: { stageId: exhaustedStage.id } });
+        emitLeadMoved({ id: lead.id, stageId: exhaustedStage.id });
 
-        // Add note
         await prisma.leadNote.create({
-          data: { leadId: lead.id, content: `Lead movido para Desqualificado após ${lead.followupAttempts} tentativas de follow-up sem resposta.`, type: 'ai' },
+          data: {
+            leadId: lead.id,
+            content: `Lead movido para ${exhaustedStage.name} após ${lead.followupAttempts} tentativas de follow-up sem resposta.`,
+            type: 'ai',
+          },
         });
 
-        fireWebhooks('lead.followup_exhausted', { leadId: lead.id, phone: lead.phone, attempts: lead.followupAttempts }).catch(() => {});
+        fireWebhooks('lead.followup_exhausted', {
+          leadId: lead.id,
+          phone: lead.phone,
+          attempts: lead.followupAttempts,
+        }).catch(() => {});
       }
       continue;
     }
 
-    // Check if lead responded since last follow-up (last message is from lead)
-    const lastMsg = lead.conversation?.messages[0];
-    if (lastMsg && lastMsg.role === 'lead' && lead.lastFollowupAt && lastMsg.createdAt > lead.lastFollowupAt) {
-      console.log(JSON.stringify({ level: 'info', msg: 'Lead responded since last follow-up, skipping', leadId: lead.id }));
-      continue;
+    if (config.skipIfLeadResponded) {
+      const lastMsg = lead.conversation?.messages[0];
+      if (lastMsg && lastMsg.role === 'lead' && lead.lastFollowupAt && lastMsg.createdAt > lead.lastFollowupAt) {
+        continue;
+      }
     }
 
-    // === SEND FOLLOW-UP via AGENT ===
     try {
-      await sendAgentFollowup(lead);
+      await sendFollowup(lead, config);
     } catch (err) {
       console.log(JSON.stringify({ level: 'error', msg: 'Follow-up failed for lead', leadId: lead.id, error: err instanceof Error ? err.message : String(err) }));
     }
@@ -103,15 +115,9 @@ async function scanFollowupLeads() {
   console.log(JSON.stringify({ level: 'info', msg: 'Follow-up workflow scan complete' }));
 }
 
-/**
- * Send a follow-up message using the AI agent (personalized based on lead context)
- */
-async function sendAgentFollowup(lead: any) {
+async function sendFollowup(lead: any, config: Awaited<ReturnType<typeof getFollowupConfig>>) {
   const attemptNumber = lead.followupAttempts + 1;
 
-  console.log(JSON.stringify({ level: 'info', msg: 'Sending agent follow-up', leadId: lead.id, phone: lead.phone, attempt: attemptNumber }));
-
-  // Find the WhatsApp instance connected to this lead's conversation
   const instance = await prisma.whatsAppInstance.findFirst({
     where: { status: 'connected' },
     orderBy: { createdAt: 'asc' },
@@ -122,61 +128,100 @@ async function sendAgentFollowup(lead: any) {
     return;
   }
 
-  // Load conversation context
   const conversation = await loadOrCreateConversation(lead.phone, 'whatsapp');
 
-  // Build a follow-up prompt for the agent
-  const followupPrompt = `CONTEXTO: Este é um follow-up automático (tentativa ${attemptNumber} de ${MAX_ATTEMPTS}).
-O lead ${lead.name ?? lead.phone} está no estágio "Follow-up" do CRM.
+  const templateVars = {
+    name: lead.name ?? lead.phone,
+    phone: lead.phone,
+    attempt: attemptNumber,
+    maxAttempts: config.maxAttempts,
+    vehicle: lead.vehicleUrl ?? '',
+    city: lead.city ?? '',
+    creditStatus: lead.creditStatus ?? '',
+  };
+
+  let messageToSend: string | null = null;
+  const customTemplate = config.customPromptTemplate?.trim();
+
+  if (!config.useAgentPrompt && customTemplate) {
+    // Send the template verbatim (no AI)
+    messageToSend = renderTemplate(customTemplate, templateVars);
+  } else {
+    // Build prompt for agent (custom template overrides default)
+    const promptBody = customTemplate
+      ? renderTemplate(customTemplate, templateVars)
+      : `CONTEXTO: Este é um follow-up automático (tentativa ${attemptNumber} de ${config.maxAttempts}).
+O lead ${templateVars.name} está no estágio "Follow-up" do CRM.
 ${lead.vehicleUrl ? `Veículo de interesse: ${lead.vehicleUrl}` : ''}
 ${lead.city ? `Cidade: ${lead.city}` : ''}
-${lead.creditStatus ? `Crédito: ${lead.creditStatus}` : ''}
 
 INSTRUÇÃO: Envie UMA mensagem curta e amigável de follow-up para este lead.
 - Se é a 1ª tentativa: pergunte se ainda tem interesse no veículo
 - Se é a 2ª tentativa: ofereça ajuda ou condição especial
-- Se é a 3ª tentativa: última tentativa, seja direto mas educado
+- Se for a última tentativa: seja direto mas educado
 - NÃO use ferramentas do CRM neste momento, apenas envie a mensagem
 - Responda APENAS com o texto da mensagem, nada mais`;
 
-  // Run agent to generate personalized follow-up
-  const reply = await runAgentTurn({
-    instance: instance.name,
-    phoneNumber: lead.phone,
-    userMessage: followupPrompt,
-    conversationId: conversation.id,
-    history: conversation.recentMessages.slice(-10), // last 10 messages for context
-    lead: conversation.lead,
-  });
-
-  // Send via WhatsApp
-  if (reply && reply.trim()) {
-    const channel = getChannel('whatsapp');
-    await channel.sendText(lead.phone, instance.name, reply);
-
-    emitNewMessage({ conversationId: conversation.id });
-
-    console.log(JSON.stringify({ level: 'info', msg: 'Follow-up sent', leadId: lead.id, attempt: attemptNumber, preview: reply.substring(0, 60) }));
+    messageToSend = await runAgentTurn({
+      instance: instance.name,
+      phoneNumber: lead.phone,
+      userMessage: promptBody,
+      conversationId: conversation.id,
+      history: conversation.recentMessages.slice(-10),
+      lead: conversation.lead,
+    });
   }
 
-  // Update lead follow-up tracking
+  if (messageToSend && messageToSend.trim()) {
+    const channel = getChannel('whatsapp');
+    await channel.sendText(lead.phone, instance.name, messageToSend);
+    emitNewMessage({ conversationId: conversation.id });
+
+    console.log(JSON.stringify({ level: 'info', msg: 'Follow-up sent', leadId: lead.id, attempt: attemptNumber, preview: messageToSend.substring(0, 60) }));
+  }
+
   await prisma.lead.update({
     where: { id: lead.id },
-    data: {
-      followupAttempts: attemptNumber,
-      lastFollowupAt: new Date(),
-    },
+    data: { followupAttempts: attemptNumber, lastFollowupAt: new Date() },
   });
 
-  // Add note
   await prisma.leadNote.create({
-    data: { leadId: lead.id, content: `[Follow-up ${attemptNumber}/${MAX_ATTEMPTS}] ${reply?.substring(0, 100) ?? 'Enviado'}`, type: 'ai' },
+    data: {
+      leadId: lead.id,
+      content: `[Follow-up ${attemptNumber}/${config.maxAttempts}] ${messageToSend?.substring(0, 100) ?? 'Enviado'}`,
+      type: 'ai',
+    },
   });
 }
 
 /**
- * Start the follow-up workflow worker + schedule daily cron
+ * Remove old repeatable scan job and re-schedule with current config
  */
+export async function rescheduleFollowupScan() {
+  const queue = getFollowupWorkflowQueue();
+  const config = await getFollowupConfig();
+
+  const repeatables = await queue.getRepeatableJobs();
+  for (const r of repeatables) {
+    if (r.id === FOLLOWUP_SCAN_JOB_ID || r.name === 'scan') {
+      await queue.removeRepeatableByKey(r.key).catch(() => {});
+    }
+  }
+
+  if (!config.enabled) {
+    console.log(JSON.stringify({ level: 'info', msg: 'Follow-up workflow: desativado — nenhum scan agendado' }));
+    return;
+  }
+
+  const cron = buildScanCron(config.scanHour, config.scanMinute, config.skipWeekends);
+  await queue.add(
+    'scan',
+    { type: 'scan' },
+    { repeat: { pattern: cron }, jobId: FOLLOWUP_SCAN_JOB_ID },
+  );
+  console.log(JSON.stringify({ level: 'info', msg: `Follow-up workflow scheduled: ${cron}` }));
+}
+
 export function startFollowupWorkflowWorker(): Worker {
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) throw new Error('REDIS_URL must be set');
@@ -184,7 +229,7 @@ export function startFollowupWorkflowWorker(): Worker {
   worker = new Worker(
     'followup-workflow',
     async (job: Job) => {
-      if (job.name === 'scan' || job.data?.type === 'scan') {
+      if (job.name === 'scan' || job.data?.type === 'scan' || job.name === 'scan-manual') {
         await scanFollowupLeads();
       }
     },
@@ -195,23 +240,13 @@ export function startFollowupWorkflowWorker(): Worker {
     console.log(JSON.stringify({ level: 'error', msg: 'Follow-up workflow job failed', jobId: job?.id, error: err.message }));
   });
 
-  // Schedule daily scan at 9am (BullMQ repeatable job)
-  const queue = getFollowupWorkflowQueue();
-  queue.add('scan', { type: 'scan' }, {
-    repeat: { pattern: SCAN_INTERVAL },
-    jobId: 'daily-followup-scan',
-  }).then(() => {
-    console.log(JSON.stringify({ level: 'info', msg: 'Follow-up workflow scheduled: daily at 9am' }));
-  }).catch(err => {
-    console.log(JSON.stringify({ level: 'error', msg: 'Failed to schedule follow-up workflow', error: err.message }));
+  rescheduleFollowupScan().catch((err) => {
+    console.log(JSON.stringify({ level: 'error', msg: 'Failed to schedule follow-up workflow', error: err instanceof Error ? err.message : String(err) }));
   });
 
   return worker;
 }
 
-/**
- * Manually trigger a follow-up scan (for testing or admin action)
- */
 export async function triggerFollowupScan() {
   const queue = getFollowupWorkflowQueue();
   await queue.add('scan-manual', { type: 'scan' });

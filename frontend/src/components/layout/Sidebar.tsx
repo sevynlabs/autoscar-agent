@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, LayoutDashboard, List, MessageSquare, Settings, Webhook, Users, LogOut, Car, Bot, Sun, Moon, Phone } from 'lucide-react';
+import { BarChart3, LayoutDashboard, List, MessageSquare, Settings, Webhook, Users, LogOut, Bot, Sun, Moon, Phone, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/crm/leads', label: 'Leads', icon: List },
   { href: '/inbox', label: 'Inbox', icon: MessageSquare },
   { href: '/settings/agent', label: 'Agente IA', icon: Bot },
+  { href: '/settings/followup', label: 'Follow-up', icon: MessageCircle },
   { href: '/settings/channels', label: 'Canais', icon: Phone },
   { href: '/settings/pipeline', label: 'Pipeline', icon: Settings },
   { href: '/settings/webhooks', label: 'Webhooks', icon: Webhook },
