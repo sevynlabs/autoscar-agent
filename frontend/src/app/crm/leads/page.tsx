@@ -121,14 +121,14 @@ export default function LeadsListPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="border-b border-neutral-200 dark:border-white/[0.06] px-6 py-4 glass flex items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+      <div className="border-b border-neutral-200 dark:border-white/[0.06] px-4 sm:px-6 py-3 sm:py-4 glass flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0">
             <List className="h-4 w-4 text-red-600 dark:text-red-400" />
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-neutral-900 dark:text-white">Lista de Leads</h1>
-            <p className="text-xs text-neutral-400 dark:text-neutral-500">
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-neutral-900 dark:text-white truncate">Lista de Leads</h1>
+            <p className="text-[11px] sm:text-xs text-neutral-400 dark:text-neutral-500 truncate">
               {total} {total === 1 ? 'lead' : 'leads'}
               {hasActiveFilter ? ' (filtrados)' : ''}
             </p>
@@ -137,80 +137,24 @@ export default function LeadsListPage() {
         <Button
           onClick={handleExport}
           disabled={exporting || !pipelineId}
-          className="ml-auto bg-red-600 hover:bg-red-500 cursor-pointer h-9 text-sm gap-2"
+          className="bg-red-600 hover:bg-red-500 cursor-pointer h-9 text-sm gap-1.5 sm:gap-2 px-3 sm:px-4 shrink-0"
         >
           <Download className="h-4 w-4" />
-          {exporting ? 'Exportando...' : 'Exportar Excel'}
+          <span className="hidden sm:inline">{exporting ? 'Exportando...' : 'Exportar Excel'}</span>
+          <span className="sm:hidden">{exporting ? '...' : 'Excel'}</span>
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="border-b border-neutral-200 dark:border-white/[0.06] px-6 py-3 bg-white dark:bg-[#0f0f0f]">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+      <div className="border-b border-neutral-200 dark:border-white/[0.06] px-4 sm:px-6 py-3 bg-white dark:bg-[#0f0f0f]">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3">
+          <div className="hidden sm:flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
             <Filter className="h-3.5 w-3.5" />
             <span>Filtros:</span>
           </div>
 
-          {/* Pipeline */}
-          <Select value={pipelineId} onValueChange={(v: string | null) => setPipelineId(v ?? '')}>
-            <SelectTrigger className="w-44 h-9 text-sm bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10">
-              <SelectValue placeholder="Pipeline" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-[#1e293b] border-neutral-200 dark:border-white/10">
-              {pipelines?.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Stage */}
-          <Select value={stageId} onValueChange={(v: string | null) => setStageId(v ?? ALL)}>
-            <SelectTrigger className="w-44 h-9 text-sm bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10">
-              <SelectValue placeholder="Etapa" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-[#1e293b] border-neutral-200 dark:border-white/10">
-              <SelectItem value={ALL}>Todas as etapas</SelectItem>
-              {currentPipeline?.stages
-                .slice()
-                .sort((a, b) => a.order - b.order)
-                .map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-
-          {/* humanOverride */}
-          <Select value={humanOverride} onValueChange={(v: string | null) => setHumanOverride(v ?? ALL)}>
-            <SelectTrigger className="w-44 h-9 text-sm bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10">
-              <SelectValue placeholder="Atendimento" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-[#1e293b] border-neutral-200 dark:border-white/10">
-              <SelectItem value={ALL}>IA ou humano</SelectItem>
-              <SelectItem value="false">Apenas IA</SelectItem>
-              <SelectItem value="true">Apenas humano</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Date range */}
-          <div className="flex items-center gap-1">
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-40 h-9 text-sm bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10"
-            />
-            <span className="text-xs text-neutral-400">até</span>
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-40 h-9 text-sm bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10"
-            />
-          </div>
-
-          {/* Search */}
-          <div className="relative flex-1 min-w-[220px] max-w-sm">
+          {/* Search (primeiro em mobile) */}
+          <div className="relative w-full sm:flex-1 sm:min-w-[220px] sm:max-w-sm sm:order-last">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
             <Input
               placeholder="Nome, telefone ou email..."
@@ -220,11 +164,70 @@ export default function LeadsListPage() {
             />
           </div>
 
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3 sm:items-center">
+            {/* Pipeline */}
+            <Select value={pipelineId} onValueChange={(v: string | null) => setPipelineId(v ?? '')}>
+              <SelectTrigger className="w-full sm:w-44 h-9 text-sm bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10">
+                <SelectValue placeholder="Pipeline" />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#1e293b] border-neutral-200 dark:border-white/10">
+                {pipelines?.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Stage */}
+            <Select value={stageId} onValueChange={(v: string | null) => setStageId(v ?? ALL)}>
+              <SelectTrigger className="w-full sm:w-44 h-9 text-sm bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10">
+                <SelectValue placeholder="Etapa" />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#1e293b] border-neutral-200 dark:border-white/10">
+                <SelectItem value={ALL}>Todas as etapas</SelectItem>
+                {currentPipeline?.stages
+                  .slice()
+                  .sort((a, b) => a.order - b.order)
+                  .map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+
+            {/* humanOverride */}
+            <Select value={humanOverride} onValueChange={(v: string | null) => setHumanOverride(v ?? ALL)}>
+              <SelectTrigger className="w-full sm:w-44 h-9 text-sm bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10">
+                <SelectValue placeholder="Atendimento" />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#1e293b] border-neutral-200 dark:border-white/10">
+                <SelectItem value={ALL}>IA ou humano</SelectItem>
+                <SelectItem value="false">Apenas IA</SelectItem>
+                <SelectItem value="true">Apenas humano</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Date range */}
+            <div className="flex items-center gap-1 col-span-2 sm:col-span-1">
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="flex-1 sm:w-40 h-9 text-sm bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10"
+              />
+              <span className="text-xs text-neutral-400 px-1">até</span>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="flex-1 sm:w-40 h-9 text-sm bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10"
+              />
+            </div>
+          </div>
+
           {hasActiveFilter && (
             <Button
               variant="ghost"
               onClick={clearFilters}
-              className="h-9 text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-white gap-1"
+              className="h-9 text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-white gap-1 self-start"
             >
               <X className="h-3.5 w-3.5" />
               Limpar
@@ -233,9 +236,51 @@ export default function LeadsListPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto px-6 py-4">
-        <div className="rounded-lg border border-neutral-200 dark:border-white/[0.06] bg-white dark:bg-[#0f0f0f]">
+      {/* Content */}
+      <div className="flex-1 overflow-auto px-4 sm:px-6 py-4">
+        {/* Mobile cards (abaixo de md) */}
+        <div className="md:hidden space-y-2">
+          {leads.length === 0 && !isFetching && (
+            <div className="text-center text-neutral-400 py-10 text-sm">Nenhum lead encontrado</div>
+          )}
+          {leads.map((lead) => (
+            <button
+              key={lead.id}
+              onClick={() => setSelectedLeadId(lead.id)}
+              className="w-full text-left bg-white dark:bg-[#141414] rounded-xl border border-neutral-200 dark:border-white/[0.06] p-3 active:bg-neutral-50 dark:active:bg-white/[0.02] transition-colors cursor-pointer"
+            >
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-neutral-900 dark:text-white truncate">
+                    {lead.name ?? <span className="text-neutral-400 font-normal">Sem nome</span>}
+                  </p>
+                  <p className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400 truncate">{lead.phone}</p>
+                </div>
+                {lead.humanOverride ? (
+                  <Badge className="bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-0 text-[10px] shrink-0">Humano</Badge>
+                ) : (
+                  <Badge className="bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 border-0 text-[10px] shrink-0">IA</Badge>
+                )}
+              </div>
+              <div className="flex items-center flex-wrap gap-1.5">
+                {lead.stage && (
+                  <Badge className="bg-neutral-100 dark:bg-white/[0.06] text-neutral-700 dark:text-neutral-300 border-0 text-[10px]">
+                    {lead.stage.name}
+                  </Badge>
+                )}
+                {lead.city && (
+                  <span className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">{lead.city}</span>
+                )}
+                <span className="text-[10px] text-neutral-400 ml-auto shrink-0">
+                  {new Date(lead.createdAt).toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Desktop table (md+) */}
+        <div className="hidden md:block rounded-lg border border-neutral-200 dark:border-white/[0.06] bg-white dark:bg-[#0f0f0f] overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="border-neutral-200 dark:border-white/[0.06]">
@@ -299,7 +344,7 @@ export default function LeadsListPage() {
 
         {/* Pagination */}
         {total > PAGE_SIZE && (
-          <div className="flex items-center justify-between mt-4 text-sm text-neutral-500 dark:text-neutral-400">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 gap-2">
             <div>
               Página {page + 1} de {totalPages} · {total} leads
             </div>
@@ -309,6 +354,7 @@ export default function LeadsListPage() {
                 size="sm"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
+                className="flex-1 sm:flex-none"
               >
                 Anterior
               </Button>
@@ -317,6 +363,7 @@ export default function LeadsListPage() {
                 size="sm"
                 onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={page >= totalPages - 1}
+                className="flex-1 sm:flex-none"
               >
                 Próxima
               </Button>

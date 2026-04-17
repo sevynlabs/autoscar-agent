@@ -38,37 +38,37 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-900 dark:text-white">Dashboard</h1>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Visão geral do atendimento</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white">Dashboard</h1>
+          <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-0.5 sm:mt-1">Visão geral do atendimento</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Input type="date" value={from} onChange={e => setFrom(e.target.value)}
-            className="w-36 bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 text-sm h-9" />
-          <span className="text-neutral-400 dark:text-neutral-500 text-sm">até</span>
+            className="flex-1 sm:flex-none sm:w-36 bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 text-sm h-9" />
+          <span className="text-neutral-400 dark:text-neutral-500 text-xs sm:text-sm">até</span>
           <Input type="date" value={to} onChange={e => setTo(e.target.value)}
-            className="w-36 bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 text-sm h-9" />
+            className="flex-1 sm:flex-none sm:w-36 bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 text-sm h-9" />
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {kpiCards.map(kpi => {
           const Icon = kpi.icon;
           const raw = stats?.[kpi.key as keyof DashboardStats];
           const value = typeof raw === 'number' ? raw : 0;
           return (
-            <div key={kpi.key} className={`bg-white dark:bg-[#141414] rounded-xl p-5 border ${kpi.borderColor} transition-all duration-300 hover:scale-[1.02] cursor-default shadow-sm`}>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">{kpi.label}</span>
-                <div className={`w-8 h-8 rounded-lg ${kpi.iconBg} flex items-center justify-center`}>
-                  <Icon className={`h-4 w-4 ${kpi.iconColor}`} />
+            <div key={kpi.key} className={`bg-white dark:bg-[#141414] rounded-xl p-4 sm:p-5 border ${kpi.borderColor} transition-all duration-300 hover:scale-[1.02] cursor-default shadow-sm`}>
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <span className="text-[10px] sm:text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider truncate">{kpi.label}</span>
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${kpi.iconBg} flex items-center justify-center shrink-0 ml-2`}>
+                  <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${kpi.iconColor}`} />
                 </div>
               </div>
-              <p className="text-3xl font-bold text-neutral-900 dark:text-white">
+              <p className="text-xl sm:text-3xl font-bold text-neutral-900 dark:text-white">
                 {value.toLocaleString('pt-BR')}{kpi.suffix ?? ''}
               </p>
             </div>
@@ -76,9 +76,9 @@ export default function DashboardPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Leads by Stage */}
-        <div className="glass-card rounded-xl p-5 border border-neutral-200 dark:border-white/[0.06]">
+        <div className="glass-card rounded-xl p-4 sm:p-5 border border-neutral-200 dark:border-white/[0.06]">
           <h2 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4">Leads por Etapa</h2>
           <div className="space-y-3">
             {stats?.leadsByStage.map(item => {
@@ -105,7 +105,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Leads per Day */}
-        <div className="glass-card rounded-xl p-5 border border-neutral-200 dark:border-white/[0.06]">
+        <div className="glass-card rounded-xl p-4 sm:p-5 border border-neutral-200 dark:border-white/[0.06]">
           <h2 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4">Leads por Dia</h2>
           <div className="flex items-end gap-1.5 h-44">
             {stats?.leadsPerDay.map(item => {

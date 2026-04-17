@@ -100,7 +100,7 @@ export function KanbanBoard({ stages, leads, pipelineId, onLeadClick }: KanbanBo
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto min-h-[calc(100vh-120px)] p-4">
+      <div className="flex gap-3 sm:gap-4 overflow-x-auto min-h-[calc(100dvh-180px)] p-3 sm:p-4 snap-x snap-mandatory sm:snap-none scroll-pl-3 sm:scroll-pl-0">
         {sortedStages.map(stage => (
           <KanbanColumn
             key={stage.id}

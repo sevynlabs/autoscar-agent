@@ -17,13 +17,13 @@ export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) 
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-[300px] max-w-[320px] rounded-xl flex flex-col transition-all duration-200 ${
+      className={`w-[86vw] min-w-[260px] max-w-[320px] sm:w-auto sm:min-w-[280px] rounded-xl flex flex-col transition-all duration-200 snap-start shrink-0 ${
         isOver ? 'ring-1 ring-red-500/40 bg-red-500/5' : 'bg-neutral-50/50 dark:bg-white/[0.02]'
       }`}
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-white/[0.06]">
-        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{column.name}</h3>
-        <Badge className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20 text-xs">{leads.length}</Badge>
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-neutral-200 dark:border-white/[0.06]">
+        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 truncate">{column.name}</h3>
+        <Badge className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20 text-xs shrink-0">{leads.length}</Badge>
       </div>
       <div className="flex-1 p-2 min-h-[200px] overflow-y-auto">
         <SortableContext items={leads.map(l => l.id)} strategy={verticalListSortingStrategy}>

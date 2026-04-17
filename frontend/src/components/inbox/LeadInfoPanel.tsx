@@ -57,7 +57,7 @@ export function LeadInfoPanel({ leadId }: LeadInfoPanelProps) {
 
   if (!leadId) {
     return (
-      <div className="w-80 border-l border-neutral-200 dark:border-white/[0.06] bg-neutral-50/50 dark:bg-white/[0.01] flex items-center justify-center">
+      <div className="w-full lg:w-80 lg:border-l border-neutral-200 dark:border-white/[0.06] bg-neutral-50/50 dark:bg-white/[0.01] flex items-center justify-center">
         <p className="text-xs text-neutral-400">Selecione uma conversa</p>
       </div>
     );
@@ -65,7 +65,7 @@ export function LeadInfoPanel({ leadId }: LeadInfoPanelProps) {
 
   if (isLoading) {
     return (
-      <div className="w-80 border-l border-neutral-200 dark:border-white/[0.06] bg-neutral-50/50 dark:bg-white/[0.01] p-4 space-y-3">
+      <div className="w-full lg:w-80 lg:border-l border-neutral-200 dark:border-white/[0.06] bg-neutral-50/50 dark:bg-white/[0.01] p-4 space-y-3">
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-6 w-48" />
@@ -109,7 +109,7 @@ export function LeadInfoPanel({ leadId }: LeadInfoPanelProps) {
   const inputClass = "bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 h-8 text-xs";
 
   return (
-    <div className="w-80 border-l border-neutral-200 dark:border-white/[0.06] bg-neutral-50/50 dark:bg-white/[0.01] flex flex-col h-full">
+    <div className="w-full lg:w-80 lg:border-l border-neutral-200 dark:border-white/[0.06] bg-neutral-50/50 dark:bg-white/[0.01] flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 dark:border-white/[0.06]">
         <div className="flex items-center gap-3 mb-3">

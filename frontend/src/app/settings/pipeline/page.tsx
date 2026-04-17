@@ -55,7 +55,7 @@ export default function PipelineSettingsPage() {
   const sortedStages = pipeline ? [...pipeline.stages].sort((a, b) => a.order - b.order) : [];
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-4 sm:space-y-6">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
           <Settings className="h-5 w-5 text-red-600 dark:text-red-400" />

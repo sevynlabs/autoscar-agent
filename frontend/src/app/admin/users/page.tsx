@@ -31,7 +31,7 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-4 sm:space-y-6">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
           <Users className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -50,21 +50,21 @@ export default function UsersPage() {
         </div>
         <div className="divide-y divide-neutral-200 dark:divide-white/[0.06]">
           {users?.map(user => (
-            <div key={user.id} className="flex items-center gap-3 px-5 py-3.5 group hover:bg-neutral-50/50 dark:bg-white/[0.02] transition-colors">
-              <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+            <div key={user.id} className="flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-3.5 group hover:bg-neutral-50/50 dark:bg-white/[0.02] transition-colors">
+              <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0">
                 {user.role === 'admin' ? <Shield className="h-4 w-4 text-red-600 dark:text-red-400" /> : <User className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{user.name}</p>
-                <p className="text-xs text-neutral-400 dark:text-neutral-500">{user.email}</p>
+                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate">{user.name}</p>
+                <p className="text-xs text-neutral-400 dark:text-neutral-500 truncate">{user.email}</p>
               </div>
-              <Badge className={`text-xs ${
+              <Badge className={`text-xs shrink-0 ${
                 user.role === 'admin'
                   ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/20'
                   : 'bg-neutral-50 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-white/10'
               }`}>{user.role}</Badge>
               <Button size="icon" variant="ghost" onClick={() => deleteUser(user.id)}
-                className="h-8 w-8 text-neutral-400 dark:text-neutral-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                className="h-8 w-8 text-neutral-400 dark:text-neutral-500 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer shrink-0">
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -78,7 +78,7 @@ export default function UsersPage() {
           <h2 className="text-sm font-semibold text-neutral-900 dark:text-white">Adicionar Usuário</h2>
         </div>
         <div className="p-5 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input placeholder="Nome" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               className="bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 h-9 text-sm" />
             <Input placeholder="Email" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}

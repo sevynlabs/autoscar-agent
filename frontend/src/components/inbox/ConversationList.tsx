@@ -57,7 +57,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
   const humanCount = conversations.filter(c => c.lead.humanOverride).length;
 
   return (
-    <div className="w-80 border-r border-neutral-200 dark:border-white/[0.06] flex flex-col h-full bg-white dark:bg-[#0f0f0f]">
+    <div className="w-full lg:w-80 lg:border-r border-neutral-200 dark:border-white/[0.06] flex flex-col h-full bg-white dark:bg-[#0f0f0f]">
       <div className="p-3 border-b border-neutral-200 dark:border-white/[0.06]">
         <div className="flex items-center justify-between mb-2.5">
           <h2 className="text-sm font-semibold text-neutral-900 dark:text-white">Conversas</h2>

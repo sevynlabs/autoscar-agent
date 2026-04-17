@@ -248,7 +248,7 @@ export default function AgentSettingsPage() {
   const selectClass = "bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 h-9 text-sm";
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
@@ -267,7 +267,7 @@ export default function AgentSettingsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {[
           { label: 'Conversas', value: stats?.totalConversations ?? 0, icon: MessageSquare, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-500/10' },
           { label: 'Leads', value: stats?.totalLeads ?? 0, icon: Users, color: 'text-neutral-600 dark:text-neutral-400', bg: 'bg-neutral-100 dark:bg-white/5' },
@@ -275,14 +275,14 @@ export default function AgentSettingsPage() {
         ].map(kpi => {
           const Icon = kpi.icon;
           return (
-            <div key={kpi.label} className="bg-white dark:bg-[#141414] rounded-xl p-4 border border-neutral-200 dark:border-white/[0.06] shadow-sm">
+            <div key={kpi.label} className="bg-white dark:bg-[#141414] rounded-xl p-3 sm:p-4 border border-neutral-200 dark:border-white/[0.06] shadow-sm">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">{kpi.label}</span>
-                <div className={`w-7 h-7 rounded-lg ${kpi.bg} flex items-center justify-center`}>
+                <span className="text-[10px] sm:text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wider truncate">{kpi.label}</span>
+                <div className={`w-7 h-7 rounded-lg ${kpi.bg} flex items-center justify-center shrink-0 ml-1`}>
                   <Icon className={`h-3.5 w-3.5 ${kpi.color}`} />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-neutral-900 dark:text-white">{kpi.value}</p>
+              <p className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white">{kpi.value}</p>
             </div>
           );
         })}
@@ -303,9 +303,9 @@ export default function AgentSettingsPage() {
             </Button>
           </div>
 
-          <div className="p-5 space-y-5">
+          <div className="p-4 sm:p-5 space-y-4 sm:space-y-5">
             {/* Basic info */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs text-neutral-500 dark:text-neutral-400">Nome do Agente</Label>
                 <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="SDR Autoscar" className={inputClass} />
@@ -317,7 +317,7 @@ export default function AgentSettingsPage() {
             </div>
 
             {/* Model + Temperature */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs text-neutral-500 dark:text-neutral-400">Modelo OpenAI</Label>
                 <Select value={form.model} onValueChange={v => v && setForm(f => ({ ...f, model: v }))}>
@@ -441,7 +441,7 @@ export default function AgentSettingsPage() {
             )}
 
             {/* Follow-up + Portal + Sellers */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs text-neutral-500 dark:text-neutral-400">Max Follow-ups</Label>
                 <Input type="number" value={form.maxFollowups} onChange={e => setForm(f => ({ ...f, maxFollowups: parseInt(e.target.value) || 2 }))} className={inputClass} />
@@ -489,7 +489,7 @@ export default function AgentSettingsPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs text-neutral-500 dark:text-neutral-400">URL do Portal</Label>
                 <Input value={form.portalUrl} onChange={e => setForm(f => ({ ...f, portalUrl: e.target.value }))} className={inputClass} />
@@ -525,37 +525,37 @@ export default function AgentSettingsPage() {
       <div className="space-y-3">
         {agents?.map(agent => (
           <div key={agent.id} className="bg-white dark:bg-[#141414] rounded-xl border border-neutral-200 dark:border-white/[0.06] shadow-sm overflow-hidden group">
-            <div className="px-5 py-4 flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+            <div className="px-4 sm:px-5 py-3 sm:py-4 flex items-center gap-3 sm:gap-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                 agent.active ? 'bg-green-50 dark:bg-green-500/10' : 'bg-neutral-100 dark:bg-white/5'
               }`}>
                 <Bot className={`h-5 w-5 ${agent.active ? 'text-green-600 dark:text-green-400' : 'text-neutral-400'}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">{agent.name}</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-semibold text-neutral-900 dark:text-white truncate">{agent.name}</h3>
                   <Badge className={`text-[10px] ${
                     agent.active
                       ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20'
                       : 'bg-neutral-100 dark:bg-white/5 text-neutral-500 border-neutral-200 dark:border-white/10'
                   }`}>{agent.active ? 'Ativo' : 'Inativo'}</Badge>
-                  <Badge className="bg-neutral-100 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-white/10 text-[10px]">{agent.model}</Badge>
+                  <Badge className="bg-neutral-100 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-white/10 text-[10px] hidden sm:inline-flex">{agent.model}</Badge>
                   {agent.channels?.map(ch => {
                     const opt = CHANNEL_OPTIONS.find(o => o.value === ch);
                     return opt ? (
-                      <Badge key={ch} className={`text-[10px] ${opt.activeBg} ${opt.color}`}>{opt.label}</Badge>
+                      <Badge key={ch} className={`text-[10px] ${opt.activeBg} ${opt.color} hidden sm:inline-flex`}>{opt.label}</Badge>
                     ) : null;
                   })}
                 </div>
                 {agent.instances?.length > 0 && (
-                  <p className="text-[11px] text-neutral-400 mt-1">
+                  <p className="text-[11px] text-neutral-400 mt-1 truncate">
                     <Phone className="h-3 w-3 inline mr-1" />
                     {agent.instances.join(', ')}
                   </p>
                 )}
-                {agent.description && <p className="text-xs text-neutral-400 mt-0.5">{agent.description}</p>}
+                {agent.description && <p className="text-xs text-neutral-400 mt-0.5 truncate">{agent.description}</p>}
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1 sm:opacity-0 group-hover:sm:opacity-100 transition-opacity shrink-0">
                 <Button size="icon" variant="ghost" onClick={() => toggleActive(agent)}
                   className="h-8 w-8 cursor-pointer text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300">
                   {agent.active ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}

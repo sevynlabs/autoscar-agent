@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Send, Bot, User, Shield, MessageSquare, StickyNote, Clock,
   CheckCircle, XCircle, RotateCcw, Paperclip, Smile, Hash,
-  ArrowRightLeft, Loader2, ChevronDown,
+  ArrowRightLeft, Loader2, ChevronDown, ChevronLeft, Info,
 } from 'lucide-react';
 
 interface Message {
@@ -31,6 +31,8 @@ interface ConversationDetail {
 
 interface ChatWindowProps {
   conversationId: string | null;
+  onBack?: () => void;
+  onOpenInfo?: () => void;
 }
 
 const QUICK_REPLIES = [
@@ -53,7 +55,7 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
-export function ChatWindow({ conversationId }: ChatWindowProps) {
+export function ChatWindow({ conversationId, onBack, onOpenInfo }: ChatWindowProps) {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -164,28 +166,37 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Header */}
-      <div className="border-b border-neutral-200 dark:border-white/[0.06] px-5 py-3 flex items-center justify-between bg-white dark:bg-[#0f0f0f]">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+      <div className="border-b border-neutral-200 dark:border-white/[0.06] px-3 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between gap-2 bg-white dark:bg-[#0f0f0f]">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          {onBack && (
+            <button
+              onClick={onBack}
+              aria-label="Voltar"
+              className="lg:hidden shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-neutral-500 hover:bg-neutral-100 dark:hover:bg-white/5 cursor-pointer"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+          )}
+          <div className="w-9 h-9 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0">
             {lead?.name ? (
               <span className="text-sm font-bold text-red-600 dark:text-red-400">{lead.name.charAt(0).toUpperCase()}</span>
             ) : (
               <User className="h-4 w-4 text-red-600 dark:text-red-400" />
             )}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-neutral-900 dark:text-white">{lead?.name || lead?.phone}</p>
-              <Badge className="bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20 text-[10px] h-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="text-sm font-medium text-neutral-900 dark:text-white truncate">{lead?.name || lead?.phone}</p>
+              <Badge className="bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20 text-[10px] h-4 hidden sm:inline-flex">
                 {conversation?.channel === 'instagram' ? 'Instagram' : conversation?.channel === 'sms' ? 'SMS' : 'WhatsApp'}
               </Badge>
             </div>
-            {lead?.name && <p className="text-[11px] text-neutral-400">{lead.phone}</p>}
+            {lead?.name && <p className="text-[11px] text-neutral-400 truncate">{lead.phone}</p>}
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-1.5">
+        {/* Action buttons — desktop */}
+        <div className="hidden lg:flex items-center gap-1.5">
           {lead?.humanOverride ? (
             <Button size="sm" variant="outline" onClick={() => handleHandoff(false)}
               className="border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer text-xs h-8">
@@ -210,11 +221,57 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
             <RotateCcw className="h-3.5 w-3.5 mr-1" /> Follow-up
           </Button>
         </div>
+
+        {/* Mobile: quick handoff + info */}
+        <div className="flex lg:hidden items-center gap-1 shrink-0">
+          {lead?.humanOverride ? (
+            <button
+              onClick={() => handleHandoff(false)}
+              aria-label="Devolver para IA"
+              className="h-8 w-8 rounded-lg flex items-center justify-center bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 cursor-pointer"
+            >
+              <Bot className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              onClick={() => handleHandoff(true)}
+              aria-label="Assumir conversa"
+              className="h-8 w-8 rounded-lg flex items-center justify-center bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 cursor-pointer"
+            >
+              <Shield className="h-4 w-4" />
+            </button>
+          )}
+          {onOpenInfo && (
+            <button
+              onClick={onOpenInfo}
+              aria-label="Info do lead"
+              className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-500 hover:bg-neutral-100 dark:hover:bg-white/5 cursor-pointer"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile-only stage actions row */}
+      <div className="lg:hidden flex gap-1.5 overflow-x-auto px-3 py-2 border-b border-neutral-200 dark:border-white/[0.06] bg-white dark:bg-[#0f0f0f]">
+        <Button size="sm" variant="outline" onClick={() => handleMoveStage('qualificado')}
+          className="border-green-200 dark:border-green-500/30 text-green-600 dark:text-green-400 text-[11px] h-7 shrink-0 cursor-pointer">
+          <CheckCircle className="h-3 w-3 mr-1" /> Qualificar
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => handleMoveStage('follow-up')}
+          className="text-[11px] h-7 shrink-0 cursor-pointer">
+          <RotateCcw className="h-3 w-3 mr-1" /> Follow-up
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => handleMoveStage('desqualificado')}
+          className="text-[11px] h-7 shrink-0 cursor-pointer">
+          <XCircle className="h-3 w-3 mr-1" /> Descartar
+        </Button>
       </div>
 
       {/* Messages */}
       <ScrollArea className="flex-1 bg-neutral-50/50 dark:bg-[#0a0a0a]">
-        <div className="p-5 space-y-1">
+        <div className="p-3 sm:p-5 space-y-1">
           {groupedMessages.map(group => (
             <div key={group.date}>
               {/* Date separator */}
@@ -233,7 +290,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
                     </div>
                   )}
 
-                  <div className={`max-w-[65%] rounded-2xl px-4 py-2.5 text-sm ${
+                  <div className={`max-w-[82%] sm:max-w-[65%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm ${
                     msg.role === 'lead'
                       ? 'bg-white dark:bg-white/[0.06] text-neutral-800 dark:text-neutral-200 rounded-bl-md shadow-sm'
                       : msg.role === 'agent'
@@ -318,7 +375,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
             <StickyNote className="h-3.5 w-3.5" />
           </Button>
           <div className="flex-1" />
-          <span className="text-[10px] text-neutral-300 dark:text-neutral-600">Enter para enviar · Shift+Enter nova linha</span>
+          <span className="hidden sm:inline text-[10px] text-neutral-300 dark:text-neutral-600">Enter para enviar · Shift+Enter nova linha</span>
         </div>
 
         {/* Message input */}

@@ -163,3 +163,25 @@
 ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
 .dark ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); }
 .dark ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
+/* iOS Safari zooms into inputs with font-size < 16px on focus.
+   Force 16px on touch viewports so the PWA doesn't jump-zoom. */
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Prevent pull-to-refresh / rubber-banding inside the PWA shell */
+html, body {
+  overscroll-behavior-y: contain;
+}
+
+/* Better tap targets on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  button, a, [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}

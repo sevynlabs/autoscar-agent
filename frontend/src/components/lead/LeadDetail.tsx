@@ -55,9 +55,9 @@ export function LeadDetail({ leadId, open, onClose }: LeadDetailProps) {
 
   return (
     <Sheet open={open} onOpenChange={() => onClose()}>
-      <SheetContent className="w-[500px] sm:max-w-[500px] bg-white dark:bg-[#0f0f0f] border-l border-neutral-200 dark:border-white/[0.06] p-0">
+      <SheetContent className="w-full sm:w-[500px] sm:max-w-[500px] bg-white dark:bg-[#0f0f0f] border-l border-neutral-200 dark:border-white/[0.06] p-0">
         {/* Header */}
-        <SheetHeader className="px-6 pt-6 pb-4 border-b border-neutral-200 dark:border-white/[0.06]">
+        <SheetHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-neutral-200 dark:border-white/[0.06]">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
               <User className="h-5 w-5 text-red-600 dark:text-red-400" />
