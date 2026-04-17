@@ -4,10 +4,14 @@ import { jwtVerify, SignJWT } from 'jose';
 
 const JWT_SECRET_KEY = () => new TextEncoder().encode(process.env.JWT_SECRET || 'autoscar-dev-secret-change-me');
 
-export async function createToken(userId: string, role: string): Promise<string> {
+export async function createToken(
+  userId: string,
+  role: string,
+  remember = false,
+): Promise<string> {
   return new SignJWT({ sub: userId, role })
     .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('24h')
+    .setExpirationTime(remember ? '30d' : '24h')
     .sign(JWT_SECRET_KEY());
 }
 

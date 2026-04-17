@@ -7,7 +7,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
   // POST /auth/login
   fastify.post('/auth/login', async (request, reply) => {
     try {
-      const { email, password } = request.body as { email: string; password: string };
+      const { email, password, remember } = request.body as {
+        email: string;
+        password: string;
+        remember?: boolean;
+      };
 
       const user = await prisma.user.findUnique({ where: { email } });
       if (!user) return reply.code(401).send({ error: 'Credenciais inválidas' });
@@ -15,7 +19,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       const valid = await bcrypt.compare(password, user.passwordHash);
       if (!valid) return reply.code(401).send({ error: 'Credenciais inválidas' });
 
-      const token = await createToken(user.id, user.role);
+      const token = await createToken(user.id, user.role, remember === true);
 
       return {
         token,
