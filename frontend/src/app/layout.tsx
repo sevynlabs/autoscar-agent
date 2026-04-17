@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     icon: "/favicon-autoscar.png",
     shortcut: "/favicon-autoscar.png",
     apple: [
-      { url: "/logo-autoscar.png", sizes: "180x180", type: "image/png" },
+      { url: "/favicon-autoscar.png", sizes: "180x180", type: "image/png" },
     ],
   },
 };

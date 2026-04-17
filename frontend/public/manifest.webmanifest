@@ -19,7 +19,7 @@
       "purpose": "any"
     },
     {
-      "src": "/logo-autoscar.png",
+      "src": "/favicon-autoscar.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
@@ -31,7 +31,7 @@
       "purpose": "maskable"
     },
     {
-      "src": "/logo-autoscar.png",
+      "src": "/favicon-autoscar.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
