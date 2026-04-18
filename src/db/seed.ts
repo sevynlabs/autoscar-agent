@@ -16,6 +16,19 @@ async function ensureMigrations() {
   } catch (err) {
     console.log('[seed] Migration check skipped:', err instanceof Error ? err.message : err);
   }
+
+  // Add triggerVehicleCodes column (parallel array to triggerVehicleUrls)
+  try {
+    const cols: Array<{ column_name: string }> = await prisma.$queryRaw`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'Agent' AND column_name = 'triggerVehicleCodes'`;
+    if (cols.length === 0) {
+      await prisma.$executeRaw`ALTER TABLE "Agent" ADD COLUMN "triggerVehicleCodes" TEXT[] DEFAULT ARRAY[]::TEXT[]`;
+      console.log('[seed] Added triggerVehicleCodes column');
+    }
+  } catch (err) {
+    console.log('[seed] triggerVehicleCodes migration skipped:', err instanceof Error ? err.message : err);
+  }
 }
 
 export async function ensureSeedData() {

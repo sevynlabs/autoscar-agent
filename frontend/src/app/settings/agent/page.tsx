@@ -32,6 +32,7 @@ interface Agent {
   followupDelayHours: number;
   portalUrl: string;
   triggerVehicleUrls: string[];
+  triggerVehicleCodes: string[];
   sellersGroupJid: string | null;
   active: boolean;
   temperature: number;
@@ -133,6 +134,7 @@ export default function AgentSettingsPage() {
     followupDelayHours: 24,
     portalUrl: 'https://www.autoscar.com.br',
     triggerVehicleUrls: [] as string[],
+    triggerVehicleCodes: [] as string[],
     sellersGroupJid: '',
     temperature: 0.7,
   });
@@ -158,7 +160,7 @@ export default function AgentSettingsPage() {
       welcomeMessage: '', qualificationFields: ['interest', 'creditStatus', 'city', 'paymentMethod'],
       channels: ['whatsapp', 'instagram', 'sms'], instances: [],
       maxFollowups: 2, followupDelayHours: 24, portalUrl: 'https://www.autoscar.com.br',
-      triggerVehicleUrls: [], sellersGroupJid: '', temperature: 0.7,
+      triggerVehicleUrls: [], triggerVehicleCodes: [], sellersGroupJid: '', temperature: 0.7,
     });
     setEditing(null);
     setCreating(true);
@@ -179,6 +181,7 @@ export default function AgentSettingsPage() {
       followupDelayHours: agent.followupDelayHours,
       portalUrl: agent.portalUrl,
       triggerVehicleUrls: agent.triggerVehicleUrls ?? [],
+      triggerVehicleCodes: agent.triggerVehicleCodes ?? [],
       sellersGroupJid: agent.sellersGroupJid ?? '',
       temperature: agent.temperature,
     });
@@ -472,20 +475,39 @@ export default function AgentSettingsPage() {
                     }}
                       placeholder="https://www.autoscar.com.br/comprar/288509-toyota-hilux"
                       className={inputClass + ' flex-1'} />
+                    <Input
+                      type="number"
+                      value={form.triggerVehicleCodes[index] ?? ''}
+                      onChange={e => {
+                        const updated = [...form.triggerVehicleCodes];
+                        while (updated.length < form.triggerVehicleUrls.length) updated.push('');
+                        updated[index] = e.target.value;
+                        setForm(f => ({ ...f, triggerVehicleCodes: updated }));
+                      }}
+                      placeholder="Código"
+                      className={inputClass + ' w-28 shrink-0'} />
                     <Button size="icon" variant="ghost" onClick={() => {
-                      setForm(f => ({ ...f, triggerVehicleUrls: f.triggerVehicleUrls.filter((_, i) => i !== index) }));
+                      setForm(f => ({
+                        ...f,
+                        triggerVehicleUrls: f.triggerVehicleUrls.filter((_, i) => i !== index),
+                        triggerVehicleCodes: f.triggerVehicleCodes.filter((_, i) => i !== index),
+                      }));
                     }} className="h-9 w-9 cursor-pointer text-neutral-400 hover:text-red-500 shrink-0">
                       <X className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => setForm(f => ({ ...f, triggerVehicleUrls: [...f.triggerVehicleUrls, ''] }))}
+                <Button variant="outline" size="sm" onClick={() => setForm(f => ({
+                  ...f,
+                  triggerVehicleUrls: [...f.triggerVehicleUrls, ''],
+                  triggerVehicleCodes: [...f.triggerVehicleCodes, ''],
+                }))}
                   className="cursor-pointer text-xs h-8 border-dashed border-neutral-300 dark:border-white/10 text-neutral-500 hover:text-red-600 hover:border-red-300 dark:hover:border-red-500/30">
                   <Plus className="h-3 w-3 mr-1" /> Adicionar link de gatilho
                 </Button>
               </div>
               <p className="text-[11px] text-neutral-400">
-                Cole links de veículos do portal. O agente vai buscar os dados automaticamente no primeiro contato. Com 1 link, ele foca naquele veículo. Com vários, apresenta todos e pergunta qual interessa mais.
+                Cole links de veículos do portal e (opcional) um código numérico para cada um. Quando o lead enviar esse código na mensagem, o agente vai entender que ele se refere ao veículo do link correspondente.
               </p>
             </div>
 
