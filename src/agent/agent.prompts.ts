@@ -110,6 +110,29 @@ export function isInstanceEnabled(agent: { instances: string[] } | null, instanc
   return agent.instances.includes(instanceName);
 }
 
+export function detectTriggerCodeMatch(
+  message: string,
+  triggerVehicleUrls?: string[],
+  triggerVehicleCodes?: string[],
+): { code: string; url: string } | null {
+  if (!triggerVehicleUrls?.length || !triggerVehicleCodes?.length) return null;
+
+  const text = ` ${message.toLowerCase()} `;
+
+  for (let i = 0; i < triggerVehicleUrls.length; i++) {
+    const code = triggerVehicleCodes[i]?.trim();
+    const url = triggerVehicleUrls[i]?.trim();
+    if (!code || !url) continue;
+
+    // Word-boundary-ish match: surrounded by non-alphanumerics. Handles "123",
+    // "codigo 123", "cod: 123", "quero o 123" etc., but avoids matching "1230".
+    const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`[^0-9a-zA-Z]${escaped}[^0-9a-zA-Z]`, 'i');
+    if (re.test(text)) return { code, url };
+  }
+  return null;
+}
+
 export function buildSystemPrompt(lead: AgentContext['lead'], customPrompt?: string, triggerVehicleUrls?: string[], triggerVehicleCodes?: string[]): string {
   const leadContext = lead
     ? `Lead atual: ${lead.name ?? 'sem nome'}, telefone ${lead.phone}, ` +

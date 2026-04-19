@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { appendMessages } from '../conversation/conversation.service.js';
-import { buildSystemPrompt, getActiveAgent } from './agent.prompts.js';
+import { buildSystemPrompt, detectTriggerCodeMatch, getActiveAgent } from './agent.prompts.js';
 import { AGENT_TOOLS, executeToolCall } from './agent.tools.js';
 import type { AgentContext } from './agent.types.js';
 
@@ -26,11 +26,25 @@ export async function runAgentTurn(ctx: AgentContext): Promise<string> {
   const agentModel = activeAgent?.model ?? 'gpt-4o';
   const agentTemp = activeAgent?.temperature ?? 0.7;
 
+  const codeMatch = detectTriggerCodeMatch(
+    ctx.userMessage,
+    activeAgent?.triggerVehicleUrls,
+    activeAgent?.triggerVehicleCodes,
+  );
+
   const messages: ChatCompletionMessageParam[] = [
     { role: 'system', content: buildSystemPrompt(ctx.lead, activeAgent?.systemPrompt, activeAgent?.triggerVehicleUrls, activeAgent?.triggerVehicleCodes) },
     ...ctx.history,
     { role: 'user', content: ctx.userMessage },
   ];
+
+  if (codeMatch) {
+    messages.push({
+      role: 'system',
+      content: `CODIGO DETECTADO: o lead enviou o codigo "${codeMatch.code}", que corresponde ao veiculo: ${codeMatch.url}
+INSTRUCAO: use scrape_vehicle com essa URL agora e foque o atendimento nesse veiculo. Nao pergunte ao lead qual veiculo ele quer — ja esta decidido pelo codigo.`,
+    });
+  }
 
   // Save the incoming lead message
   await appendMessages(ctx.conversationId, [
