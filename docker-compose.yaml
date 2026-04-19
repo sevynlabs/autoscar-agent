@@ -16,6 +16,10 @@ services:
   app:
     build: .
     restart: always
+    # Allow the container to reach the Coolify host (where the managed
+    # Postgres publishes port 5433). Used in DATABASE_URL below.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - APP_PORT=3001
       - APP_BASE_URL=http://app:3001
