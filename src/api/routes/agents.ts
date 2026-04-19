@@ -26,8 +26,6 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
       qualificationFields?: string[];
       channels?: string[];
       instances?: string[];
-      maxFollowups?: number;
-      followupDelayHours?: number;
       portalUrl?: string;
       triggerVehicleUrls?: string[];
       triggerVehicleCodes?: string[];
@@ -46,8 +44,6 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
           qualificationFields: body.qualificationFields ?? ['interest', 'creditStatus', 'city', 'paymentMethod'],
           channels: body.channels ?? ['whatsapp', 'instagram', 'sms'],
           instances: body.instances ?? [],
-          maxFollowups: body.maxFollowups ?? 2,
-          followupDelayHours: body.followupDelayHours ?? 24,
           portalUrl: body.portalUrl || 'https://www.autoscar.com.br',
           triggerVehicleUrls: body.triggerVehicleUrls ?? [],
           triggerVehicleCodes: body.triggerVehicleCodes ?? [],
@@ -68,7 +64,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
     const body = request.body as Record<string, unknown>;
 
     const allowed = ['name', 'description', 'model', 'systemPrompt', 'welcomeMessage',
-      'qualificationFields', 'channels', 'instances', 'maxFollowups', 'followupDelayHours', 'portalUrl',
+      'qualificationFields', 'channels', 'instances', 'portalUrl',
       'triggerVehicleUrls', 'triggerVehicleCodes', 'sellersGroupJid', 'temperature', 'active'];
 
     const data: Record<string, unknown> = {};

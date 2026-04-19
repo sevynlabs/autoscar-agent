@@ -28,8 +28,6 @@ interface Agent {
   qualificationFields: string[];
   channels: string[];
   instances: string[];
-  maxFollowups: number;
-  followupDelayHours: number;
   portalUrl: string;
   triggerVehicleUrls: string[];
   triggerVehicleCodes: string[];
@@ -130,8 +128,6 @@ export default function AgentSettingsPage() {
     qualificationFields: ['interest', 'creditStatus', 'city', 'paymentMethod'] as string[],
     channels: ['whatsapp', 'instagram', 'sms'] as string[],
     instances: [] as string[],
-    maxFollowups: 2,
-    followupDelayHours: 24,
     portalUrl: 'https://www.autoscar.com.br',
     triggerVehicleUrls: [] as string[],
     triggerVehicleCodes: [] as string[],
@@ -159,7 +155,7 @@ export default function AgentSettingsPage() {
       name: '', description: '', model: 'gpt-4o', systemPrompt: DEFAULT_PROMPT,
       welcomeMessage: '', qualificationFields: ['interest', 'creditStatus', 'city', 'paymentMethod'],
       channels: ['whatsapp', 'instagram', 'sms'], instances: [],
-      maxFollowups: 2, followupDelayHours: 24, portalUrl: 'https://www.autoscar.com.br',
+      portalUrl: 'https://www.autoscar.com.br',
       triggerVehicleUrls: [], triggerVehicleCodes: [], sellersGroupJid: '', temperature: 0.7,
     });
     setEditing(null);
@@ -177,8 +173,6 @@ export default function AgentSettingsPage() {
       qualificationFields: agent.qualificationFields,
       channels: agent.channels,
       instances: agent.instances ?? [],
-      maxFollowups: agent.maxFollowups,
-      followupDelayHours: agent.followupDelayHours,
       portalUrl: agent.portalUrl,
       triggerVehicleUrls: agent.triggerVehicleUrls ?? [],
       triggerVehicleCodes: agent.triggerVehicleCodes ?? [],
@@ -442,22 +436,6 @@ export default function AgentSettingsPage() {
                 </div>
               </div>
             )}
-
-            {/* Follow-up + Portal + Sellers */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-neutral-500 dark:text-neutral-400">Max Follow-ups</Label>
-                <Input type="number" value={form.maxFollowups} onChange={e => setForm(f => ({ ...f, maxFollowups: parseInt(e.target.value) || 2 }))} className={inputClass} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-neutral-500 dark:text-neutral-400">Delay (horas)</Label>
-                <Input type="number" value={form.followupDelayHours} onChange={e => setForm(f => ({ ...f, followupDelayHours: parseInt(e.target.value) || 24 }))} className={inputClass} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-neutral-500 dark:text-neutral-400">Temperatura</Label>
-                <Input type="number" step="0.1" value={form.temperature} onChange={e => setForm(f => ({ ...f, temperature: parseFloat(e.target.value) || 0.7 }))} className={inputClass} />
-              </div>
-            </div>
 
             {/* Trigger Vehicle URLs */}
             <div className="space-y-1.5">
