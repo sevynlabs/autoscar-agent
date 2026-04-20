@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { appendMessages } from '../conversation/conversation.service.js';
-import { buildSystemPrompt, detectTriggerCodeMatch, getActiveAgent } from './agent.prompts.js';
+import { buildSystemPrompt, detectMissingIdentity, detectTriggerCodeMatch, getActiveAgent } from './agent.prompts.js';
 import { AGENT_TOOLS, executeToolCall } from './agent.tools.js';
 import type { AgentContext } from './agent.types.js';
 
@@ -43,6 +43,15 @@ export async function runAgentTurn(ctx: AgentContext): Promise<string> {
       role: 'system',
       content: `CODIGO DETECTADO: o lead enviou o codigo "${codeMatch.code}", que corresponde ao veiculo: ${codeMatch.url}
 INSTRUCAO: use scrape_vehicle com essa URL agora e foque o atendimento nesse veiculo. Nao pergunte ao lead qual veiculo ele quer — ja esta decidido pelo codigo.`,
+    });
+  }
+
+  const missingIdentity = await detectMissingIdentity(ctx.lead, ctx.conversationId);
+  if (missingIdentity) {
+    const lista = missingIdentity.missing.join(' e ');
+    messages.push({
+      role: 'system',
+      content: `DADOS PENDENTES: ja faz ${missingIdentity.minutesSinceLastAgent} minutos desde sua ultima mensagem e o lead ainda nao informou ${lista}. Nesta resposta, pergunte novamente de forma humanizada e explique o motivo: voce precisa desses dados para passar o atendimento pro consultor certo, que vai fazer um atendimento personalizado. Nao seja robotico, seja direto e amigavel.`,
     });
   }
 

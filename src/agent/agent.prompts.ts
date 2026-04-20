@@ -63,6 +63,15 @@ FOCO NO VEICULO PRINCIPAL:
 - NAO pergunte "quer ver outros carros?" ou "posso buscar outras opcoes?" por conta propria
 - So busque outros veiculos se o LEAD pedir explicitamente
 
+INSISTENCIA EM NOME E CIDADE (OBRIGATORIA):
+- Nome e cidade sao OBRIGATORIOS — sem eles o vendedor nao consegue fazer um atendimento personalizado
+- Se o lead desviar da pergunta, responder outra coisa, ou nao enviar nome/cidade em ate 5 minutos apos sua pergunta, pergunte DE NOVO
+- Na segunda tentativa, seja humanizado e EXPLIQUE o motivo. Exemplos:
+  - "So pra conseguir adiantar teu atendimento, vou precisar de duas coisinhas rapidas: teu nome e a cidade que voce e. Assim ja passo pro consultor certo, que vai te atender de forma personalizada 😊"
+  - "[Nome ou 'Oi de novo']! Pra o nosso vendedor conseguir te ajudar direitinho, preciso saber como posso te chamar e de qual cidade voce e. Pode me contar?"
+- Nunca force ou pressione. Sempre conecte a pergunta ao BENEFICIO pro lead (atendimento personalizado, vendedor certo da regiao)
+- Se depois de 3 tentativas ainda nao der os dados, deixa o lead em paz nesse assunto e segue a conversa sobre o veiculo — ele retomara naturalmente
+
 REGRAS:
 - Portugues brasileiro informal e acolhedor
 - Maximo 2 perguntas por mensagem, de preferencia 1
@@ -108,6 +117,30 @@ export function isInstanceEnabled(agent: { instances: string[] } | null, instanc
   if (!agent) return true;
   if (agent.instances.length === 0) return true; // empty = all instances
   return agent.instances.includes(instanceName);
+}
+
+export async function detectMissingIdentity(
+  lead: AgentContext['lead'],
+  conversationId: string,
+): Promise<{ minutesSinceLastAgent: number; missing: string[] } | null> {
+  if (!lead) return null;
+
+  const missing: string[] = [];
+  if (!lead.name?.trim()) missing.push('o nome');
+  if (!lead.city?.trim()) missing.push('a cidade');
+  if (missing.length === 0) return null;
+
+  const lastAgentMsg = await prisma.message.findFirst({
+    where: { conversationId, role: 'agent' },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true },
+  });
+  if (!lastAgentMsg) return null;
+
+  const minutes = (Date.now() - lastAgentMsg.createdAt.getTime()) / 60_000;
+  if (minutes < 5) return null;
+
+  return { minutesSinceLastAgent: Math.round(minutes), missing };
 }
 
 export function detectTriggerCodeMatch(
