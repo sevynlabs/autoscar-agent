@@ -20,6 +20,14 @@ services:
     # Postgres publishes port 5433). Used in DATABASE_URL below.
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Auto-recovery: if /health stops responding for 3 checks in a row,
+    # Docker marks the container unhealthy and restart: always kicks in.
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3001/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     environment:
       - APP_PORT=3001
       - APP_BASE_URL=http://app:3001
