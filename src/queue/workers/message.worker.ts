@@ -20,7 +20,7 @@ export function startMessageWorker(): Worker {
   worker = new Worker(
     'messages',
     async (job: Job) => {
-      const { instance, phoneNumber, message, channel: msgChannel } = job.data as MessageJobData;
+      const { instance, phoneNumber, message, pushName, channel: msgChannel } = job.data as MessageJobData;
       const channelName = msgChannel ?? 'whatsapp';
 
       console.log(
@@ -48,6 +48,16 @@ export function startMessageWorker(): Worker {
 
         // 2. Load or create conversation (with channel)
         const conversation = await loadOrCreateConversation(phoneNumber, channelName);
+
+        // 2.1 Save the WhatsApp pushName on the lead if we still don't have a name.
+        // This is the name the contact set on their own WhatsApp account.
+        if (pushName && conversation.lead && !conversation.lead.name?.trim()) {
+          await prisma.lead.update({
+            where: { id: conversation.lead.id },
+            data: { name: pushName },
+          }).catch(() => { /* non-critical */ });
+          conversation.lead.name = pushName;
+        }
 
         // 3. Check if agent responds on this channel + instance
         const activeAgent = await getActiveAgent();

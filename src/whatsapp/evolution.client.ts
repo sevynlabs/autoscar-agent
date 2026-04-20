@@ -130,6 +130,24 @@ export const evolutionClient = {
   },
 
   /**
+   * Fetch a contact's profile info (pushName, etc) from WhatsApp.
+   * Returns null if the endpoint fails or no name is registered.
+   */
+  async fetchProfile(instanceName: string, jid: string): Promise<{ name: string | null; pictureUrl: string | null } | null> {
+    const client = getClient();
+    try {
+      const { data } = await client.post<{ name?: string; pushName?: string; verifiedName?: string; wuid?: string; picture?: string }>(
+        `/chat/fetchProfile/${instanceName}`,
+        { number: jid },
+      );
+      const name = data?.verifiedName || data?.name || data?.pushName || null;
+      return { name, pictureUrl: data?.picture ?? null };
+    } catch {
+      return null;
+    }
+  },
+
+  /**
    * Send media (image) via WhatsApp with optional caption
    */
   async sendMedia(

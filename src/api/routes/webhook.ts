@@ -64,14 +64,16 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
         if (!text) continue;
 
         const phoneNumber = extractPhone(remoteJid);
+        const pushName = typeof msg.pushName === 'string' ? msg.pushName.trim() || undefined : undefined;
 
-        fastify.log.info({ phone: phoneNumber, preview: text.substring(0, 50), messageId }, 'Message received');
+        fastify.log.info({ phone: phoneNumber, preview: text.substring(0, 50), messageId, pushName }, 'Message received');
 
         const jobData: MessageJobData = {
           instance,
           phoneNumber,
           message: text,
           messageId,
+          pushName,
         };
 
         const queue = getMessageQueue();

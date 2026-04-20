@@ -20,6 +20,7 @@ import agentConfigRoutes from './routes/agent-config.js';
 import agentsRoutes from './routes/agents.js';
 import followupWorkflowRoutes from './routes/followup-workflow.js';
 import followupConfigRoutes from './routes/followup-config.js';
+import reengagementRoutes from './routes/reengagement.js';
 import adminRoutes from './routes/admin.js';
 
 export async function buildServer() {
@@ -85,6 +86,7 @@ export async function buildServer() {
   // Follow-up workflow
   await fastify.register(followupWorkflowRoutes);
   await fastify.register(followupConfigRoutes);
+  await fastify.register(reengagementRoutes);
 
   // Dashboard analytics
   await fastify.register(dashboardRoutes);

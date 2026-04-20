@@ -5,6 +5,8 @@ import { loadOrCreateConversation } from '../../conversation/conversation.servic
 import { getChannel } from '../../channels/channel.manager.js';
 import { emitNewMessage, emitLeadMoved } from '../../realtime/emitter.js';
 import { getReengagementQueue } from '../queues.js';
+import { evolutionClient } from '../../whatsapp/evolution.client.js';
+import { getActiveAgent } from '../../agent/agent.prompts.js';
 
 const SCAN_JOB_ID = 'reengagement-scan';
 const SCAN_CRON = '* * * * *'; // every minute
@@ -14,6 +16,7 @@ const SILENCE_MINUTES = 5;
 const MAX_ATTEMPTS = 2;
 const MIN_HOURS_BETWEEN = 1;
 const EXHAUSTED_STAGE_NAME = 'Follow-up';
+const FORCE_QUALIFY_MINUTES = 10; // total conversation age — bail out and hand to sellers
 const NOVO_STAGE_NAMES = ['novo', 'new'];
 
 let worker: Worker | null = null;
@@ -45,6 +48,23 @@ async function scanForSilentLeads() {
     const lastMsg = lead.conversation?.messages[0];
     if (!lastMsg) continue;
 
+    // Conversation age: if >= FORCE_QUALIFY_MINUTES, skip normal re-engage and
+    // hand to sellers with whatever data we have.
+    const convAgeMin = (now.getTime() - lead.conversation!.createdAt.getTime()) / 60_000;
+    if (convAgeMin >= FORCE_QUALIFY_MINUTES) {
+      try {
+        await forceQualify(lead);
+      } catch (err) {
+        console.log(JSON.stringify({
+          level: 'error',
+          msg: '[reengagement] force-qualify failed',
+          leadId: lead.id,
+          error: err instanceof Error ? err.message : String(err),
+        }));
+      }
+      continue;
+    }
+
     // Only act when the last message is from the agent (lead went silent)
     if (lastMsg.role !== 'agent') continue;
 
@@ -74,6 +94,124 @@ async function scanForSilentLeads() {
       }));
     }
   }
+}
+
+/**
+ * Force-qualify an unqualified lead: fetch missing name from WhatsApp profile,
+ * move to Qualificado stage, add note, notify sellers group with whatever data
+ * we have. Used when the lead didn't finish qualifying within 10 min.
+ */
+export async function forceQualify(lead: LeadWithRelations): Promise<void> {
+  const instance = await prisma.whatsAppInstance.findFirst({
+    where: { status: 'connected' },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  // 1. Fetch WhatsApp profile name if missing
+  if (!lead.name?.trim() && instance) {
+    const profile = await evolutionClient.fetchProfile(instance.name, lead.phone).catch(() => null);
+    const fetched = profile?.name?.trim();
+    if (fetched) {
+      await prisma.lead.update({ where: { id: lead.id }, data: { name: fetched } });
+      lead.name = fetched;
+    }
+  }
+
+  // 2. Move to Qualificado stage
+  let qualifiedStage: { id: string; name: string } | null = null;
+  if (lead.pipelineId) {
+    qualifiedStage = await prisma.stage.findFirst({
+      where: {
+        pipelineId: lead.pipelineId,
+        name: { contains: 'qualificado', mode: 'insensitive' },
+      },
+    });
+    if (qualifiedStage && lead.stageId !== qualifiedStage.id) {
+      await prisma.lead.update({ where: { id: lead.id }, data: { stageId: qualifiedStage.id } });
+      emitLeadMoved({ id: lead.id, stageId: qualifiedStage.id });
+    }
+  }
+
+  // 3. Build summary with whatever data we have
+  const summary = [
+    '🔴 LEAD QUALIFICADO (auto-enviado após 10min sem qualificação completa)',
+    `Nome: ${lead.name?.trim() || 'não informado'}`,
+    `Telefone: ${lead.phone}`,
+    `Cidade: ${lead.city?.trim() || 'não informada'}`,
+    `Veículo: ${lead.vehicleUrl || 'não informado'}`,
+    'Status: Aguardando contato do vendedor',
+  ].join('\n');
+
+  // 4. Add note
+  await prisma.leadNote.create({
+    data: {
+      leadId: lead.id,
+      content: `[Auto-qualificação 10min] ${summary}`,
+      type: 'ai',
+    },
+  });
+
+  // 5. Notify sellers group
+  const agent = await getActiveAgent().catch(() => null);
+  const sellersJid = agent?.sellersGroupJid ?? process.env.SELLERS_GROUP_JID;
+  if (sellersJid && instance) {
+    try {
+      await evolutionClient.sendText(instance.name, sellersJid, summary);
+    } catch (err) {
+      console.log(JSON.stringify({
+        level: 'warn',
+        msg: '[reengagement] sellers group notify failed',
+        leadId: lead.id,
+        error: err instanceof Error ? err.message : String(err),
+      }));
+    }
+  }
+
+  console.log(JSON.stringify({
+    level: 'info',
+    msg: '[reengagement] force-qualified lead after 10min',
+    leadId: lead.id,
+    hasName: Boolean(lead.name?.trim()),
+    hasCity: Boolean(lead.city?.trim()),
+  }));
+}
+
+/**
+ * One-shot: force-qualify every lead currently in "Novo" regardless of
+ * conversation age. Called via POST /reengagement/force-qualify-all.
+ */
+export async function forceQualifyAllNovo(): Promise<{ processed: number }> {
+  const stages = await prisma.stage.findMany({
+    where: { name: { mode: 'insensitive', in: ['Novo', 'New'] } },
+  });
+  const stageIds = stages.map((s) => s.id);
+  if (stageIds.length === 0) return { processed: 0 };
+
+  const leads = await prisma.lead.findMany({
+    where: { stageId: { in: stageIds }, humanOverride: false },
+    include: {
+      stage: true,
+      conversation: {
+        include: { messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      },
+    },
+  });
+
+  let processed = 0;
+  for (const lead of leads) {
+    try {
+      await forceQualify(lead);
+      processed++;
+    } catch (err) {
+      console.log(JSON.stringify({
+        level: 'error',
+        msg: '[reengagement] batch force-qualify failed',
+        leadId: lead.id,
+        error: err instanceof Error ? err.message : String(err),
+      }));
+    }
+  }
+  return { processed };
 }
 
 type LeadWithRelations = Awaited<ReturnType<typeof prisma.lead.findMany>>[number] & {
