@@ -82,6 +82,7 @@ model Lead {
   lastFollowupAt   DateTime?
   reengagementAttempts Int       @default(0)
   lastReengagementAt   DateTime?
+  sellerNotifiedAt     DateTime?
   conversation     Conversation?
   notes            LeadNote[]
   tenantId      String?

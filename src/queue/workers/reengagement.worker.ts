@@ -6,7 +6,7 @@ import { getChannel } from '../../channels/channel.manager.js';
 import { emitNewMessage, emitLeadMoved } from '../../realtime/emitter.js';
 import { getReengagementQueue } from '../queues.js';
 import { evolutionClient } from '../../whatsapp/evolution.client.js';
-import { getActiveAgent } from '../../agent/agent.prompts.js';
+import { notifySellersGroupForLead } from '../../crm/seller-notification.service.js';
 
 const SCAN_JOB_ID = 'reengagement-scan';
 const SCAN_CRON = '* * * * *'; // every minute
@@ -132,40 +132,19 @@ export async function forceQualify(lead: LeadWithRelations): Promise<void> {
     }
   }
 
-  // 3. Build summary with whatever data we have
-  const summary = [
-    '🔴 LEAD QUALIFICADO (auto-enviado após 10min sem qualificação completa)',
-    `Nome: ${lead.name?.trim() || 'não informado'}`,
-    `Telefone: ${lead.phone}`,
-    `Cidade: ${lead.city?.trim() || 'não informada'}`,
-    `Veículo: ${lead.vehicleUrl || 'não informado'}`,
-    'Status: Aguardando contato do vendedor',
-  ].join('\n');
-
-  // 4. Add note
+  // 3. Add note for the audit trail
   await prisma.leadNote.create({
     data: {
       leadId: lead.id,
-      content: `[Auto-qualificação 10min] ${summary}`,
+      content: 'Auto-qualificado pelo sistema após 10min sem qualificação completa',
       type: 'ai',
     },
   });
 
-  // 5. Notify sellers group
-  const agent = await getActiveAgent().catch(() => null);
-  const sellersJid = agent?.sellersGroupJid ?? process.env.SELLERS_GROUP_JID;
-  if (sellersJid && instance) {
-    try {
-      await evolutionClient.sendText(instance.name, sellersJid, summary);
-    } catch (err) {
-      console.log(JSON.stringify({
-        level: 'warn',
-        msg: '[reengagement] sellers group notify failed',
-        leadId: lead.id,
-        error: err instanceof Error ? err.message : String(err),
-      }));
-    }
-  }
+  // 4. Notify sellers group with the full summary (vehicle + conversation link)
+  await notifySellersGroupForLead(lead.id, {
+    reason: 'Auto-enviado após 10min sem qualificação completa',
+  }).catch(() => {});
 
   console.log(JSON.stringify({
     level: 'info',

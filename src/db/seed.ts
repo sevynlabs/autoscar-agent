@@ -34,6 +34,7 @@ async function ensureMigrations() {
   try {
     await prisma.$executeRaw`ALTER TABLE "Lead" ADD COLUMN IF NOT EXISTS "reengagementAttempts" INTEGER NOT NULL DEFAULT 0`;
     await prisma.$executeRaw`ALTER TABLE "Lead" ADD COLUMN IF NOT EXISTS "lastReengagementAt" TIMESTAMP(3)`;
+    await prisma.$executeRaw`ALTER TABLE "Lead" ADD COLUMN IF NOT EXISTS "sellerNotifiedAt" TIMESTAMP(3)`;
   } catch (err) {
     console.log('[seed] reengagement migration skipped:', err instanceof Error ? err.message : err);
   }

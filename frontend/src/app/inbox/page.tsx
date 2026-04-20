@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
 import { X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useSocket } from '@/hooks/useSocket';
@@ -20,6 +21,7 @@ interface Conversation {
 
 export default function InboxPage() {
   useSocket();
+  const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
 
@@ -27,6 +29,15 @@ export default function InboxPage() {
     queryKey: ['conversations'],
     queryFn: () => api.get<Conversation[]>('/conversations'),
   });
+
+  // Deep-link support: /inbox?conversation=<id> auto-selects that conversation
+  // so links from the sellers group land directly on the chat.
+  useEffect(() => {
+    const target = searchParams.get('conversation');
+    if (!target || !conversations) return;
+    const exists = conversations.some((c) => c.id === target);
+    if (exists && target !== selectedId) setSelectedId(target);
+  }, [searchParams, conversations, selectedId]);
 
   const selectedConv = conversations?.find((c) => c.id === selectedId);
   const leadId = selectedConv?.leadId ?? null;
