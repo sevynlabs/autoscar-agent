@@ -29,6 +29,14 @@ async function ensureMigrations() {
   } catch (err) {
     console.log('[seed] triggerVehicleCodes migration skipped:', err instanceof Error ? err.message : err);
   }
+
+  // Re-engagement tracking columns on Lead
+  try {
+    await prisma.$executeRaw`ALTER TABLE "Lead" ADD COLUMN IF NOT EXISTS "reengagementAttempts" INTEGER NOT NULL DEFAULT 0`;
+    await prisma.$executeRaw`ALTER TABLE "Lead" ADD COLUMN IF NOT EXISTS "lastReengagementAt" TIMESTAMP(3)`;
+  } catch (err) {
+    console.log('[seed] reengagement migration skipped:', err instanceof Error ? err.message : err);
+  }
 }
 
 export async function ensureSeedData() {

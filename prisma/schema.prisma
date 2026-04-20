@@ -80,6 +80,8 @@ model Lead {
   humanOverride    Boolean       @default(false)
   followupAttempts Int           @default(0)
   lastFollowupAt   DateTime?
+  reengagementAttempts Int       @default(0)
+  lastReengagementAt   DateTime?
   conversation     Conversation?
   notes            LeadNote[]
   tenantId      String?

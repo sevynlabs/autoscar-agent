@@ -3,6 +3,7 @@ import { Queue } from 'bullmq';
 let messageQueue: Queue | null = null;
 let followupQueue: Queue | null = null;
 let followupWorkflowQueue: Queue | null = null;
+let reengagementQueue: Queue | null = null;
 
 function getRedisUrl(): string {
   const url = process.env.REDIS_URL;
@@ -29,4 +30,11 @@ export function getFollowupWorkflowQueue(): Queue {
     followupWorkflowQueue = new Queue('followup-workflow', { connection: { url: getRedisUrl() } });
   }
   return followupWorkflowQueue!;
+}
+
+export function getReengagementQueue(): Queue {
+  if (!reengagementQueue) {
+    reengagementQueue = new Queue('reengagement', { connection: { url: getRedisUrl() } });
+  }
+  return reengagementQueue!;
 }
