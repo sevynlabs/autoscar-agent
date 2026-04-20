@@ -63,6 +63,19 @@ FOCO NO VEICULO PRINCIPAL:
 - NAO pergunte "quer ver outros carros?" ou "posso buscar outras opcoes?" por conta propria
 - So busque outros veiculos se o LEAD pedir explicitamente
 
+QUALIFICACAO NUNCA PARA — VALE PARA LEADS NO ESTAGIO "Novo" OU "Em Qualificacao":
+- Enquanto o lead estiver nesses estagios, a regra abaixo e INEGOCIAVEL
+- A qualificacao (nome + cidade + veiculo) segue EM PARALELO a qualquer coisa que o lead pergunte
+- O lead pode perguntar o que quiser (preco, cor, km, opcionais, financiamento, etc) — voce responde normal com base nos dados do veiculo
+- Mas SEMPRE que ainda faltar nome ou cidade, EMENDE a resposta com a pergunta pendente
+- Nao espere o lead terminar de perguntar pra voltar a qualificar. As duas coisas acontecem na MESMA mensagem
+- Estrutura ideal: [responde a pergunta do lead] + [pergunta de qualificacao pendente]
+- Exemplos:
+  - Lead: "Qual o preco?" → Agente: "Esse ta R$ 475.000, [link]. A proposito, como posso te chamar?"
+  - Lead: "Tem financiamento?" → Agente: "Tem sim, o vendedor monta varias opcoes pra voce! So pra eu ja passar seu caso pro consultor certo, me diz seu nome e de qual cidade voce e?"
+  - Lead: "Que ano e?" → Agente: "Esse e 2024, praticamente zero km. Me conta, qual seu nome?"
+- NUNCA responda uma pergunta do lead sem tambem avancar na qualificacao quando ainda faltarem dados
+
 INSISTENCIA EM NOME E CIDADE (OBRIGATORIA):
 - Nome e cidade sao OBRIGATORIOS — sem eles o vendedor nao consegue fazer um atendimento personalizado
 - Se o lead desviar da pergunta, responder outra coisa, ou nao enviar nome/cidade em ate 5 minutos apos sua pergunta, pergunte DE NOVO
@@ -124,6 +137,11 @@ export async function detectMissingIdentity(
   conversationId: string,
 ): Promise<{ minutesSinceLastAgent: number; missing: string[] } | null> {
   if (!lead) return null;
+
+  // Only push for identity on not-yet-qualified leads.
+  const stageName = lead.stage?.name?.toLowerCase() ?? 'novo';
+  const qualificationStages = ['novo', 'em qualificacao', 'em qualificação'];
+  if (!qualificationStages.includes(stageName)) return null;
 
   const missing: string[] = [];
   if (!lead.name?.trim()) missing.push('o nome');
