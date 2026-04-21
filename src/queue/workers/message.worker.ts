@@ -27,19 +27,44 @@ async function postTurnHook(leadId: string | undefined): Promise<void> {
     where: { id: leadId },
     include: { stage: true },
   });
-  if (!lead) return;
+  if (!lead || !lead.pipelineId) return;
 
   const stageName = lead.stage?.name?.toLowerCase() ?? '';
+  const isDisqualified = stageName.includes('desqualificado');
+  const isQualified = stageName.includes('qualificado') && !isDisqualified;
   const inPreQualStage =
     stageName === 'novo' ||
     stageName === 'new' ||
     stageName.includes('em qualifica');
-  const isQualified = stageName.includes('qualificado') && !stageName.includes('des');
-  const isDisqualified = stageName.includes('desqualificado');
-  const hasAllData = !!(lead.name?.trim() && lead.city?.trim() && lead.vehicleUrl?.trim());
 
-  // Auto-qualify when all data is present but the LLM forgot to move the stage
-  if (inPreQualStage && hasAllData && lead.pipelineId) {
+  // Safeguard: agent is NEVER allowed to disqualify. If it managed to move the
+  // lead to Desqualificado, revert to Qualificado and notify the group.
+  if (isDisqualified) {
+    const qualifiedStage = await prisma.stage.findFirst({
+      where: {
+        pipelineId: lead.pipelineId,
+        name: { contains: 'qualificado', mode: 'insensitive', not: { contains: 'des' } },
+      },
+    });
+    if (qualifiedStage) {
+      await prisma.lead.update({ where: { id: lead.id }, data: { stageId: qualifiedStage.id } });
+      emitLeadMoved({ id: lead.id, stageId: qualifiedStage.id });
+      await prisma.leadNote.create({
+        data: {
+          leadId: lead.id,
+          content: 'Sistema reverteu Desqualificado → Qualificado (leads nunca são desqualificados).',
+          type: 'ai',
+        },
+      });
+      await notifySellersGroupForLead(lead.id, { reason: 'Revertido de Desqualificado' }).catch(() => {});
+    }
+    return;
+  }
+
+  // Auto-qualify when minimum criteria is met: name + vehicle. City is OPTIONAL.
+  const hasMinimum = !!(lead.name?.trim() && lead.vehicleUrl?.trim());
+
+  if (inPreQualStage && hasMinimum) {
     const qualifiedStage = await prisma.stage.findFirst({
       where: {
         pipelineId: lead.pipelineId,
@@ -52,19 +77,18 @@ async function postTurnHook(leadId: string | undefined): Promise<void> {
       await prisma.leadNote.create({
         data: {
           leadId: lead.id,
-          content: 'Auto-qualificado pelo sistema: nome, cidade e veículo presentes.',
+          content: 'Auto-qualificado pelo sistema: nome e veículo presentes.',
           type: 'ai',
         },
       });
-      await notifySellersGroupForLead(lead.id, { reason: 'Auto-qualificado (todos os dados coletados)' }).catch(() => {});
+      await notifySellersGroupForLead(lead.id, { reason: 'Auto-qualificado (nome + veículo)' }).catch(() => {});
       return;
     }
   }
 
-  // Notify on first entry into a terminal stage
-  if ((isQualified || isDisqualified) && !lead.sellerNotifiedAt) {
-    const reason = isQualified ? 'Lead qualificado' : 'Lead desqualificado pelo agente';
-    await notifySellersGroupForLead(lead.id, { reason }).catch(() => {});
+  // Notify on first entry into Qualificado stage (if agent moved it there)
+  if (isQualified && !lead.sellerNotifiedAt) {
+    await notifySellersGroupForLead(lead.id, { reason: 'Lead qualificado' }).catch(() => {});
   }
 }
 

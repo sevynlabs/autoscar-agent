@@ -235,14 +235,20 @@ export async function executeToolCall(
     }
 
     case 'notify_sellers_group': {
-      const { summary } = NotifyArgs.parse(args);
-      const sellersJid = ctx.sellersGroupJid || process.env.SELLERS_GROUP_JID;
-      if (!sellersJid) {
-        console.warn('[agent-tools] SELLERS_GROUP_JID not configured — skipping notification');
-        return { skipped: true, reason: 'SELLERS_GROUP_JID not configured' };
+      // Ignore whatever summary the agent provided — route through the
+      // centralized helper so the group ALWAYS receives the full structured
+      // summary (name, phone, vehicle + link, conversation link).
+      NotifyArgs.parse(args); // still validate the shape
+      if (!ctx.lead) {
+        console.warn('[agent-tools] notify_sellers_group called without lead context');
+        return { skipped: true, reason: 'no lead in context' };
       }
-      await evolutionClient.sendText(ctx.instance, sellersJid, summary);
-      return { notified: true };
+      const { notifySellersGroupForLead } = await import('../crm/seller-notification.service.js');
+      const result = await notifySellersGroupForLead(ctx.lead.id, {
+        reason: 'Notificação disparada pelo agente',
+        force: true,
+      });
+      return result;
     }
 
     default:
