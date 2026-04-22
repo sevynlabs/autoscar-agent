@@ -37,6 +37,11 @@ export function startFollowupWorker(): Worker {
           console.log(JSON.stringify({ level: 'info', msg: 'Lead under human control, skipping follow-up', phone: phoneNumber }));
           return;
         }
+        // Sellers already have this lead — don't follow up anymore.
+        if (lead?.sellerNotifiedAt) {
+          console.log(JSON.stringify({ level: 'info', msg: 'Lead already handed to sellers, skipping follow-up', phone: phoneNumber }));
+          return;
+        }
       }
 
       if (followupNumber <= MAX_WHATSAPP_FOLLOWUPS) {

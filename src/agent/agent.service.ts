@@ -39,10 +39,28 @@ export async function runAgentTurn(ctx: AgentContext): Promise<string> {
   ];
 
   if (codeMatch) {
+    // Persist the URL on the lead immediately — don't depend on the LLM
+    // calling scrape_vehicle. This guarantees the sellers-group notification
+    // and any downstream flow has the right vehicle link.
+    if (ctx.lead) {
+      try {
+        const { updateLead } = await import('../crm/lead.service.js');
+        await updateLead(ctx.lead.id, { vehicleUrl: codeMatch.url });
+        ctx.lead.vehicleUrl = codeMatch.url;
+      } catch { /* non-critical */ }
+    }
+
     messages.push({
       role: 'system',
-      content: `CODIGO DETECTADO: o lead enviou o codigo "${codeMatch.code}", que corresponde ao veiculo: ${codeMatch.url}
-INSTRUCAO: use scrape_vehicle com essa URL agora e foque o atendimento nesse veiculo. Nao pergunte ao lead qual veiculo ele quer — ja esta decidido pelo codigo.`,
+      content: `CODIGO DETECTADO: o lead enviou o codigo "${codeMatch.code}". Esse codigo corresponde ao veiculo na URL abaixo:
+URL_DO_VEICULO: ${codeMatch.url}
+
+INSTRUCOES OBRIGATORIAS:
+- Use scrape_vehicle com a URL acima AGORA para buscar os dados reais do veiculo
+- NA SUA RESPOSTA AO LEAD, NUNCA mencione o codigo numerico ("${codeMatch.code}"). O codigo e um identificador interno — nao faz sentido pro lead
+- SEMPRE use a URL do veiculo (${codeMatch.url}) nas mensagens pro lead, NUNCA o codigo
+- Ja esta decidido qual e o veiculo — nao pergunte ao lead qual carro ele quer
+- Se scrape_vehicle falhar, ainda assim apresente o link ${codeMatch.url} ao lead`,
     });
   }
 

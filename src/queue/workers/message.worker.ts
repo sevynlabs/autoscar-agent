@@ -53,7 +53,7 @@ async function postTurnHook(leadId: string | undefined): Promise<void> {
         data: {
           leadId: lead.id,
           content: 'Sistema reverteu Desqualificado → Qualificado (leads nunca são desqualificados).',
-          type: 'ai',
+          type: 'system',
         },
       });
       await notifySellersGroupForLead(lead.id, { reason: 'Revertido de Desqualificado' }).catch(() => {});
@@ -78,7 +78,7 @@ async function postTurnHook(leadId: string | undefined): Promise<void> {
         data: {
           leadId: lead.id,
           content: 'Auto-qualificado pelo sistema: nome e veículo presentes.',
-          type: 'ai',
+          type: 'system',
         },
       });
       await notifySellersGroupForLead(lead.id, { reason: 'Auto-qualificado (nome + veículo)' }).catch(() => {});

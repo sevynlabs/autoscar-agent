@@ -1,6 +1,7 @@
 import prisma from '../db/prisma.js';
 import { evolutionClient } from '../whatsapp/evolution.client.js';
 import { getActiveAgent } from '../agent/agent.prompts.js';
+import { getFollowupQueue } from '../queue/queues.js';
 
 function publicCrmUrl(): string {
   return (
@@ -27,7 +28,13 @@ export async function buildLeadSummary(leadId: string, reason?: string): Promise
     include: {
       stage: true,
       conversation: true,
-      notes: { orderBy: { createdAt: 'desc' }, take: 3 },
+      // Only include "ai" notes — these are conversation/interest summaries.
+      // Internal automation notes use type "system" and stay out of the group.
+      notes: {
+        where: { type: 'ai' },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+      },
     },
   });
   if (!lead) throw new Error(`Lead ${leadId} not found`);
@@ -44,9 +51,9 @@ export async function buildLeadSummary(leadId: string, reason?: string): Promise
 
   if (lead.notes.length > 0) {
     lines.push('');
-    lines.push('📝 Últimas notas:');
+    lines.push('📝 Interesse do lead:');
     for (const note of lead.notes) {
-      const snippet = note.content.length > 120 ? note.content.slice(0, 117) + '...' : note.content;
+      const snippet = note.content.length > 160 ? note.content.slice(0, 157) + '...' : note.content;
       lines.push(`• ${snippet}`);
     }
   }
@@ -106,9 +113,15 @@ export async function notifySellersGroupForLead(
     data: { sellerNotifiedAt: new Date() },
   });
 
+  // Disable any pending follow-up for this lead — the sellers have it now.
+  try {
+    const followupQueue = getFollowupQueue();
+    await followupQueue.remove(`followup-${lead.phone}`).catch(() => {});
+  } catch { /* queue unavailable */ }
+
   console.log(JSON.stringify({
     level: 'info',
-    msg: '[seller-notify] sent',
+    msg: '[seller-notify] sent + follow-up disabled',
     leadId,
     reason: opts.reason,
   }));

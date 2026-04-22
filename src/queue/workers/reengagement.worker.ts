@@ -139,12 +139,12 @@ export async function forceQualify(lead: LeadWithRelations): Promise<void> {
     }
   }
 
-  // 3. Add note for the audit trail
+  // 3. Internal audit trail — system note (hidden from sellers group summary)
   await prisma.leadNote.create({
     data: {
       leadId: lead.id,
-      content: 'Auto-qualificado pelo sistema após 10min sem qualificação completa',
-      type: 'ai',
+      content: 'Auto-qualificado pelo sistema',
+      type: 'system',
     },
   });
 
@@ -274,7 +274,7 @@ ${missing.length > 0
     data: {
       leadId: lead.id,
       content: `[Re-engajamento ${attemptNumber}/${MAX_ATTEMPTS}] ${messageToSend?.substring(0, 100) ?? 'Enviado'}`,
-      type: 'ai',
+      type: 'system',
     },
   });
 }
@@ -304,7 +304,7 @@ async function moveToFollowupStage(lead: LeadWithRelations) {
     data: {
       leadId: lead.id,
       content: `Lead movido para ${followupStage.name} apos ${lead.reengagementAttempts} tentativas de re-engajamento sem resposta.`,
-      type: 'ai',
+      type: 'system',
     },
   });
 

@@ -47,6 +47,7 @@ async function scanFollowupLeads() {
     where: {
       stageId: { in: stageIds },
       humanOverride: false,
+      sellerNotifiedAt: null, // already handed to sellers → skip
     },
     include: {
       stage: true,
@@ -85,7 +86,7 @@ async function scanFollowupLeads() {
           data: {
             leadId: lead.id,
             content: `Lead movido para ${exhaustedStage.name} após ${lead.followupAttempts} tentativas de follow-up sem resposta.`,
-            type: 'ai',
+            type: 'system',
           },
         });
 
@@ -189,7 +190,7 @@ INSTRUÇÃO: Envie UMA mensagem curta e amigável de follow-up para este lead.
     data: {
       leadId: lead.id,
       content: `[Follow-up ${attemptNumber}/${config.maxAttempts}] ${messageToSend?.substring(0, 100) ?? 'Enviado'}`,
-      type: 'ai',
+      type: 'system',
     },
   });
 }
