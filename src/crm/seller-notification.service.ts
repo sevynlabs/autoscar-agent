@@ -3,6 +3,43 @@ import { evolutionClient } from '../whatsapp/evolution.client.js';
 import { getActiveAgent } from '../agent/agent.prompts.js';
 import { getFollowupQueue } from '../queue/queues.js';
 
+const SHORT_LINK_BASE = 'https://autoscar.com.br/carros/';
+
+/**
+ * Build the short-form vehicle URL for the sellers group. Uses the trigger
+ * code registered on the agent when possible, and falls back to the numeric
+ * ID at the end of the autoscar URL.
+ */
+function buildShortVehicleUrl(
+  vehicleUrl: string | null | undefined,
+  triggerUrls: string[] | undefined,
+  triggerCodes: string[] | undefined,
+): string | null {
+  const url = vehicleUrl?.trim();
+  if (!url) return null;
+
+  // 1. Match against configured trigger URLs to use the exact registered code
+  if (triggerUrls && triggerCodes) {
+    for (let i = 0; i < triggerUrls.length; i++) {
+      const trigger = triggerUrls[i]?.trim();
+      const code = triggerCodes[i]?.trim();
+      if (trigger && code && trigger === url) {
+        return `${SHORT_LINK_BASE}${code}`;
+      }
+    }
+  }
+
+  // 2. Fall back to the last numeric path segment (autoscar puts the vehicle
+  // ID at the tail of the URL, after the brand/model/version).
+  const segments = url.split(/[/?#]/).filter(Boolean);
+  for (let i = segments.length - 1; i >= 0; i--) {
+    if (/^\d{3,}$/.test(segments[i])) return `${SHORT_LINK_BASE}${segments[i]}`;
+  }
+
+  // 3. Last resort: original URL
+  return url;
+}
+
 function publicCrmUrl(): string {
   return (
     process.env.PUBLIC_URL ||
@@ -39,6 +76,13 @@ export async function buildLeadSummary(leadId: string, reason?: string): Promise
   });
   if (!lead) throw new Error(`Lead ${leadId} not found`);
 
+  const agent = await getActiveAgent().catch(() => null);
+  const shortUrl = buildShortVehicleUrl(
+    lead.vehicleUrl,
+    agent?.triggerVehicleUrls,
+    agent?.triggerVehicleCodes,
+  );
+
   const lines: string[] = [statusLabel(lead.stage?.name)];
   if (reason) lines.push(`Motivo: ${reason}`);
   lines.push('');
@@ -46,7 +90,7 @@ export async function buildLeadSummary(leadId: string, reason?: string): Promise
   lines.push(`📞 Telefone: ${lead.phone}`);
   lines.push(`📍 Cidade: ${lead.city?.trim() || 'não informada'}`);
   if (lead.email?.trim()) lines.push(`✉️ Email: ${lead.email}`);
-  lines.push(`🚗 Veículo: ${lead.vehicleUrl?.trim() || 'não informado'}`);
+  lines.push(`🚗 Veículo: ${shortUrl || 'não informado'}`);
   lines.push(`📌 Estágio: ${lead.stage?.name ?? 'sem estágio'}`);
 
   if (lead.notes.length > 0) {
