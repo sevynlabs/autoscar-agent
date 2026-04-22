@@ -10,13 +10,10 @@ function publicCrmUrl(): string {
   ).replace(/\/+$/, '');
 }
 
-function statusLabel(stageName: string | undefined): string {
-  if (!stageName) return '🟡 AGUARDANDO';
-  const lower = stageName.toLowerCase();
-  if (lower.includes('qualificado') && !lower.includes('des')) return '🟢 LEAD QUALIFICADO';
-  if (lower.includes('desqualificado')) return '🔴 LEAD DESQUALIFICADO';
-  if (lower.includes('follow')) return '🟡 EM FOLLOW-UP';
-  return `🟡 ${stageName.toUpperCase()}`;
+function statusLabel(_stageName: string | undefined): string {
+  // Every notification sent to the sellers group is ALWAYS announced as a
+  // qualified lead — business rule: leads are never disqualified.
+  return '🟢 LEAD QUALIFICADO';
 }
 
 /**

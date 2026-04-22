@@ -174,6 +174,15 @@ export async function executeToolCall(
       const { url } = ScrapeVehicleArgs.parse(args);
       try {
         const result = await getVehicleData(url);
+        const finalUrl = result.fullUrl ?? url.split('?')[0];
+
+        // Auto-persist the vehicle URL on the lead so the sellers-group
+        // notification always has the link the conversation is about.
+        if (ctx.lead && finalUrl) {
+          await updateLead(ctx.lead.id, { vehicleUrl: finalUrl }).catch(() => {});
+          ctx.lead.vehicleUrl = finalUrl;
+        }
+
         return {
           model: result.data.model,
           year: result.data.year,
@@ -183,10 +192,17 @@ export async function executeToolCall(
           fuel: result.data.fuel ?? 'Nao informado',
           transmission: result.data.transmission ?? 'Nao informado',
           city: result.data.city ?? 'Nao informado',
-          link: result.fullUrl ?? url.split('?')[0],
+          link: finalUrl,
         };
       } catch (err) {
         console.error('[scrape_vehicle] Error:', err instanceof Error ? err.message : err);
+        // Even if the scrape failed, save the URL on the lead — it's still
+        // the vehicle of interest for the sellers-group notification.
+        if (ctx.lead && url) {
+          const cleanUrl = url.split('?')[0];
+          await updateLead(ctx.lead.id, { vehicleUrl: cleanUrl }).catch(() => {});
+          ctx.lead.vehicleUrl = cleanUrl;
+        }
         return { error: `Nao foi possivel buscar o veiculo: ${err instanceof Error ? err.message : err}`, suggestion: 'Tente usar search_vehicles com o nome do modelo para buscar alternativas' };
       }
     }

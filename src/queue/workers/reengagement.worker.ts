@@ -16,14 +16,21 @@ const SILENCE_MINUTES = 5;
 const MAX_ATTEMPTS = 2;
 const MIN_HOURS_BETWEEN = 1;
 const EXHAUSTED_STAGE_NAME = 'Follow-up';
-const FORCE_QUALIFY_MINUTES = 10; // total conversation age — bail out and hand to sellers
+const FORCE_QUALIFY_MINUTES = 5; // total conversation age — bail out and hand to sellers
 const NOVO_STAGE_NAMES = ['novo', 'new'];
 
 let worker: Worker | null = null;
 
 async function scanForSilentLeads() {
+  // Include both "Novo" and "Em Qualificacao" — the agent moves leads to the
+  // latter on first reply, and we still need to force-qualify them at 5 min.
   const stages = await prisma.stage.findMany({
-    where: { name: { mode: 'insensitive', in: ['Novo', 'New'] } },
+    where: {
+      OR: [
+        { name: { in: ['Novo', 'New'], mode: 'insensitive' } },
+        { name: { contains: 'em qualifica', mode: 'insensitive' } },
+      ],
+    },
   });
   if (stages.length === 0) return;
   const stageIds = stages.map((s) => s.id);
@@ -161,7 +168,12 @@ export async function forceQualify(lead: LeadWithRelations): Promise<void> {
  */
 export async function forceQualifyAllNovo(): Promise<{ processed: number }> {
   const stages = await prisma.stage.findMany({
-    where: { name: { mode: 'insensitive', in: ['Novo', 'New'] } },
+    where: {
+      OR: [
+        { name: { in: ['Novo', 'New'], mode: 'insensitive' } },
+        { name: { contains: 'em qualifica', mode: 'insensitive' } },
+      ],
+    },
   });
   const stageIds = stages.map((s) => s.id);
   if (stageIds.length === 0) return { processed: 0 };

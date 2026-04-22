@@ -142,6 +142,22 @@ export function startMessageWorker(): Worker {
 
         // 3. Check if agent responds on this channel + instance
         const activeAgent = await getActiveAgent();
+
+        // 3.1 Auto-assign the agent's trigger vehicle URL to the lead when
+        // there's exactly one configured and the lead doesn't have one yet.
+        // Guarantees the sellers-group notification always carries the link.
+        if (
+          activeAgent?.triggerVehicleUrls?.length === 1 &&
+          conversation.lead &&
+          !conversation.lead.vehicleUrl?.trim()
+        ) {
+          const triggerUrl = activeAgent.triggerVehicleUrls[0];
+          await prisma.lead.update({
+            where: { id: conversation.lead.id },
+            data: { vehicleUrl: triggerUrl },
+          }).catch(() => { /* non-critical */ });
+          conversation.lead.vehicleUrl = triggerUrl;
+        }
         if (!isChannelEnabled(activeAgent, channelName)) {
           console.log(JSON.stringify({ level: 'info', msg: 'Agent disabled for this channel', channel: channelName, phone: phoneNumber }));
           return;
