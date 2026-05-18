@@ -65,7 +65,9 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
 
     const allowed = ['name', 'description', 'model', 'systemPrompt', 'welcomeMessage',
       'qualificationFields', 'channels', 'instances', 'portalUrl',
-      'triggerVehicleUrls', 'triggerVehicleCodes', 'sellersGroupJid', 'temperature', 'active'];
+      'triggerVehicleUrls', 'triggerVehicleCodes', 'sellersGroupJid', 'temperature', 'active',
+      'webchatEnabled', 'webchatTitle', 'webchatSubtitle', 'webchatBrandColor',
+      'webchatAvatarUrl', 'webchatWelcome'];
 
     const data: Record<string, unknown> = {};
     for (const key of allowed) {

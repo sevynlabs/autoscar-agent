@@ -4,5 +4,5 @@ export interface MessageJobData {
   message: string;
   messageId?: string;
   pushName?: string; // WhatsApp contact display name from the incoming webhook
-  channel?: 'whatsapp' | 'instagram' | 'sms'; // defaults to whatsapp
+  channel?: 'whatsapp' | 'instagram' | 'sms' | 'webchat'; // defaults to whatsapp
 }

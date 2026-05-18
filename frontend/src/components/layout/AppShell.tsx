@@ -12,11 +12,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Fully public, standalone pages (no auth, no sidebar/app chrome).
+  const isPublicPage = pathname === '/login' || pathname?.startsWith('/atendimento');
+
   useEffect(() => {
-    if (!isLoading && !user && pathname !== '/login') {
+    if (!isLoading && !user && !isPublicPage) {
       router.replace('/login');
     }
-  }, [user, isLoading, pathname, router]);
+  }, [user, isLoading, isPublicPage, router]);
 
   // Close mobile drawer on route change (only when pathname actually changes)
   const [lastPath, setLastPath] = useState(pathname);
@@ -25,12 +28,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (mobileOpen) setMobileOpen(false);
   }
 
-  if (isLoading) {
-    return <div className="flex h-screen items-center justify-center">Carregando...</div>;
+  if (isPublicPage) {
+    return <>{children}</>;
   }
 
-  if (pathname === '/login') {
-    return <>{children}</>;
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center">Carregando...</div>;
   }
 
   if (!user) return null;

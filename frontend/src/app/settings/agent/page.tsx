@@ -32,6 +32,12 @@ interface Agent {
   triggerVehicleUrls: string[];
   triggerVehicleCodes: string[];
   sellersGroupJid: string | null;
+  webchatEnabled: boolean;
+  webchatTitle: string | null;
+  webchatSubtitle: string | null;
+  webchatBrandColor: string | null;
+  webchatAvatarUrl: string | null;
+  webchatWelcome: string | null;
   active: boolean;
   temperature: number;
   createdAt: string;
@@ -118,6 +124,14 @@ export default function AgentSettingsPage() {
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copyLink = (link: string) => {
+    navigator.clipboard?.writeText(link).then(() => {
+      setCopied(link);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  };
 
   const [form, setForm] = useState({
     name: '',
@@ -133,6 +147,12 @@ export default function AgentSettingsPage() {
     triggerVehicleCodes: [] as string[],
     sellersGroupJid: '',
     temperature: 0.7,
+    webchatEnabled: true,
+    webchatTitle: '',
+    webchatSubtitle: '',
+    webchatBrandColor: '#075E54',
+    webchatAvatarUrl: '',
+    webchatWelcome: '',
   });
 
   const { data: agents } = useQuery<Agent[]>({
@@ -157,6 +177,8 @@ export default function AgentSettingsPage() {
       channels: ['whatsapp', 'instagram', 'sms'], instances: [],
       portalUrl: 'https://www.autoscar.com.br',
       triggerVehicleUrls: [], triggerVehicleCodes: [], sellersGroupJid: '', temperature: 0.7,
+      webchatEnabled: true, webchatTitle: '', webchatSubtitle: '',
+      webchatBrandColor: '#075E54', webchatAvatarUrl: '', webchatWelcome: '',
     });
     setEditing(null);
     setCreating(true);
@@ -178,6 +200,12 @@ export default function AgentSettingsPage() {
       triggerVehicleCodes: agent.triggerVehicleCodes ?? [],
       sellersGroupJid: agent.sellersGroupJid ?? '',
       temperature: agent.temperature,
+      webchatEnabled: agent.webchatEnabled ?? true,
+      webchatTitle: agent.webchatTitle ?? '',
+      webchatSubtitle: agent.webchatSubtitle ?? '',
+      webchatBrandColor: agent.webchatBrandColor ?? '#075E54',
+      webchatAvatarUrl: agent.webchatAvatarUrl ?? '',
+      webchatWelcome: agent.webchatWelcome ?? '',
     });
     setEditing(agent);
     setCreating(true);
@@ -497,6 +525,85 @@ export default function AgentSettingsPage() {
               <div className="space-y-1.5">
                 <Label className="text-xs text-neutral-500 dark:text-neutral-400">Grupo WhatsApp Vendedores (JID)</Label>
                 <Input value={form.sellersGroupJid} onChange={e => setForm(f => ({ ...f, sellersGroupJid: e.target.value }))} placeholder="120363xxx@g.us" className={inputClass} />
+              </div>
+            </div>
+
+            {/* Atendimento Web (Typebot-style /atendimento page) */}
+            <div className="rounded-xl border border-neutral-200 dark:border-white/[0.06] bg-neutral-50/60 dark:bg-white/[0.02] p-4 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Atendimento Web (chat estilo WhatsApp)</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, webchatEnabled: !f.webchatEnabled }))}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors cursor-pointer ${form.webchatEnabled ? 'bg-emerald-500' : 'bg-neutral-300 dark:bg-white/10'}`}
+                  aria-label="Ativar atendimento web"
+                >
+                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${form.webchatEnabled ? 'left-[22px]' : 'left-0.5'}`} />
+                </button>
+              </div>
+              <p className="text-[11px] text-neutral-400 -mt-2">
+                Página pública onde o lead conversa com o agente pelo navegador — mesma qualificação e envio pro grupo de vendedores do WhatsApp.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-neutral-500 dark:text-neutral-400">Título (nome no topo do chat)</Label>
+                  <Input value={form.webchatTitle} onChange={e => setForm(f => ({ ...f, webchatTitle: e.target.value }))} placeholder="Autoscar" className={inputClass} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-neutral-500 dark:text-neutral-400">Subtítulo (status)</Label>
+                  <Input value={form.webchatSubtitle} onChange={e => setForm(f => ({ ...f, webchatSubtitle: e.target.value }))} placeholder="online" className={inputClass} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-neutral-500 dark:text-neutral-400">Cor da marca</Label>
+                  <div className="flex gap-2 items-center">
+                    <input type="color" value={form.webchatBrandColor || '#075E54'} onChange={e => setForm(f => ({ ...f, webchatBrandColor: e.target.value }))} className="h-9 w-12 rounded border border-neutral-200 dark:border-white/10 cursor-pointer bg-transparent" />
+                    <Input value={form.webchatBrandColor} onChange={e => setForm(f => ({ ...f, webchatBrandColor: e.target.value }))} placeholder="#075E54" className={inputClass + ' flex-1'} />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-neutral-500 dark:text-neutral-400">URL do avatar (opcional)</Label>
+                  <Input value={form.webchatAvatarUrl} onChange={e => setForm(f => ({ ...f, webchatAvatarUrl: e.target.value }))} placeholder="https://.../logo.png" className={inputClass} />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-neutral-500 dark:text-neutral-400">Mensagem de boas-vindas (opcional — usada se o agente não responder)</Label>
+                <Textarea value={form.webchatWelcome} onChange={e => setForm(f => ({ ...f, webchatWelcome: e.target.value }))} placeholder="Olá! Seja bem-vindo à Autoscar 👋 Sobre qual veículo posso te ajudar?" className="bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 text-sm min-h-[60px]" />
+              </div>
+
+              {/* Shareable links */}
+              <div className="space-y-2">
+                <Label className="text-xs text-neutral-500 dark:text-neutral-400">Links para divulgar no anúncio</Label>
+                {(() => {
+                  const base = typeof window !== 'undefined' ? window.location.origin : '';
+                  const codeLinks = form.triggerVehicleCodes
+                    .map((c, i) => ({ code: c?.trim(), url: form.triggerVehicleUrls[i] }))
+                    .filter(x => x.code);
+                  const links = [
+                    { label: 'Link geral', value: `${base}/atendimento` },
+                    ...codeLinks.map(x => ({ label: `Código ${x.code}`, value: `${base}/atendimento?codigo=${encodeURIComponent(x.code!)}` })),
+                  ];
+                  return (
+                    <div className="space-y-2">
+                      {links.map(l => (
+                        <div key={l.value} className="flex items-center gap-2">
+                          <span className="text-[11px] text-neutral-400 w-20 shrink-0">{l.label}</span>
+                          <code className="flex-1 truncate rounded bg-white dark:bg-white/5 border border-neutral-200 dark:border-white/10 px-2 py-1.5 text-[11px] text-neutral-600 dark:text-neutral-300">{l.value}</code>
+                          <Button type="button" size="sm" variant="outline" onClick={() => copyLink(l.value)} className="h-8 text-[11px] cursor-pointer shrink-0">
+                            {copied === l.value ? 'Copiado!' : 'Copiar'}
+                          </Button>
+                        </div>
+                      ))}
+                      <p className="text-[11px] text-neutral-400">
+                        Use <code>?codigo=123</code> para abrir já focado num veículo, ou <code>?carro=URL</code> com o link completo do anúncio.
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

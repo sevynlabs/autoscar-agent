@@ -8,89 +8,10 @@ import { getFollowupQueue } from '../queues.js';
 import { emitNewMessage, emitConversationUpdated, emitLeadMoved } from '../../realtime/emitter.js';
 import { fireWebhooks } from '../../webhooks/webhook.service.js';
 import { notifySellersGroupForLead } from '../../crm/seller-notification.service.js';
+import { runPostTurn } from '../../conversation/post-turn.js';
 import type { MessageJobData } from '../jobs/message.job.js';
 
 let worker: Worker | null = null;
-
-/**
- * Deterministic post-turn enforcement:
- *  - If the lead is fully filled (name + city + vehicle) and still in Novo/Em
- *    Qualificacao, auto-move to Qualificado so the LLM can't forget.
- *  - If the lead is in a terminal stage (Qualificado / Desqualificado) and has
- *    not been notified yet, fire the sellers-group notification with the full
- *    summary including vehicle link + conversation link.
- */
-async function postTurnHook(leadId: string | undefined): Promise<void> {
-  if (!leadId) return;
-
-  const lead = await prisma.lead.findUnique({
-    where: { id: leadId },
-    include: { stage: true },
-  });
-  if (!lead || !lead.pipelineId) return;
-
-  const stageName = lead.stage?.name?.toLowerCase() ?? '';
-  const isDisqualified = stageName.includes('desqualificado');
-  const isQualified = stageName.includes('qualificado') && !isDisqualified;
-  const inPreQualStage =
-    stageName === 'novo' ||
-    stageName === 'new' ||
-    stageName.includes('em qualifica');
-
-  // Safeguard: agent is NEVER allowed to disqualify. If it managed to move the
-  // lead to Desqualificado, revert to Qualificado and notify the group.
-  if (isDisqualified) {
-    const qualifiedStage = await prisma.stage.findFirst({
-      where: {
-        pipelineId: lead.pipelineId,
-        name: { contains: 'qualificado', mode: 'insensitive', not: { contains: 'des' } },
-      },
-    });
-    if (qualifiedStage) {
-      await prisma.lead.update({ where: { id: lead.id }, data: { stageId: qualifiedStage.id } });
-      emitLeadMoved({ id: lead.id, stageId: qualifiedStage.id });
-      await prisma.leadNote.create({
-        data: {
-          leadId: lead.id,
-          content: 'Sistema reverteu Desqualificado → Qualificado (leads nunca são desqualificados).',
-          type: 'system',
-        },
-      });
-      await notifySellersGroupForLead(lead.id, { reason: 'Revertido de Desqualificado' }).catch(() => {});
-    }
-    return;
-  }
-
-  // Auto-qualify when minimum criteria is met: name + vehicle. City is OPTIONAL.
-  const hasMinimum = !!(lead.name?.trim() && lead.vehicleUrl?.trim());
-
-  if (inPreQualStage && hasMinimum) {
-    const qualifiedStage = await prisma.stage.findFirst({
-      where: {
-        pipelineId: lead.pipelineId,
-        name: { contains: 'qualificado', mode: 'insensitive', not: { contains: 'des' } },
-      },
-    });
-    if (qualifiedStage && qualifiedStage.id !== lead.stageId) {
-      await prisma.lead.update({ where: { id: lead.id }, data: { stageId: qualifiedStage.id } });
-      emitLeadMoved({ id: lead.id, stageId: qualifiedStage.id });
-      await prisma.leadNote.create({
-        data: {
-          leadId: lead.id,
-          content: 'Auto-qualificado pelo sistema: nome e veículo presentes.',
-          type: 'system',
-        },
-      });
-      await notifySellersGroupForLead(lead.id, { reason: 'Auto-qualificado (nome + veículo)' }).catch(() => {});
-      return;
-    }
-  }
-
-  // Notify on first entry into Qualificado stage (if agent moved it there)
-  if (isQualified && !lead.sellerNotifiedAt) {
-    await notifySellersGroupForLead(lead.id, { reason: 'Lead qualificado' }).catch(() => {});
-  }
-}
 
 export function startMessageWorker(): Worker {
   const redisUrl = process.env.REDIS_URL;
@@ -202,7 +123,7 @@ export function startMessageWorker(): Worker {
         }
 
         // 6.5. Deterministic post-turn hook — never trust the LLM to qualify or notify
-        await postTurnHook(conversation.lead?.id).catch((err) => {
+        await runPostTurn(conversation.lead?.id).catch((err) => {
           console.log(JSON.stringify({
             level: 'error',
             msg: 'post-turn hook failed',

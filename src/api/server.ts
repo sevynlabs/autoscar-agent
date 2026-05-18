@@ -22,6 +22,7 @@ import followupWorkflowRoutes from './routes/followup-workflow.js';
 import followupConfigRoutes from './routes/followup-config.js';
 import reengagementRoutes from './routes/reengagement.js';
 import adminRoutes from './routes/admin.js';
+import webchatRoutes from './routes/webchat.js';
 
 export async function buildServer() {
   const fastify = Fastify({
@@ -67,6 +68,9 @@ export async function buildServer() {
   // Webhook routes (public — Evolution API + Instagram)
   await fastify.register(webhookRoutes);
   await fastify.register(instagramWebhookRoutes);
+
+  // Public web chat (Typebot-style /atendimento page)
+  await fastify.register(webchatRoutes);
 
   // Scraper test routes
   await fastify.register(scraperRoutes);

@@ -151,6 +151,12 @@ model Agent {
   triggerVehicleUrls String[]  @default([])
   triggerVehicleCodes String[] @default([])
   sellersGroupJid   String?
+  webchatEnabled    Boolean  @default(true)
+  webchatTitle      String?
+  webchatSubtitle   String?
+  webchatBrandColor String?
+  webchatAvatarUrl  String?
+  webchatWelcome    String?  @db.Text
   active            Boolean  @default(true)
   temperature       Float    @default(0.7)
   tenantId          String?
