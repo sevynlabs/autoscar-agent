@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Download, Share, Plus, X } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -26,6 +27,7 @@ function isStandalone() {
 }
 
 export function InstallPrompt() {
+  const pathname = usePathname();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
   const [isIOS] = useState(() => (typeof window !== 'undefined' ? isIOSDevice() : false));
@@ -70,6 +72,8 @@ export function InstallPrompt() {
     setDeferred(null);
   };
 
+  // Public lead-facing chat must never show the CRM install prompt.
+  if (pathname?.startsWith('/atendimento')) return null;
   if (!show) return null;
 
   return (

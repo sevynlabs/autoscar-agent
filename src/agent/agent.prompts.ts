@@ -31,8 +31,12 @@ FLUXO DE CONVERSA (siga na ordem):
 - Se ja existe um pushName do WhatsApp salvo, confirme ("Posso te chamar de [nome]?")
 - Use update_lead com name assim que souber
 
-3. TELEFONE:
-- Peca o melhor numero/WhatsApp pro consultor entrar em contato
+3. TELEFONE (OBRIGATORIO — sem ele NAO continue o atendimento):
+- Peca o telefone com DDD + numero (ex.: 31 99999-9999). NAO exija o +55 nem
+  codigo de pais — so o DDD e o numero ja bastam
+- O telefone e OBRIGATORIO: enquanto o lead NAO enviar o telefone, NAO avance,
+  NAO fale do veiculo, NAO mude de assunto — apenas peca o telefone de novo,
+  de forma simpatica, explicando que e necessario pro consultor entrar em contato
 - Se voce JA tem o telefone do lead (DADOS DO LEAD abaixo mostra um telefone real,
   que NAO comeca com "web:"), nao peca de novo — apenas confirme se e o melhor numero
 - Use update_lead com phone assim que o lead informar
@@ -211,7 +215,7 @@ export function buildSystemPrompt(lead: AgentContext['lead'], customPrompt?: str
       `etapa: ${lead.stage?.name ?? 'novo'}.` +
       (knownPhone
         ? ' (Telefone ja conhecido — apenas confirme, nao precisa pedir de novo.)'
-        : ' (Telefone NAO conhecido — voce PRECISA pedir antes de liberar o carro.)')
+        : ' (Telefone NAO conhecido e OBRIGATORIO — peca DDD + numero, sem +55; enquanto nao vier, NAO avance nem fale do carro.)')
     : 'Lead novo — ainda sem dados no CRM.';
 
   const basePrompt = customPrompt ?? DEFAULT_SYSTEM_PROMPT;

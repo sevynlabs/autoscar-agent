@@ -1,13 +1,28 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import prisma from '../../db/prisma.js';
-import { loadOrCreateConversation } from '../../conversation/conversation.service.js';
+import { loadOrCreateConversation, appendMessages } from '../../conversation/conversation.service.js';
 import { runAgentTurn } from '../../agent/agent.service.js';
 import { runPostTurn } from '../../conversation/post-turn.js';
 import { emitNewMessage, emitConversationUpdated, emitLeadCreated } from '../../realtime/emitter.js';
 import { getVehicleData } from '../../scraper/scraper.service.js';
 
 const WEBCHAT_CHANNEL = 'webchat';
+
+/**
+ * Pull a phone number out of free text. Accepts DDD + number with or without
+ * the +55 country code (10–13 digits once stripped). Returns the digits or
+ * null. Examples matched: "31 99999-9999", "(031) 9 9999 9999",
+ * "+55 31 99999-9999", "meu numero e 3199999999".
+ */
+function extractPhoneDigits(text: string): string | null {
+  const candidates = text.match(/\+?\d[\d\s().-]{8,}\d/g) ?? [];
+  for (const c of candidates) {
+    const digits = c.replace(/\D/g, '');
+    if (digits.length >= 10 && digits.length <= 13) return digits;
+  }
+  return null;
+}
 
 interface WebchatAgentConfig {
   id: string;
@@ -243,8 +258,8 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
     // have one yet, persist it. Guarantees the CRM is filled and the
     // qualify/notify gate (which requires a usable phone) can fire.
     if (conversation.lead && !conversation.lead.contactPhone?.trim()) {
-      const digits = message.replace(/\D/g, '');
-      if (digits.length >= 10 && digits.length <= 13) {
+      const digits = extractPhoneDigits(message);
+      if (digits) {
         try {
           const { updateLead } = await import('../../crm/lead.service.js');
           await updateLead(conversation.lead.id, { contactPhone: digits });
@@ -253,6 +268,26 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
           fastify.log.error({ err }, 'webchat phone capture failed');
         }
       }
+    }
+
+    // Phone is MANDATORY. Once we know the lead's name, the conversation must
+    // not advance (no vehicle info) until a phone is given. Enforce this
+    // deterministically — never trust the LLM to hold the line.
+    if (
+      conversation.lead &&
+      conversation.lead.name?.trim() &&
+      !conversation.lead.contactPhone?.trim()
+    ) {
+      const ask =
+        `Pra eu continuar e já te passar tudo sobre o veículo, ` +
+        `só preciso do seu telefone com DDD 🙂 Pode me mandar? (ex.: 31 99999-9999)`;
+      await appendMessages(conversation.id, [
+        { role: 'lead', content: message },
+        { role: 'agent', content: ask },
+      ]);
+      emitNewMessage({ conversationId: conversation.id });
+      emitConversationUpdated({ id: conversation.id });
+      return reply.send({ reply: ask });
     }
 
     // Respect human override just like the WhatsApp worker does.
