@@ -10,7 +10,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+# OOM mitigations for constrained build hosts (Coolify):
+#  - bump the Node heap so `next build` doesn't get OOM-killed (exit 137)
+#  - build with webpack instead of Turbopack (lower peak memory)
+ENV NODE_OPTIONS=--max-old-space-size=2048
+RUN npx next build --webpack
 
 # Stage 3: Production runner
 FROM node:22-alpine AS runner
