@@ -64,6 +64,7 @@ export async function loadOrCreateConversation(
       id: lead.id,
       name: lead.name,
       phone: lead.phone,
+      contactPhone: lead.contactPhone,
       city: lead.city,
       creditStatus: lead.creditStatus,
       paymentMethod: lead.paymentMethod,

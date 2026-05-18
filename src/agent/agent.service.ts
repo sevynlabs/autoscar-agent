@@ -56,11 +56,11 @@ export async function runAgentTurn(ctx: AgentContext): Promise<string> {
 URL_DO_VEICULO: ${codeMatch.url}
 
 INSTRUCOES OBRIGATORIAS:
-- Use scrape_vehicle com a URL acima AGORA para buscar os dados reais do veiculo
-- NA SUA RESPOSTA AO LEAD, NUNCA mencione o codigo numerico ("${codeMatch.code}"). O codigo e um identificador interno — nao faz sentido pro lead
-- SEMPRE use a URL do veiculo (${codeMatch.url}) nas mensagens pro lead, NUNCA o codigo
+- Use scrape_vehicle com a URL acima AGORA para conhecer os dados reais do veiculo INTERNAMENTE
+- NAO revele preco, detalhes nem o link do veiculo enquanto nao tiver coletado NOME e TELEFONE do lead (siga a ORDEM OBRIGATORIA)
 - Ja esta decidido qual e o veiculo — nao pergunte ao lead qual carro ele quer
-- Se scrape_vehicle falhar, ainda assim apresente o link ${codeMatch.url} ao lead`,
+- Quando for liberar (apos nome + telefone): NA SUA RESPOSTA AO LEAD, NUNCA mencione o codigo numerico ("${codeMatch.code}") — use sempre o LINK ${codeMatch.url}
+- Se scrape_vehicle falhar, ainda assim use o link ${codeMatch.url} (somente depois de coletar nome + telefone)`,
     });
   }
 

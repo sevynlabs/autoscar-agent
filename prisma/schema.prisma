@@ -67,6 +67,7 @@ model Stage {
 model Lead {
   id            String        @id @default(cuid())
   phone         String
+  contactPhone  String?
   name          String?
   email         String?
   city          String?

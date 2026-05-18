@@ -11,6 +11,7 @@ export interface AgentContext {
     id: string;
     name: string | null;
     phone: string;
+    contactPhone: string | null;
     city: string | null;
     creditStatus: string | null;
     paymentMethod: string | null;

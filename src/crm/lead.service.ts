@@ -43,6 +43,7 @@ export async function updateLead(
     name?: string;
     email?: string;
     city?: string;
+    contactPhone?: string;
     creditStatus?: string;
     paymentMethod?: string;
     vehicleUrl?: string;

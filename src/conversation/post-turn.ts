@@ -55,8 +55,19 @@ export async function runPostTurn(leadId: string | undefined): Promise<void> {
     return;
   }
 
-  // Auto-qualify when minimum criteria is met: name + vehicle. City is OPTIONAL.
-  const hasMinimum = !!(lead.name?.trim() && lead.vehicleUrl?.trim());
+  // Auto-qualify when minimum criteria is met: name + vehicle + a usable
+  // contact phone (so the seller can actually call). On WhatsApp `phone` is
+  // the real number; on the web chat it's a web:<uuid> session key, so we
+  // require the collected `contactPhone` there. City stays OPTIONAL.
+  const hasUsablePhone = !!(
+    lead.contactPhone?.trim() ||
+    (lead.phone && !lead.phone.startsWith('web:'))
+  );
+  const hasMinimum = !!(
+    lead.name?.trim() &&
+    lead.vehicleUrl?.trim() &&
+    hasUsablePhone
+  );
 
   if (inPreQualStage && hasMinimum) {
     const qualifiedStage = await prisma.stage.findFirst({

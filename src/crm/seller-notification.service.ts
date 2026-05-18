@@ -87,7 +87,10 @@ export async function buildLeadSummary(leadId: string, reason?: string): Promise
   if (reason) lines.push(`Motivo: ${reason}`);
   lines.push('');
   lines.push(`👤 Nome: ${lead.name?.trim() || 'não informado'}`);
-  lines.push(`📞 Telefone: ${lead.phone}`);
+  const displayPhone =
+    lead.contactPhone?.trim() ||
+    (lead.phone.startsWith('web:') ? 'não informado' : lead.phone);
+  lines.push(`📞 Telefone: ${displayPhone}`);
   lines.push(`📍 Cidade: ${lead.city?.trim() || 'não informada'}`);
   if (lead.email?.trim()) lines.push(`✉️ Email: ${lead.email}`);
   lines.push(`🚗 Veículo: ${shortUrl || 'não informado'}`);
