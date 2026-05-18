@@ -33,7 +33,7 @@ export async function runAgentTurn(ctx: AgentContext): Promise<string> {
   );
 
   const messages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: buildSystemPrompt(ctx.lead, activeAgent?.systemPrompt, activeAgent?.triggerVehicleUrls, activeAgent?.triggerVehicleCodes) },
+    { role: 'system', content: buildSystemPrompt(ctx.lead, activeAgent?.systemPrompt, activeAgent?.triggerVehicleUrls, activeAgent?.triggerVehicleCodes, activeAgent?.portalUrl) },
     ...ctx.history,
     { role: 'user', content: ctx.userMessage },
   ];
