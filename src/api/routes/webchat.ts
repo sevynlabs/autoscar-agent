@@ -260,7 +260,11 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
 
   // ---- Send a message and get the agent reply (synchronous, Typebot-style) ----
   fastify.post('/webchat/message', async (request, reply) => {
-    const body = (request.body ?? {}) as { sessionId?: string; message?: string };
+    const body = (request.body ?? {}) as {
+      sessionId?: string;
+      message?: string;
+      field?: 'name' | 'phone' | 'text';
+    };
     const sessionId = body.sessionId?.trim();
     const message = body.message?.trim();
 
@@ -281,21 +285,34 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
 
     const conversation = await loadOrCreateConversation(sessionId, WEBCHAT_CHANNEL);
 
-    // Deterministic phone capture: the web session key is web:<uuid>, so the
-    // real number must be collected. Don't rely solely on the LLM calling
-    // update_lead — if the lead typed a phone-looking number and we don't
-    // have one yet, persist it. Guarantees the CRM is filled and the
-    // qualify/notify gate (which requires a usable phone) can fire.
-    if (conversation.lead && !conversation.lead.contactPhone?.trim()) {
-      const digits = extractPhoneDigits(message);
-      if (digits) {
-        try {
-          const { updateLead } = await import('../../crm/lead.service.js');
-          await updateLead(conversation.lead.id, { contactPhone: digits });
-          conversation.lead.contactPhone = digits;
-        } catch (err) {
-          fastify.log.error({ err }, 'webchat phone capture failed');
+    // Deterministic capture — never rely on the LLM to persist name/phone.
+    // The tailored input tells us which field the lead is answering; we save
+    // it straight to the CRM so the moment name+phone exist the post-turn
+    // hook qualifies and notifies the seller immediately.
+    if (conversation.lead) {
+      try {
+        const { updateLead } = await import('../../crm/lead.service.js');
+
+        // NAME: the "name" field was filled (and we still don't have one).
+        if (body.field === 'name' && !conversation.lead.name?.trim()) {
+          const name = message.replace(/\s+/g, ' ').trim().slice(0, 80);
+          // Guard against the lead typing a phone into the name field.
+          if (name && !extractPhoneDigits(name)) {
+            await updateLead(conversation.lead.id, { name });
+            conversation.lead.name = name;
+          }
         }
+
+        // PHONE: tailored "phone" field OR any phone-looking text.
+        if (!conversation.lead.contactPhone?.trim()) {
+          const digits = extractPhoneDigits(message);
+          if (digits) {
+            await updateLead(conversation.lead.id, { contactPhone: digits });
+            conversation.lead.contactPhone = digits;
+          }
+        }
+      } catch (err) {
+        fastify.log.error({ err }, 'webchat deterministic capture failed');
       }
     }
 

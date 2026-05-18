@@ -156,7 +156,7 @@ function AtendimentoChat() {
       const res = await fetch('/api/webchat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: sessionRef.current, message: text }),
+        body: JSON.stringify({ sessionId: sessionRef.current, message: text, field: expect }),
       });
       const data = await res.json();
       setAgentTyping(false);
@@ -180,7 +180,7 @@ function AtendimentoChat() {
     } finally {
       setSending(false);
     }
-  }, [input, sending]);
+  }, [input, sending, expect]);
 
   const brand = config?.brandColor ?? '#075E54';
   const title = config?.title ?? 'Autoscar';
