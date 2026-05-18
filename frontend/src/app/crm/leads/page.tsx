@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LeadDetail } from '@/components/lead/LeadDetail';
+import { leadPhone } from '@/lib/utils';
 import { Download, Search, List, Filter, X } from 'lucide-react';
 
 interface Stage { id: string; name: string; order: number }
@@ -17,6 +18,7 @@ interface LeadRow {
   id: string;
   name: string | null;
   phone: string;
+  contactPhone: string | null;
   email: string | null;
   city: string | null;
   vehicleUrl: string | null;
@@ -254,7 +256,7 @@ export default function LeadsListPage() {
                   <p className="text-sm font-semibold text-neutral-900 dark:text-white truncate">
                     {lead.name ?? <span className="text-neutral-400 font-normal">Sem nome</span>}
                   </p>
-                  <p className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400 truncate">{lead.phone}</p>
+                  <p className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400 truncate">{leadPhone(lead) || '—'}</p>
                 </div>
                 {lead.humanOverride ? (
                   <Badge className="bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-0 text-[10px] shrink-0">Humano</Badge>
@@ -311,7 +313,7 @@ export default function LeadsListPage() {
                     {lead.name ?? <span className="text-neutral-400">—</span>}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-neutral-600 dark:text-neutral-400">
-                    {lead.phone}
+                    {leadPhone(lead) || '—'}
                   </TableCell>
                   <TableCell className="text-neutral-600 dark:text-neutral-400">
                     {lead.email ?? <span className="text-neutral-400">—</span>}

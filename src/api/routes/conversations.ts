@@ -31,6 +31,7 @@ export default async function conversationsRoutes(fastify: FastifyInstance) {
           select: {
             name: true,
             phone: true,
+            contactPhone: true,
             stage: true,
             humanOverride: true,
           },
@@ -57,7 +58,7 @@ export default async function conversationsRoutes(fastify: FastifyInstance) {
         where: { id },
         include: {
           lead: {
-            select: { id: true, name: true, phone: true, humanOverride: true },
+            select: { id: true, name: true, phone: true, contactPhone: true, humanOverride: true },
           },
         },
       }),

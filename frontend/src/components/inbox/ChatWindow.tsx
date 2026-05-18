@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { leadPhone } from '@/lib/utils';
 import {
   Send, Bot, User, Shield, MessageSquare, StickyNote, Clock,
   CheckCircle, XCircle, RotateCcw, Paperclip, Smile, Hash,
@@ -25,7 +26,7 @@ interface ConversationDetail {
   id: string;
   leadId: string;
   channel: string;
-  lead: { name: string | null; phone: string; humanOverride: boolean };
+  lead: { name: string | null; phone: string; contactPhone?: string | null; humanOverride: boolean };
   messages: Message[];
 }
 
@@ -186,12 +187,12 @@ export function ChatWindow({ conversationId, onBack, onOpenInfo }: ChatWindowPro
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 min-w-0">
-              <p className="text-sm font-medium text-neutral-900 dark:text-white truncate">{lead?.name || lead?.phone}</p>
+              <p className="text-sm font-medium text-neutral-900 dark:text-white truncate">{lead?.name || (lead ? leadPhone(lead) : '') || 'Lead'}</p>
               <Badge className="bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20 text-[10px] h-4 hidden sm:inline-flex">
                 {conversation?.channel === 'instagram' ? 'Instagram' : conversation?.channel === 'sms' ? 'SMS' : 'WhatsApp'}
               </Badge>
             </div>
-            {lead?.name && <p className="text-[11px] text-neutral-400 truncate">{lead.phone}</p>}
+            {lead?.name && lead && leadPhone(lead) && <p className="text-[11px] text-neutral-400 truncate">{leadPhone(lead)}</p>}
           </div>
         </div>
 

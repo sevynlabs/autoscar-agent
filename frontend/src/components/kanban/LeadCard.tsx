@@ -4,10 +4,12 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Badge } from '@/components/ui/badge';
 import { User, Clock } from 'lucide-react';
+import { leadPhone } from '@/lib/utils';
 
 export interface Lead {
   id: string;
   phone: string;
+  contactPhone?: string | null;
   name: string | null;
   city: string | null;
   creditStatus: string | null;
@@ -64,8 +66,8 @@ export function LeadCard({ lead, isDragging, onClick }: LeadCardProps) {
             <User className="h-4 w-4 text-red-600 dark:text-red-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate">{lead.name || lead.phone}</p>
-            {lead.name && <p className="text-[11px] text-neutral-400 dark:text-neutral-500">{lead.phone}</p>}
+            <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate">{lead.name || leadPhone(lead) || 'Lead'}</p>
+            {lead.name && leadPhone(lead) && <p className="text-[11px] text-neutral-400 dark:text-neutral-500">{leadPhone(lead)}</p>}
           </div>
         </div>
         <div className="flex items-center gap-1 text-[11px] text-neutral-400 dark:text-neutral-500 flex-shrink-0">

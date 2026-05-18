@@ -237,6 +237,24 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
 
     const conversation = await loadOrCreateConversation(sessionId, WEBCHAT_CHANNEL);
 
+    // Deterministic phone capture: the web session key is web:<uuid>, so the
+    // real number must be collected. Don't rely solely on the LLM calling
+    // update_lead — if the lead typed a phone-looking number and we don't
+    // have one yet, persist it. Guarantees the CRM is filled and the
+    // qualify/notify gate (which requires a usable phone) can fire.
+    if (conversation.lead && !conversation.lead.contactPhone?.trim()) {
+      const digits = message.replace(/\D/g, '');
+      if (digits.length >= 10 && digits.length <= 13) {
+        try {
+          const { updateLead } = await import('../../crm/lead.service.js');
+          await updateLead(conversation.lead.id, { contactPhone: digits });
+          conversation.lead.contactPhone = digits;
+        } catch (err) {
+          fastify.log.error({ err }, 'webchat phone capture failed');
+        }
+      }
+    }
+
     // Respect human override just like the WhatsApp worker does.
     if (conversation.lead) {
       const fresh = await prisma.lead.findUnique({

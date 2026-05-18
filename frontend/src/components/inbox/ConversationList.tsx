@@ -6,12 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, User, Bot, Shield, MessageSquare, Phone, Instagram, Smartphone } from 'lucide-react';
+import { leadPhone } from '@/lib/utils';
 
 interface Conversation {
   id: string;
   leadId: string;
   channel: string;
-  lead: { name: string | null; phone: string; stage: { name: string } | null; humanOverride: boolean };
+  lead: { name: string | null; phone: string; contactPhone?: string | null; stage: { name: string } | null; humanOverride: boolean };
   messages: { content: string; role: string; createdAt: string }[];
   updatedAt: string;
 }
@@ -47,7 +48,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
 
   const filtered = conversations.filter(c => {
     const term = search.toLowerCase();
-    const matchesSearch = !term || (c.lead.name?.toLowerCase().includes(term) ?? false) || c.lead.phone.includes(term);
+    const matchesSearch = !term || (c.lead.name?.toLowerCase().includes(term) ?? false) || leadPhone(c.lead).includes(term);
     const matchesChannel = !channelFilter || c.channel === channelFilter;
     const matchesStatus = !statusFilter || (statusFilter === 'human' && c.lead.humanOverride) || (statusFilter === 'ai' && !c.lead.humanOverride);
     return matchesSearch && matchesChannel && matchesStatus;
@@ -123,7 +124,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-sm font-medium text-neutral-900 dark:text-white truncate">{conv.lead.name || conv.lead.phone}</span>
+                    <span className="text-sm font-medium text-neutral-900 dark:text-white truncate">{conv.lead.name || leadPhone(conv.lead) || 'Lead'}</span>
                     <span className="text-[10px] text-neutral-400 flex-shrink-0 ml-2">{timeAgo(conv.updatedAt)}</span>
                   </div>
                   <div className="flex items-center gap-1 mb-1">

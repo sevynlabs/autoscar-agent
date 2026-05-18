@@ -14,6 +14,7 @@ import type { Lead } from '@/components/kanban/LeadCard';
 
 const leadSchema = z.object({
   name: z.string().optional(),
+  contactPhone: z.string().optional(),
   city: z.string().optional(),
   creditStatus: z.string().optional(),
   paymentMethod: z.string().optional(),
@@ -28,6 +29,7 @@ export function LeadEditForm({ lead }: { lead: Lead }) {
     resolver: zodResolver(leadSchema),
     defaultValues: {
       name: lead.name ?? '',
+      contactPhone: lead.contactPhone ?? '',
       city: lead.city ?? '',
       creditStatus: lead.creditStatus ?? '',
       paymentMethod: lead.paymentMethod ?? '',
@@ -48,6 +50,10 @@ export function LeadEditForm({ lead }: { lead: Lead }) {
       <div className="space-y-1.5">
         <Label className="text-xs text-neutral-500 dark:text-neutral-400">Nome</Label>
         <Input {...register('name')} className={inputClass} />
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-neutral-500 dark:text-neutral-400">Telefone / WhatsApp</Label>
+        <Input {...register('contactPhone')} className={inputClass} placeholder="5531999999999" />
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-neutral-500 dark:text-neutral-400">Cidade</Label>

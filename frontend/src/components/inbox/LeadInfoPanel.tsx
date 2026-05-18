@@ -10,10 +10,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { User, Phone, MapPin, CreditCard, Car, Calendar, Tag, FileText, Bot, Shield, ExternalLink, Save, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { leadPhone } from '@/lib/utils';
 
 interface LeadDetail {
   id: string;
   phone: string;
+  contactPhone?: string | null;
   name: string | null;
   city: string | null;
   creditStatus: string | null;
@@ -118,7 +120,7 @@ export function LeadInfoPanel({ leadId }: LeadInfoPanelProps) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-neutral-900 dark:text-white truncate">{lead.name || 'Sem nome'}</p>
-            <p className="text-xs text-neutral-400 font-mono">{lead.phone}</p>
+            <p className="text-xs text-neutral-400 font-mono">{leadPhone(lead) || 'Telefone não informado'}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5">

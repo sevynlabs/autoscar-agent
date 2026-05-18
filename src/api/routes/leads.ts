@@ -40,6 +40,7 @@ function buildLeadWhere(q: {
     where.OR = [
       { name: { contains: q.search, mode: 'insensitive' } },
       { phone: { contains: q.search } },
+      { contactPhone: { contains: q.search } },
       { email: { contains: q.search, mode: 'insensitive' } },
     ];
   }
@@ -58,6 +59,7 @@ function buildLeadWhere(q: {
 
 const patchLeadSchema = z.object({
   name: z.string().optional(),
+  contactPhone: z.string().optional(),
   city: z.string().optional(),
   creditStatus: z.string().optional(),
   paymentMethod: z.string().optional(),
@@ -148,7 +150,7 @@ export default async function leadsRoutes(fastify: FastifyInstance) {
     for (const lead of leads) {
       sheet.addRow({
         name: lead.name ?? '',
-        phone: lead.phone,
+        phone: lead.contactPhone?.trim() || (lead.phone.startsWith('web:') ? '' : lead.phone),
         email: lead.email ?? '',
         city: lead.city ?? '',
         pipeline: lead.pipeline?.name ?? '',

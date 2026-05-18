@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LeadEditForm } from './LeadEditForm';
 import type { Lead } from '@/components/kanban/LeadCard';
+import { leadPhone } from '@/lib/utils';
 import { User, Bot, Shield, MessageSquare, FileText, Settings2, Plus, Trash2 } from 'lucide-react';
 
 interface LeadDetailProps {
@@ -63,8 +64,8 @@ export function LeadDetail({ leadId, open, onClose }: LeadDetailProps) {
               <User className="h-5 w-5 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <SheetTitle className="text-neutral-900 dark:text-white text-base">{lead?.name || lead?.phone || 'Lead'}</SheetTitle>
-              {lead?.name && <p className="text-xs text-neutral-400 dark:text-neutral-500">{lead.phone}</p>}
+              <SheetTitle className="text-neutral-900 dark:text-white text-base">{lead?.name || (lead ? leadPhone(lead) : '') || 'Lead'}</SheetTitle>
+              {lead?.name && lead && leadPhone(lead) && <p className="text-xs text-neutral-400 dark:text-neutral-500">{leadPhone(lead)}</p>}
             </div>
             <div className="flex items-center gap-2 ml-auto">
               {lead?.humanOverride && (
