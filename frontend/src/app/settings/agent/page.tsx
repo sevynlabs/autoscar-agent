@@ -125,12 +125,30 @@ export default function AgentSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [adUrl, setAdUrl] = useState('');
 
   const copyLink = (link: string) => {
     navigator.clipboard?.writeText(link).then(() => {
       setCopied(link);
       setTimeout(() => setCopied(null), 2000);
     });
+  };
+
+  // Extract the autoscar ad ID the same way the backend does:
+  // /comprar/288509, the last numeric path segment, or a plain number.
+  const extractAdCode = (raw: string): string | null => {
+    const v = raw.trim();
+    if (!v) return null;
+    if (/^\d{3,}$/.test(v)) return v;
+    const comprar = v.match(/\/comprar\/(\d{3,})/);
+    if (comprar) return comprar[1];
+    const path = v.split('?')[0].split('#')[0];
+    const parts = path.split('/').filter(Boolean);
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const m = parts[i].match(/^(\d{3,})$/);
+      if (m) return m[1];
+    }
+    return null;
   };
 
   const [form, setForm] = useState({
@@ -578,6 +596,40 @@ export default function AgentSettingsPage() {
               {/* Shareable links */}
               <div className="space-y-2">
                 <Label className="text-xs text-neutral-500 dark:text-neutral-400">Links para divulgar no anúncio</Label>
+
+                {/* Gerador: cole a URL do anúncio → link pronto */}
+                {(() => {
+                  const base = typeof window !== 'undefined' ? window.location.origin : '';
+                  const code = extractAdCode(adUrl);
+                  const generated = code ? `${base}/atendimento?codigo=${code}` : '';
+                  return (
+                    <div className="rounded-lg border border-dashed border-neutral-300 dark:border-white/10 bg-white/60 dark:bg-white/[0.02] p-3 space-y-2">
+                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                        Cole a URL do anúncio do autoscar e gere o link pronto:
+                      </p>
+                      <Input
+                        value={adUrl}
+                        onChange={e => setAdUrl(e.target.value)}
+                        placeholder="https://www.autoscar.com.br/carros/.../288509"
+                        className={inputClass}
+                      />
+                      {adUrl.trim() && (
+                        code ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-neutral-400 w-20 shrink-0">Código {code}</span>
+                            <code className="flex-1 truncate rounded bg-white dark:bg-white/5 border border-neutral-200 dark:border-white/10 px-2 py-1.5 text-[11px] text-emerald-700 dark:text-emerald-400">{generated}</code>
+                            <Button type="button" size="sm" variant="outline" onClick={() => copyLink(generated)} className="h-8 text-[11px] cursor-pointer shrink-0">
+                              {copied === generated ? 'Copiado!' : 'Copiar'}
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-red-500">Não encontrei um código numérico nessa URL. Cole a URL completa do anúncio.</p>
+                        )
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {(() => {
                   const base = typeof window !== 'undefined' ? window.location.origin : '';
                   const codeLinks = form.triggerVehicleCodes
