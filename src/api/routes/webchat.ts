@@ -24,6 +24,33 @@ function extractPhoneDigits(text: string): string | null {
   return null;
 }
 
+type Expect = 'name' | 'phone' | 'text';
+
+/** What the chat should ask next — drives the tailored input on the page. */
+function nextExpect(
+  lead: { name: string | null; contactPhone: string | null; phone: string } | null,
+): Expect {
+  if (!lead) return 'text';
+  if (!lead.name?.trim()) return 'name';
+  const hasPhone = !!(
+    lead.contactPhone?.trim() ||
+    (lead.phone && !lead.phone.startsWith('web:'))
+  );
+  if (!hasPhone) return 'phone';
+  return 'text';
+}
+
+async function expectForLead(leadId: string | undefined): Promise<Expect> {
+  if (!leadId) return 'text';
+  const fresh = await prisma.lead
+    .findUnique({
+      where: { id: leadId },
+      select: { name: true, contactPhone: true, phone: true },
+    })
+    .catch(() => null);
+  return nextExpect(fresh);
+}
+
 interface WebchatAgentConfig {
   id: string;
   webchatEnabled: boolean;
@@ -197,6 +224,7 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
     return {
       sessionId,
       messages: opener.trim() ? [{ role: 'agent', content: opener }] : [],
+      expect: await expectForLead(conversation.lead?.id),
     };
   });
 
@@ -226,6 +254,7 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
         role: m.role === 'lead' ? 'lead' : 'agent',
         content: m.content,
       })),
+      expect: nextExpect(lead),
     };
   });
 
@@ -287,7 +316,7 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
       ]);
       emitNewMessage({ conversationId: conversation.id });
       emitConversationUpdated({ id: conversation.id });
-      return reply.send({ reply: ask });
+      return reply.send({ reply: ask, expect: 'phone' as Expect });
     }
 
     // Respect human override just like the WhatsApp worker does.
@@ -327,7 +356,7 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
       fastify.log.error({ err }, 'webchat post-turn failed');
     });
 
-    return { reply: agentReply };
+    return { reply: agentReply, expect: await expectForLead(conversation.lead?.id) };
   });
 };
 

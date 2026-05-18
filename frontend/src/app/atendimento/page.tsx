@@ -36,6 +36,7 @@ function AtendimentoChat() {
   const [agentTyping, setAgentTyping] = useState(false);
   const [booting, setBooting] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expect, setExpect] = useState<'name' | 'phone' | 'text'>('text');
 
   const sessionRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -89,6 +90,7 @@ function AtendimentoChat() {
                 ts: Date.now(),
               })),
             );
+            if (hist.expect) setExpect(hist.expect);
             setBooting(false);
             return;
           }
@@ -125,6 +127,7 @@ function AtendimentoChat() {
               ? [{ role: 'agent', content: cfg.welcome, ts: Date.now() }]
               : [],
         );
+        if (ses.expect) setExpect(ses.expect);
         setBooting(false);
       } catch {
         if (cancelled) return;
@@ -163,6 +166,7 @@ function AtendimentoChat() {
           { role: 'agent', content: String(data.reply), ts: Date.now() },
         ]);
       }
+      setExpect(data?.expect ?? 'text');
     } catch {
       setAgentTyping(false);
       setMessages((prev) => [
@@ -293,6 +297,22 @@ function AtendimentoChat() {
         </div>
       </div>
 
+      {/* Contextual field hint */}
+      {!booting && !error && (expect === 'name' || expect === 'phone') && (
+        <div className="bg-[#f0f0f0] px-3 pt-2">
+          <div
+            className="mx-auto flex max-w-2xl items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-[12px] font-medium text-neutral-600 shadow-sm"
+          >
+            <span>{expect === 'name' ? '✏️' : '📱'}</span>
+            <span>
+              {expect === 'name'
+                ? 'Digite seu nome e toque em enviar'
+                : 'Digite seu WhatsApp com DDD e toque em enviar'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Composer */}
       <div className="flex items-end gap-2 bg-[#f0f0f0] px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <div className="flex flex-1 items-center rounded-full bg-white px-4 py-2 shadow-sm">
@@ -306,7 +326,17 @@ function AtendimentoChat() {
               }
             }}
             rows={1}
-            placeholder={booting ? 'Conectando…' : 'Mensagem'}
+            inputMode={expect === 'phone' ? 'tel' : 'text'}
+            autoFocus={expect === 'name' || expect === 'phone'}
+            placeholder={
+              booting
+                ? 'Conectando…'
+                : expect === 'name'
+                  ? 'Seu nome…'
+                  : expect === 'phone'
+                    ? 'Ex.: 31 99999-9999'
+                    : 'Mensagem'
+            }
             disabled={booting || !!error}
             className="max-h-28 flex-1 resize-none bg-transparent text-[15px] text-neutral-800 outline-none placeholder:text-neutral-400 disabled:opacity-60"
           />
