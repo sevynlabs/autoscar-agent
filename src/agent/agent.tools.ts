@@ -243,6 +243,20 @@ export async function executeToolCall(
       if (!stage) {
         return { error: `Stage "${stage_name}" not found in pipeline` };
       }
+      // HARD RULE: never qualify without BOTH name and a usable phone.
+      const target = stage_name.toLowerCase();
+      if (target.includes('qualificado') && !target.includes('des')) {
+        const hasUsablePhone = !!(
+          ctx.lead.contactPhone?.trim() ||
+          (ctx.lead.phone && !ctx.lead.phone.startsWith('web:'))
+        );
+        if (!ctx.lead.name?.trim() || !hasUsablePhone) {
+          return {
+            error:
+              'Nao e permitido qualificar sem NOME e TELEFONE do lead. Continue pedindo o telefone (DDD + numero) antes de qualificar.',
+          };
+        }
+      }
       const lead = await moveToStage(ctx.lead.id, stage.id);
       return { id: lead.id, stage: lead.stage?.name };
     }

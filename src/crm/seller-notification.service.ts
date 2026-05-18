@@ -140,6 +140,24 @@ export async function notifySellersGroupForLead(
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) return { sent: false, reason: 'lead not found' };
 
+  // HARD GATE — single chokepoint for every path (agent tool, post-turn,
+  // reengagement, manual endpoint). NEVER notify the seller without BOTH a
+  // name AND a usable phone. `force` does NOT bypass this.
+  const hasUsablePhone = !!(
+    lead.contactPhone?.trim() ||
+    (lead.phone && !lead.phone.startsWith('web:'))
+  );
+  if (!lead.name?.trim() || !hasUsablePhone) {
+    console.log(JSON.stringify({
+      level: 'info',
+      msg: '[seller-notify] blocked — missing name or phone',
+      leadId,
+      hasName: Boolean(lead.name?.trim()),
+      hasPhone: hasUsablePhone,
+    }));
+    return { sent: false, reason: 'missing name or phone' };
+  }
+
   if (!opts.force && lead.sellerNotifiedAt) {
     return { sent: false, reason: 'already notified' };
   }
