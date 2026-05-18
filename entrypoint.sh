@@ -1,18 +1,18 @@
 #!/bin/sh
-set -e
+# Availability first: a migration problem must NEVER stop the app from
+# booting (a crash loop takes the whole CRM down → 504). So no `set -e`
+# here — we attempt to sync the schema but always start the app.
 
 echo "[entrypoint] Running database migrations..."
 if npx prisma migrate deploy; then
   echo "[entrypoint] Migrations applied."
 else
-  echo "[entrypoint] migrate deploy failed — reconciling schema with prisma db push (additive, no data loss)..."
-  # db push without --accept-data-loss only applies additive changes (e.g.
-  # new columns) and refuses destructive ones, so it can't drop data. With
-  # `set -e`, a hard failure here stops the boot loudly instead of starting
-  # the app against an out-of-sync database (which is what masked the
-  # missing webchat* columns before).
-  npx prisma db push --skip-generate
-  echo "[entrypoint] Schema reconciled via db push."
+  echo "[entrypoint] migrate deploy failed — attempting additive reconcile (prisma db push)..."
+  if npx prisma db push --skip-generate; then
+    echo "[entrypoint] Schema reconciled via db push."
+  else
+    echo "[entrypoint] WARNING: db push failed too — starting anyway; schema may be out of sync."
+  fi
 fi
 
 echo "[entrypoint] Starting app..."
