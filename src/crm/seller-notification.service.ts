@@ -55,6 +55,20 @@ function statusLabel(_stageName: string | undefined): string {
 }
 
 /**
+ * Normalize a configured destination into an Evolution-ready recipient:
+ *  - anything containing '@' (group ...@g.us or contact JID) → used as-is
+ *  - otherwise → stripped to digits and treated as a phone number; Evolution
+ *    accepts a bare international number (e.g. 5531999999999)
+ */
+function normalizeDestination(raw: string | null | undefined): string | null {
+  const v = raw?.trim();
+  if (!v) return null;
+  if (v.includes('@')) return v;
+  const digits = v.replace(/\D/g, '');
+  return digits.length >= 8 ? digits : null;
+}
+
+/**
  * Build a complete summary of a lead for the sellers group notification.
  * Includes all known fields, vehicle link, and a direct link to the CRM
  * conversation so the seller can jump straight in.
@@ -138,19 +152,39 @@ export async function notifySellersGroupForLead(
   if (!instance) return { sent: false, reason: 'no connected whatsapp instance' };
 
   const agent = await getActiveAgent().catch(() => null);
-  const sellersJid = agent?.sellersGroupJid || process.env.SELLERS_GROUP_JID;
-  if (!sellersJid) return { sent: false, reason: 'no sellers group configured' };
+
+  // Send to the group AND/OR the dedicated phone number — whatever is set.
+  const destinations = Array.from(
+    new Set(
+      [
+        normalizeDestination(agent?.sellersGroupJid || process.env.SELLERS_GROUP_JID),
+        normalizeDestination(agent?.sellersPhone),
+      ].filter((d): d is string => !!d),
+    ),
+  );
+  if (destinations.length === 0) {
+    return { sent: false, reason: 'no sellers destination configured' };
+  }
 
   const summary = await buildLeadSummary(leadId, opts.reason);
 
-  try {
-    await evolutionClient.sendText(instance.name, sellersJid, summary);
-  } catch (err) {
+  let anySent = false;
+  const errors: string[] = [];
+  for (const dest of destinations) {
+    try {
+      await evolutionClient.sendText(instance.name, dest, summary);
+      anySent = true;
+    } catch (err) {
+      errors.push(`${dest}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  if (!anySent) {
     console.log(JSON.stringify({
       level: 'error',
       msg: '[seller-notify] failed to send',
       leadId,
-      error: err instanceof Error ? err.message : String(err),
+      errors,
     }));
     return { sent: false, reason: 'send failed' };
   }

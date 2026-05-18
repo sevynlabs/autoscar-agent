@@ -32,6 +32,7 @@ interface Agent {
   triggerVehicleUrls: string[];
   triggerVehicleCodes: string[];
   sellersGroupJid: string | null;
+  sellersPhone: string | null;
   webchatEnabled: boolean;
   webchatTitle: string | null;
   webchatSubtitle: string | null;
@@ -164,6 +165,7 @@ export default function AgentSettingsPage() {
     triggerVehicleUrls: [] as string[],
     triggerVehicleCodes: [] as string[],
     sellersGroupJid: '',
+    sellersPhone: '',
     temperature: 0.7,
     webchatEnabled: true,
     webchatTitle: '',
@@ -194,7 +196,7 @@ export default function AgentSettingsPage() {
       welcomeMessage: '', qualificationFields: ['interest', 'creditStatus', 'city', 'paymentMethod'],
       channels: ['whatsapp', 'instagram', 'sms'], instances: [],
       portalUrl: 'https://www.autoscar.com.br',
-      triggerVehicleUrls: [], triggerVehicleCodes: [], sellersGroupJid: '', temperature: 0.7,
+      triggerVehicleUrls: [], triggerVehicleCodes: [], sellersGroupJid: '', sellersPhone: '', temperature: 0.7,
       webchatEnabled: true, webchatTitle: '', webchatSubtitle: '',
       webchatBrandColor: '#075E54', webchatAvatarUrl: '', webchatWelcome: '',
     });
@@ -217,6 +219,7 @@ export default function AgentSettingsPage() {
       triggerVehicleUrls: agent.triggerVehicleUrls ?? [],
       triggerVehicleCodes: agent.triggerVehicleCodes ?? [],
       sellersGroupJid: agent.sellersGroupJid ?? '',
+      sellersPhone: agent.sellersPhone ?? '',
       temperature: agent.temperature,
       webchatEnabled: agent.webchatEnabled ?? true,
       webchatTitle: agent.webchatTitle ?? '',
@@ -541,10 +544,17 @@ export default function AgentSettingsPage() {
                 <Input value={form.portalUrl} onChange={e => setForm(f => ({ ...f, portalUrl: e.target.value }))} className={inputClass} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-neutral-500 dark:text-neutral-400">Grupo WhatsApp Vendedores (JID)</Label>
+                <Label className="text-xs text-neutral-500 dark:text-neutral-400">Grupo WhatsApp Vendedores (JID) — opcional</Label>
                 <Input value={form.sellersGroupJid} onChange={e => setForm(f => ({ ...f, sellersGroupJid: e.target.value }))} placeholder="120363xxx@g.us" className={inputClass} />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-neutral-500 dark:text-neutral-400">Número WhatsApp Vendedor — opcional</Label>
+                <Input value={form.sellersPhone} onChange={e => setForm(f => ({ ...f, sellersPhone: e.target.value }))} placeholder="5531999999999" className={inputClass} />
+              </div>
             </div>
+            <p className="text-[11px] text-neutral-400 -mt-2">
+              Preencha o <strong>grupo</strong> e/ou o <strong>número</strong> — o lead qualificado é enviado para os dois, se ambos estiverem preenchidos. Use o número com DDI e DDD, só dígitos (ex.: <code>5531999999999</code>). Sem espaços, +, parênteses ou traços.
+            </p>
 
             {/* Atendimento Web (Typebot-style /atendimento page) */}
             <div className="rounded-xl border border-neutral-200 dark:border-white/[0.06] bg-neutral-50/60 dark:bg-white/[0.02] p-4 space-y-4">

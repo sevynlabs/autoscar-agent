@@ -30,6 +30,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
       triggerVehicleUrls?: string[];
       triggerVehicleCodes?: string[];
       sellersGroupJid?: string;
+      sellersPhone?: string;
       temperature?: number;
     };
 
@@ -48,6 +49,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
           triggerVehicleUrls: body.triggerVehicleUrls ?? [],
           triggerVehicleCodes: body.triggerVehicleCodes ?? [],
           sellersGroupJid: body.sellersGroupJid || null,
+          sellersPhone: body.sellersPhone || null,
           temperature: body.temperature ?? 0.7,
         },
       });
@@ -65,7 +67,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
 
     const allowed = ['name', 'description', 'model', 'systemPrompt', 'welcomeMessage',
       'qualificationFields', 'channels', 'instances', 'portalUrl',
-      'triggerVehicleUrls', 'triggerVehicleCodes', 'sellersGroupJid', 'temperature', 'active',
+      'triggerVehicleUrls', 'triggerVehicleCodes', 'sellersGroupJid', 'sellersPhone', 'temperature', 'active',
       'webchatEnabled', 'webchatTitle', 'webchatSubtitle', 'webchatBrandColor',
       'webchatAvatarUrl', 'webchatWelcome'];
 
