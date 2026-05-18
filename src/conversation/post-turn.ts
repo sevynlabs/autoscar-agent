@@ -31,8 +31,18 @@ export async function runPostTurn(leadId: string | undefined): Promise<void> {
     stageName === 'new' ||
     stageName.includes('em qualifica');
 
-  // Safeguard: agent is NEVER allowed to disqualify. If it managed to move the
-  // lead to Desqualificado, revert to Qualificado and notify the group.
+  // HARD RULE: only act when we have BOTH name AND a usable phone. Without
+  // them the lead is NOT qualified and NOT forwarded to the seller — nothing
+  // is written. (On WhatsApp `phone` is the real number; on the web chat it's
+  // a web:<uuid> session key, so the collected `contactPhone` is required.)
+  const hasUsablePhone = !!(
+    lead.contactPhone?.trim() ||
+    (lead.phone && !lead.phone.startsWith('web:'))
+  );
+  const canForward = !!(lead.name?.trim() && hasUsablePhone);
+  if (!canForward) return;
+
+  // Safeguard: agent is NEVER allowed to disqualify. Revert to Qualificado.
   if (isDisqualified) {
     const qualifiedStage = await prisma.stage.findFirst({
       where: {
@@ -43,33 +53,13 @@ export async function runPostTurn(leadId: string | undefined): Promise<void> {
     if (qualifiedStage) {
       await prisma.lead.update({ where: { id: lead.id }, data: { stageId: qualifiedStage.id } });
       emitLeadMoved({ id: lead.id, stageId: qualifiedStage.id });
-      await prisma.leadNote.create({
-        data: {
-          leadId: lead.id,
-          content: 'Sistema reverteu Desqualificado → Qualificado (leads nunca são desqualificados).',
-          type: 'system',
-        },
-      });
-      await notifySellersGroupForLead(lead.id, { reason: 'Revertido de Desqualificado' }).catch(() => {});
+      await notifySellersGroupForLead(lead.id).catch(() => {});
     }
     return;
   }
 
-  // Auto-qualify when minimum criteria is met: name + vehicle + a usable
-  // contact phone (so the seller can actually call). On WhatsApp `phone` is
-  // the real number; on the web chat it's a web:<uuid> session key, so we
-  // require the collected `contactPhone` there. City stays OPTIONAL.
-  const hasUsablePhone = !!(
-    lead.contactPhone?.trim() ||
-    (lead.phone && !lead.phone.startsWith('web:'))
-  );
-  const hasMinimum = !!(
-    lead.name?.trim() &&
-    lead.vehicleUrl?.trim() &&
-    hasUsablePhone
-  );
-
-  if (inPreQualStage && hasMinimum) {
+  // Name + phone present → move to Qualificado and forward to the seller.
+  if (inPreQualStage) {
     const qualifiedStage = await prisma.stage.findFirst({
       where: {
         pipelineId: lead.pipelineId,
@@ -79,20 +69,13 @@ export async function runPostTurn(leadId: string | undefined): Promise<void> {
     if (qualifiedStage && qualifiedStage.id !== lead.stageId) {
       await prisma.lead.update({ where: { id: lead.id }, data: { stageId: qualifiedStage.id } });
       emitLeadMoved({ id: lead.id, stageId: qualifiedStage.id });
-      await prisma.leadNote.create({
-        data: {
-          leadId: lead.id,
-          content: 'Auto-qualificado pelo sistema: nome e veículo presentes.',
-          type: 'system',
-        },
-      });
-      await notifySellersGroupForLead(lead.id, { reason: 'Auto-qualificado (nome + veículo)' }).catch(() => {});
+      await notifySellersGroupForLead(lead.id).catch(() => {});
       return;
     }
   }
 
   // Notify on first entry into Qualificado stage (if agent moved it there)
   if (isQualified && !lead.sellerNotifiedAt) {
-    await notifySellersGroupForLead(lead.id, { reason: 'Lead qualificado' }).catch(() => {});
+    await notifySellersGroupForLead(lead.id).catch(() => {});
   }
 }

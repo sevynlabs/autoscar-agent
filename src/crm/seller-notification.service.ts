@@ -98,7 +98,6 @@ export async function buildLeadSummary(leadId: string, reason?: string): Promise
   );
 
   const lines: string[] = [statusLabel(lead.stage?.name)];
-  if (reason) lines.push(`Motivo: ${reason}`);
   lines.push('');
   lines.push(`👤 Nome: ${lead.name?.trim() || 'não informado'}`);
   const displayPhone =

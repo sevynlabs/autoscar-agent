@@ -124,6 +124,24 @@ export async function forceQualify(lead: LeadWithRelations): Promise<void> {
     }
   }
 
+  // HARD RULE: auto-qualification by time is DISABLED. Only qualify + forward
+  // when we have BOTH name AND a usable phone. Otherwise do nothing — the lead
+  // is not moved, not noted, not sent to the seller.
+  const hasUsablePhone = !!(
+    lead.contactPhone?.trim() ||
+    (lead.phone && !lead.phone.startsWith('web:'))
+  );
+  if (!lead.name?.trim() || !hasUsablePhone) {
+    console.log(JSON.stringify({
+      level: 'info',
+      msg: '[reengagement] skip force-qualify — missing name or phone',
+      leadId: lead.id,
+      hasName: Boolean(lead.name?.trim()),
+      hasPhone: hasUsablePhone,
+    }));
+    return;
+  }
+
   // 2. Move to Qualificado stage
   let qualifiedStage: { id: string; name: string } | null = null;
   if (lead.pipelineId) {
