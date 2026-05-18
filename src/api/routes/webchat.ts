@@ -5,6 +5,7 @@ import { loadOrCreateConversation } from '../../conversation/conversation.servic
 import { runAgentTurn } from '../../agent/agent.service.js';
 import { runPostTurn } from '../../conversation/post-turn.js';
 import { emitNewMessage, emitConversationUpdated, emitLeadCreated } from '../../realtime/emitter.js';
+import { getVehicleData } from '../../scraper/scraper.service.js';
 
 const WEBCHAT_CHANNEL = 'webchat';
 
@@ -42,25 +43,45 @@ async function getWebchatAgent(): Promise<WebchatAgentConfig | null> {
   });
 }
 
+const SHORT_LINK_BASE = 'https://www.autoscar.com.br/carros/';
+
 /**
  * Resolve which vehicle the lead is asking about, from the ad link query:
  *  - ?carro=<full url>  → use it directly
- *  - ?codigo=<code>     → map via the active agent's triggerVehicleCodes
+ *  - ?codigo=<code>     → 1) a code registered on the agent wins (custom map);
+ *                          2) otherwise treat it as the autoscar ad ID and
+ *                             resolve the canonical vehicle URL via the API,
+ *                             so EVERY ad just needs ?codigo=<adId> with no
+ *                             pre-registration. Falls back to the short link
+ *                             autoscar.com.br/carros/<adId> (still scrapeable).
  *  - nothing            → fall back to the single trigger URL if there's one
  */
-function resolveVehicleUrl(
+async function resolveVehicleUrl(
   agent: WebchatAgentConfig | null,
   carro?: string,
   codigo?: string,
-): string | null {
+): Promise<string | null> {
   if (carro && /^https?:\/\//i.test(carro)) return carro.trim();
 
-  if (codigo && agent) {
-    const idx = agent.triggerVehicleCodes.findIndex(
-      (c) => c.trim() === codigo.trim(),
-    );
-    if (idx >= 0 && agent.triggerVehicleUrls[idx]) {
-      return agent.triggerVehicleUrls[idx].trim();
+  const code = codigo?.trim();
+  if (code) {
+    // 1. Custom mapping registered on the agent takes priority.
+    if (agent) {
+      const idx = agent.triggerVehicleCodes.findIndex((c) => c.trim() === code);
+      if (idx >= 0 && agent.triggerVehicleUrls[idx]) {
+        return agent.triggerVehicleUrls[idx].trim();
+      }
+    }
+
+    // 2. Any numeric autoscar ad ID — resolve the real vehicle URL.
+    if (/^\d{3,}$/.test(code)) {
+      try {
+        const result = await getVehicleData(code);
+        if (result.fullUrl) return result.fullUrl;
+      } catch {
+        /* fall through to the short link below */
+      }
+      return `${SHORT_LINK_BASE}${code}`;
     }
   }
 
@@ -77,7 +98,7 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
     const { carro, codigo } = request.query as { carro?: string; codigo?: string };
     const agent = await getWebchatAgent();
 
-    const vehicleUrl = resolveVehicleUrl(agent, carro, codigo);
+    const vehicleUrl = await resolveVehicleUrl(agent, carro, codigo);
 
     return {
       enabled: agent?.webchatEnabled ?? false,
@@ -102,7 +123,7 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(403).send({ error: 'Atendimento web indisponível no momento.' });
     }
 
-    const vehicleUrl = resolveVehicleUrl(agent, body.carro, body.codigo);
+    const vehicleUrl = await resolveVehicleUrl(agent, body.carro, body.codigo);
 
     const sessionId = `web:${randomUUID()}`;
     const conversation = await loadOrCreateConversation(sessionId, WEBCHAT_CHANNEL);
@@ -120,10 +141,10 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
     // Typebot-style opener: run one agent turn with a hidden seed message so
     // the agent greets and presents the vehicle exactly like a real first
     // WhatsApp contact. The seed is removed afterwards so it never renders.
-    const seed = body.codigo?.trim()
-      ? body.codigo.trim()
-      : vehicleUrl
-        ? `Olá! Tenho interesse neste veículo: ${vehicleUrl}`
+    const seed = vehicleUrl
+      ? `Olá! Tenho interesse neste veículo: ${vehicleUrl}`
+      : body.codigo?.trim()
+        ? body.codigo.trim()
         : 'Olá! Quero saber mais sobre os veículos de vocês.';
 
     let opener = '';
