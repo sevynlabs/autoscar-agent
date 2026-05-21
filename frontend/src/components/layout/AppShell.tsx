@@ -13,7 +13,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Fully public, standalone pages (no auth, no sidebar/app chrome).
-  const isPublicPage = pathname === '/login' || pathname?.startsWith('/atendimento');
+  const isPublicPage =
+    pathname === '/login' ||
+    pathname?.startsWith('/atendimento') ||
+    pathname?.startsWith('/passo1');
 
   useEffect(() => {
     if (!isLoading && !user && !isPublicPage) {

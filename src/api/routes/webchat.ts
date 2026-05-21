@@ -142,6 +142,23 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
 
     const vehicleUrl = await resolveVehicleUrl(agent, carro, codigo);
 
+    // WhatsApp number of the connected instance — used by the /passo1 bridge
+    // page to deep-link the lead straight into a real WhatsApp conversation.
+    const instance = await prisma.whatsAppInstance
+      .findFirst({
+        where: { status: 'connected', phoneNumber: { not: null } },
+        orderBy: { updatedAt: 'desc' },
+        select: { phoneNumber: true },
+      })
+      .catch(() => null);
+    // Prefer the connected instance; fall back to a fixed number so the
+    // /passo1 bridge never breaks if no instance is connected.
+    const fallbackNumber = (process.env.BRIDGE_WHATSAPP_NUMBER || '5534984281884').replace(
+      /\D/g,
+      '',
+    );
+    const whatsappNumber = instance?.phoneNumber?.replace(/\D/g, '') || fallbackNumber || null;
+
     return {
       enabled: agent?.webchatEnabled ?? false,
       title: agent?.webchatTitle?.trim() || agent?.name || 'Autoscar',
@@ -153,6 +170,7 @@ const webchatRoutes: FastifyPluginAsync = async (fastify) => {
         agent?.welcomeMessage?.trim() ||
         null,
       vehicleUrl,
+      whatsappNumber,
     };
   });
 

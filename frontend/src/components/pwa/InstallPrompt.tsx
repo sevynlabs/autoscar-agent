@@ -72,8 +72,8 @@ export function InstallPrompt() {
     setDeferred(null);
   };
 
-  // Public lead-facing chat must never show the CRM install prompt.
-  if (pathname?.startsWith('/atendimento')) return null;
+  // Public lead-facing pages must never show the CRM install prompt.
+  if (pathname?.startsWith('/atendimento') || pathname?.startsWith('/passo1')) return null;
   if (!show) return null;
 
   return (
