@@ -134,13 +134,41 @@ async function resolveVehicleUrl(
   return null;
 }
 
+/**
+ * Bounded vehicle resolution for the PUBLIC config endpoint. The bridge/branding
+ * page must answer fast and never hang on the external API: if resolution takes
+ * too long we fall back to the short link (numeric ad ID) or the raw carro URL,
+ * which are still usable downstream. Caps total wait regardless of upstream.
+ */
+async function resolveVehicleUrlBounded(
+  agent: WebchatAgentConfig | null,
+  carro?: string,
+  codigo?: string,
+): Promise<string | null> {
+  const code = codigo?.trim();
+  const fallback = carro?.trim()
+    ? carro.trim()
+    : code && /^\d{3,}$/.test(code)
+      ? `${SHORT_LINK_BASE}${code}`
+      : null;
+
+  const timeout = new Promise<string | null>((resolve) =>
+    setTimeout(() => resolve(fallback), 7000),
+  );
+  try {
+    return await Promise.race([resolveVehicleUrl(agent, carro, codigo), timeout]);
+  } catch {
+    return fallback;
+  }
+}
+
 const webchatRoutes: FastifyPluginAsync = async (fastify) => {
   // ---- Public branding/config for the /atendimento page ----
   fastify.get('/webchat/config', async (request) => {
     const { carro, codigo } = request.query as { carro?: string; codigo?: string };
     const agent = await getWebchatAgent();
 
-    const vehicleUrl = await resolveVehicleUrl(agent, carro, codigo);
+    const vehicleUrl = await resolveVehicleUrlBounded(agent, carro, codigo);
 
     // WhatsApp number of the connected instance — used by the /passo1 bridge
     // page to deep-link the lead straight into a real WhatsApp conversation.

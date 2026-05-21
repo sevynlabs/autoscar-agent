@@ -4,6 +4,12 @@ import { getCachedVehicle, cacheVehicle } from './scraper.cache.js';
 const API_BASE = 'https://dhqmwf73sb.execute-api.us-east-1.amazonaws.com/prd';
 const PHOTO_BASE = 'https://autoscar-storage-prd.s3.amazonaws.com/';
 
+// Hard ceiling for the external autoscar API. Node's fetch (undici) has no
+// default timeout, so without this a slow/unreachable API hangs the request
+// indefinitely — and since /webchat/config (public, ad traffic) blocks on
+// this, hung requests pile up on the backend and cascade into 504s.
+const API_TIMEOUT_MS = 6000;
+
 export interface VehicleResult {
   data: Vehicle;
   cached: boolean;
@@ -47,6 +53,7 @@ export async function getVehicleData(urlOrId: string): Promise<VehicleResult> {
   try {
     const res = await fetch(`${API_BASE}/advertisement/${adId}`, {
       headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -89,7 +96,9 @@ export async function getVehicleData(urlOrId: string): Promise<VehicleResult> {
 
     // Fallback: try search by ID
     try {
-      const searchRes = await fetch(`${API_BASE}/advertisement?search=${adId}&limit=1`);
+      const searchRes = await fetch(`${API_BASE}/advertisement?search=${adId}&limit=1`, {
+        signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      });
       if (searchRes.ok) {
         const json = await searchRes.json() as any;
         const items = json.data ?? json;
