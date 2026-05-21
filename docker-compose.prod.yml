@@ -44,6 +44,14 @@ services:
       - "3000:3000"
     environment:
       - BACKEND_URL=http://app:3001
+    # Auto-recovery: if /healthz stops responding for 3 checks in a row, Docker
+    # marks the container unhealthy and restart: always brings it back.
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/healthz',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
       - app
     networks:
