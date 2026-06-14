@@ -2,6 +2,7 @@ import prisma from '../db/prisma.js';
 import { evolutionClient } from '../whatsapp/evolution.client.js';
 import { getActiveAgent } from '../agent/agent.prompts.js';
 import { getFollowupQueue } from '../queue/queues.js';
+import { getVehicleData } from '../scraper/scraper.service.js';
 
 const SHORT_LINK_BASE = 'https://autoscar.com.br/carros/';
 
@@ -170,12 +171,45 @@ export async function notifySellersGroupForLead(
 
   const agent = await getActiveAgent().catch(() => null);
 
-  // Send to the group AND/OR the dedicated phone number — whatever is set.
+  // Priority 1: Try to get seller's WhatsApp from the vehicle listing
+  let vehicleSellerPhone: string | null = null;
+  let vehicleSellerName: string | null = null;
+  if (lead.vehicleUrl?.trim()) {
+    try {
+      const vehicleResult = await getVehicleData(lead.vehicleUrl);
+      const sellerWa = vehicleResult.data.sellerWhatsapp || vehicleResult.data.sellerPhone;
+      if (sellerWa) {
+        vehicleSellerPhone = normalizeDestination(sellerWa);
+        vehicleSellerName = vehicleResult.data.sellerName || null;
+        console.log(JSON.stringify({
+          level: 'info',
+          msg: '[seller-notify] found vehicle seller',
+          leadId,
+          sellerPhone: vehicleSellerPhone,
+          sellerName: vehicleSellerName,
+        }));
+      }
+    } catch (err) {
+      console.log(JSON.stringify({
+        level: 'warn',
+        msg: '[seller-notify] failed to get vehicle seller',
+        leadId,
+        vehicleUrl: lead.vehicleUrl,
+        error: err instanceof Error ? err.message : String(err),
+      }));
+    }
+  }
+
+  // Build destinations: vehicle seller first, then fallback to agent config
   const destinations = Array.from(
     new Set(
       [
-        normalizeDestination(agent?.sellersGroupJid || process.env.SELLERS_GROUP_JID),
-        normalizeDestination(agent?.sellersPhone),
+        vehicleSellerPhone,
+        // Fallback to configured destinations if no vehicle seller found
+        ...(!vehicleSellerPhone ? [
+          normalizeDestination(agent?.sellersGroupJid || process.env.SELLERS_GROUP_JID),
+          normalizeDestination(agent?.sellersPhone),
+        ] : []),
       ].filter((d): d is string => !!d),
     ),
   );
@@ -183,7 +217,12 @@ export async function notifySellersGroupForLead(
     return { sent: false, reason: 'no sellers destination configured' };
   }
 
-  const summary = await buildLeadSummary(leadId, opts.reason);
+  let summary = await buildLeadSummary(leadId, opts.reason);
+
+  // If sending to vehicle seller, add a header identifying this is a portal lead
+  if (vehicleSellerPhone && vehicleSellerName) {
+    summary = `📣 *LEAD DO PORTAL AUTOSCAR*\n🏪 Loja: ${vehicleSellerName}\n\n${summary}`;
+  }
 
   let anySent = false;
   const errors: string[] = [];

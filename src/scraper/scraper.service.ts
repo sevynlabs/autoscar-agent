@@ -75,6 +75,11 @@ export async function getVehicleData(urlOrId: string): Promise<VehicleResult> {
       fuel: v.fuelType ?? undefined,
       transmission: v.transmission ?? undefined,
       city: v.city ?? undefined,
+      // Seller info
+      sellerPhone: user.phone ?? undefined,
+      sellerWhatsapp: user.whatsapp ?? undefined,
+      sellerName: user.fantasyName ?? user.name ?? undefined,
+      sellerCompany: user.companyName ?? undefined,
     };
 
     // Build full autoscar URL

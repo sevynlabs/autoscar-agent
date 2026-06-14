@@ -195,6 +195,9 @@ export async function executeToolCall(
           transmission: result.data.transmission ?? 'Nao informado',
           city: result.data.city ?? 'Nao informado',
           link: finalUrl,
+          // Seller info for agent context
+          sellerName: result.data.sellerName ?? null,
+          sellerCompany: result.data.sellerCompany ?? null,
         };
       } catch (err) {
         console.error('[scrape_vehicle] Error:', err instanceof Error ? err.message : err);

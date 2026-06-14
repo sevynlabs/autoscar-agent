@@ -11,6 +11,11 @@ export const vehicleSchema = z.object({
   transmission: z.string().optional(),
   plate: z.string().optional(),
   city: z.string().optional(),
+  // Seller info from autoscar API
+  sellerPhone: z.string().optional(),
+  sellerWhatsapp: z.string().optional(),
+  sellerName: z.string().optional(),
+  sellerCompany: z.string().optional(),
 });
 
 export type Vehicle = z.infer<typeof vehicleSchema>;
