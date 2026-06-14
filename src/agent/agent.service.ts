@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { appendMessages } from '../conversation/conversation.service.js';
-import { buildSystemPrompt, detectMissingIdentity, detectTriggerCodeMatch, getActiveAgent } from './agent.prompts.js';
+import { buildSystemPrompt, detectMissingIdentity, detectTriggerCodeMatch, detectAutoscarUrl, getActiveAgent } from './agent.prompts.js';
 import { AGENT_TOOLS, executeToolCall } from './agent.tools.js';
 import type { AgentContext } from './agent.types.js';
 
@@ -62,6 +62,37 @@ INSTRUCOES OBRIGATORIAS:
 - Quando for liberar (apos nome + telefone): NA SUA RESPOSTA AO LEAD, NUNCA mencione o codigo numerico ("${codeMatch.code}") — use sempre o LINK ${codeMatch.url}
 - Se scrape_vehicle falhar, ainda assim use o link ${codeMatch.url} (somente depois de coletar nome + telefone)`,
     });
+  }
+
+  // Detect any autoscar URL in the message (fallback when no trigger code match)
+  if (!codeMatch) {
+    const autoscarUrl = detectAutoscarUrl(ctx.userMessage);
+    if (autoscarUrl && ctx.lead) {
+      try {
+        const { updateLead } = await import('../crm/lead.service.js');
+        await updateLead(ctx.lead.id, { vehicleUrl: autoscarUrl });
+        ctx.lead.vehicleUrl = autoscarUrl;
+        console.log(JSON.stringify({
+          level: 'info',
+          msg: '[agent] auto-detected autoscar URL',
+          leadId: ctx.lead.id,
+          url: autoscarUrl,
+        }));
+
+        // Inject system message to instruct agent to use this URL
+        messages.push({
+          role: 'system',
+          content: `URL DE VEICULO DETECTADA: o lead enviou um link do autoscar.com.br
+URL_DO_VEICULO: ${autoscarUrl}
+
+INSTRUCOES OBRIGATORIAS:
+- Use scrape_vehicle com a URL acima AGORA para conhecer os dados reais do veiculo
+- NAO revele preco, detalhes nem o link do veiculo enquanto nao tiver coletado NOME e TELEFONE do lead (siga a ORDEM OBRIGATORIA)
+- Ja esta decidido qual e o veiculo — nao pergunte ao lead qual carro ele quer
+- Se scrape_vehicle falhar, ainda assim use o link ${autoscarUrl} (somente depois de coletar nome + telefone)`,
+        });
+      } catch { /* non-critical */ }
+    }
   }
 
   const missingIdentity = await detectMissingIdentity(ctx.lead, ctx.conversationId);

@@ -221,6 +221,21 @@ export function detectTriggerCodeMatch(
   return null;
 }
 
+/**
+ * Detect any autoscar.com.br vehicle URL in the message.
+ * Returns the first valid URL found, or null if none.
+ */
+export function detectAutoscarUrl(message: string): string | null {
+  // Match autoscar.com.br URLs with various path formats
+  const urlRegex = /https?:\/\/(?:www\.)?autoscar\.com\.br\/(?:carros|comprar)\/[^\s]+/gi;
+  const matches = message.match(urlRegex);
+  if (!matches || matches.length === 0) return null;
+
+  // Clean up the URL (remove trailing punctuation that might have been captured)
+  const url = matches[0].replace(/[.,;:!?)]+$/, '');
+  return url;
+}
+
 export function buildSystemPrompt(lead: AgentContext['lead'], customPrompt?: string, triggerVehicleUrls?: string[], triggerVehicleCodes?: string[], portalUrl?: string): string {
   const hasRealPhone = !!(lead && lead.phone && !lead.phone.startsWith('web:'));
   const knownPhone = lead?.contactPhone?.trim() || (hasRealPhone ? lead!.phone : null);
