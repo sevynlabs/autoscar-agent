@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LeadDetail } from '@/components/lead/LeadDetail';
 import { leadPhone } from '@/lib/utils';
-import { Download, Search, List, Filter, X } from 'lucide-react';
+import { Download, Search, List, Filter, X, Trash2, CheckSquare, Square, Loader2 } from 'lucide-react';
 
 interface Stage { id: string; name: string; order: number }
 interface Pipeline { id: string; name: string; stages: Stage[] }
@@ -35,6 +35,7 @@ const PAGE_SIZE = 50;
 const ALL = '__all__';
 
 export default function LeadsListPage() {
+  const queryClient = useQueryClient();
   const [pipelineId, setPipelineId] = useState<string>('');
   const [stageId, setStageId] = useState<string>(ALL);
   const [search, setSearch] = useState('');
@@ -45,6 +46,8 @@ export default function LeadsListPage() {
   const [page, setPage] = useState(0);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -113,6 +116,41 @@ export default function LeadsListPage() {
     setHumanOverride(ALL);
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === leads.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(leads.map(l => l.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    const confirmed = window.confirm(`Excluir ${selectedIds.size} lead(s)? Esta ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    setDeleting(true);
+    try {
+      await Promise.all(Array.from(selectedIds).map(id => api.delete(`/leads/${id}`)));
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ['leads-list'] });
+    } catch (err) {
+      console.error('Delete failed', err);
+      alert('Falha ao excluir. Veja o console.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const hasActiveFilter =
     (stageId && stageId !== ALL) ||
     debouncedSearch ||
@@ -136,15 +174,29 @@ export default function LeadsListPage() {
             </p>
           </div>
         </div>
-        <Button
-          onClick={handleExport}
-          disabled={exporting || !pipelineId}
-          className="bg-red-600 hover:bg-red-500 cursor-pointer h-9 text-sm gap-1.5 sm:gap-2 px-3 sm:px-4 shrink-0"
-        >
-          <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">{exporting ? 'Exportando...' : 'Exportar Excel'}</span>
-          <span className="sm:hidden">{exporting ? '...' : 'Excel'}</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <Button
+              onClick={handleDeleteSelected}
+              disabled={deleting}
+              variant="outline"
+              className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10 cursor-pointer h-9 text-sm gap-1.5 px-3"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              <span className="hidden sm:inline">{deleting ? 'Excluindo...' : `Excluir (${selectedIds.size})`}</span>
+              <span className="sm:hidden">{selectedIds.size}</span>
+            </Button>
+          )}
+          <Button
+            onClick={handleExport}
+            disabled={exporting || !pipelineId}
+            className="bg-red-600 hover:bg-red-500 cursor-pointer h-9 text-sm gap-1.5 sm:gap-2 px-3 sm:px-4 shrink-0"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">{exporting ? 'Exportando...' : 'Exportar Excel'}</span>
+            <span className="sm:hidden">{exporting ? '...' : 'Excel'}</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -286,6 +338,11 @@ export default function LeadsListPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-neutral-200 dark:border-white/[0.06]">
+                <TableHead className="w-10">
+                  <button onClick={toggleSelectAll} className="p-1 hover:bg-neutral-100 dark:hover:bg-white/5 rounded cursor-pointer">
+                    {selectedIds.size === leads.length && leads.length > 0 ? <CheckSquare className="h-4 w-4 text-red-600" /> : <Square className="h-4 w-4 text-neutral-400" />}
+                  </button>
+                </TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Email</TableHead>
@@ -298,7 +355,7 @@ export default function LeadsListPage() {
             <TableBody>
               {leads.length === 0 && !isFetching && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-neutral-400 py-10 text-sm">
+                  <TableCell colSpan={8} className="text-center text-neutral-400 py-10 text-sm">
                     Nenhum lead encontrado
                   </TableCell>
                 </TableRow>
@@ -306,10 +363,14 @@ export default function LeadsListPage() {
               {leads.map((lead) => (
                 <TableRow
                   key={lead.id}
-                  onClick={() => setSelectedLeadId(lead.id)}
-                  className="cursor-pointer hover:bg-neutral-50 dark:hover:bg-white/[0.02] border-neutral-200 dark:border-white/[0.04]"
+                  className={`cursor-pointer hover:bg-neutral-50 dark:hover:bg-white/[0.02] border-neutral-200 dark:border-white/[0.04] ${selectedIds.has(lead.id) ? 'bg-red-50/50 dark:bg-red-500/5' : ''}`}
                 >
-                  <TableCell className="font-medium text-neutral-900 dark:text-neutral-100">
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => toggleSelect(lead.id)} className="p-1 hover:bg-neutral-100 dark:hover:bg-white/5 rounded cursor-pointer">
+                      {selectedIds.has(lead.id) ? <CheckSquare className="h-4 w-4 text-red-600" /> : <Square className="h-4 w-4 text-neutral-400" />}
+                    </button>
+                  </TableCell>
+                  <TableCell onClick={() => setSelectedLeadId(lead.id)} className="font-medium text-neutral-900 dark:text-neutral-100">
                     {lead.name ?? <span className="text-neutral-400">—</span>}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-neutral-600 dark:text-neutral-400">
