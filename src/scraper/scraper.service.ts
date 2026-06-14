@@ -8,7 +8,36 @@ const PHOTO_BASE = 'https://autoscar-storage-prd.s3.amazonaws.com/';
 // default timeout, so without this a slow/unreachable API hangs the request
 // indefinitely — and since /webchat/config (public, ad traffic) blocks on
 // this, hung requests pile up on the backend and cascade into 504s.
-const API_TIMEOUT_MS = 6000;
+const API_TIMEOUT_MS = 15000; // 15 seconds for more reliability
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
+async function fetchWithRetry(url: string, options: RequestInit, retries = MAX_RETRIES): Promise<Response> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      });
+      if (res.ok) return res;
+      // Retry on 5xx errors
+      if (res.status >= 500 && attempt < retries) {
+        console.log(`[scraper-service] Retry ${attempt}/${retries} after ${res.status}`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS * attempt));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (attempt < retries) {
+        console.log(`[scraper-service] Retry ${attempt}/${retries} after error: ${err instanceof Error ? err.message : err}`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS * attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
 
 export interface VehicleResult {
   data: Vehicle;
@@ -51,9 +80,8 @@ export async function getVehicleData(urlOrId: string): Promise<VehicleResult> {
   console.log(`[scraper-service] Fetching vehicle via API: ${adId}`);
 
   try {
-    const res = await fetch(`${API_BASE}/advertisement/${adId}`, {
+    const res = await fetchWithRetry(`${API_BASE}/advertisement/${adId}`, {
       headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -101,8 +129,8 @@ export async function getVehicleData(urlOrId: string): Promise<VehicleResult> {
 
     // Fallback: try search by ID
     try {
-      const searchRes = await fetch(`${API_BASE}/advertisement?search=${adId}&limit=1`, {
-        signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      const searchRes = await fetchWithRetry(`${API_BASE}/advertisement?search=${adId}&limit=1`, {
+        headers: { 'Accept': 'application/json' },
       });
       if (searchRes.ok) {
         const json = await searchRes.json() as any;
