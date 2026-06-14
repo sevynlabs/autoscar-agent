@@ -49,12 +49,6 @@ function publicCrmUrl(): string {
   ).replace(/\/+$/, '');
 }
 
-function statusLabel(_stageName: string | undefined): string {
-  // Every notification sent to the sellers group is ALWAYS announced as a
-  // qualified lead — business rule: leads are never disqualified.
-  return '🟢 LEAD QUALIFICADO';
-}
-
 /**
  * Normalize a configured destination into an Evolution-ready recipient:
  *  - anything containing '@' (group ...@g.us or contact JID) → used as-is
@@ -74,7 +68,10 @@ function normalizeDestination(raw: string | null | undefined): string | null {
  * Includes all known fields, vehicle link, and a direct link to the CRM
  * conversation so the seller can jump straight in.
  */
-export async function buildLeadSummary(leadId: string, reason?: string): Promise<string> {
+export async function buildLeadSummary(
+  leadId: string,
+  sellerName?: string | null,
+): Promise<string> {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
@@ -98,18 +95,27 @@ export async function buildLeadSummary(leadId: string, reason?: string): Promise
     agent?.triggerVehicleCodes,
   );
 
-  const lines: string[] = [statusLabel(lead.stage?.name)];
+  const lines: string[] = [];
+
+  // Header
+  lines.push('📣 *LEAD DO PORTAL AUTOSCAR*');
+  if (sellerName) {
+    lines.push(`🏪 Loja: ${sellerName}`);
+  }
   lines.push('');
+  lines.push('🟢 LEAD QUALIFICADO');
+  lines.push('');
+
+  // Lead info
   lines.push(`👤 Nome: ${lead.name?.trim() || 'não informado'}`);
   const displayPhone =
     lead.contactPhone?.trim() ||
     (lead.phone.startsWith('web:') ? 'não informado' : lead.phone);
   lines.push(`📞 Telefone: ${displayPhone}`);
   lines.push(`📍 Cidade: ${lead.city?.trim() || 'não informada'}`);
-  if (lead.email?.trim()) lines.push(`✉️ Email: ${lead.email}`);
   lines.push(`🚗 Veículo: ${shortUrl || 'não informado'}`);
-  lines.push(`📌 Estágio: ${lead.stage?.name ?? 'sem estágio'}`);
 
+  // Interest notes
   if (lead.notes.length > 0) {
     lines.push('');
     lines.push('📝 Interesse do lead:');
@@ -119,13 +125,11 @@ export async function buildLeadSummary(leadId: string, reason?: string): Promise
     }
   }
 
+  // CRM link
   if (lead.conversation) {
     lines.push('');
     lines.push(`💬 Conversa: ${publicCrmUrl()}/inbox?conversation=${lead.conversation.id}`);
   }
-
-  lines.push('');
-  lines.push('Status: Aguardando contato do vendedor');
 
   return lines.join('\n');
 }
@@ -200,16 +204,16 @@ export async function notifySellersGroupForLead(
     }
   }
 
-  // Build destinations: vehicle seller first, then fallback to agent config
+  // Build destinations: ALWAYS include group + vehicle seller if found
+  const groupJid = normalizeDestination(agent?.sellersGroupJid || process.env.SELLERS_GROUP_JID);
+  const sellersPhone = normalizeDestination(agent?.sellersPhone);
+
   const destinations = Array.from(
     new Set(
       [
-        vehicleSellerPhone,
-        // Fallback to configured destinations if no vehicle seller found
-        ...(!vehicleSellerPhone ? [
-          normalizeDestination(agent?.sellersGroupJid || process.env.SELLERS_GROUP_JID),
-          normalizeDestination(agent?.sellersPhone),
-        ] : []),
+        vehicleSellerPhone,  // Vendedor da listagem (se houver)
+        groupJid,            // Grupo sempre recebe
+        sellersPhone,        // Telefone configurado no agente
       ].filter((d): d is string => !!d),
     ),
   );
@@ -217,12 +221,7 @@ export async function notifySellersGroupForLead(
     return { sent: false, reason: 'no sellers destination configured' };
   }
 
-  let summary = await buildLeadSummary(leadId, opts.reason);
-
-  // If sending to vehicle seller, add a header identifying this is a portal lead
-  if (vehicleSellerPhone && vehicleSellerName) {
-    summary = `📣 *LEAD DO PORTAL AUTOSCAR*\n🏪 Loja: ${vehicleSellerName}\n\n${summary}`;
-  }
+  const summary = await buildLeadSummary(leadId, vehicleSellerName);
 
   let anySent = false;
   const errors: string[] = [];
