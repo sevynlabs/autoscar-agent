@@ -42,10 +42,15 @@ export async function buildServer() {
     credentials: true,
   });
 
-  // Rate limiting — 100 requests per minute globally
+  // Rate limiting — 100 requests per minute globally (except webhooks)
   await fastify.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
+    allowList: (req) => {
+      const url = req.url ?? '';
+      // Exclude webhooks and health checks from rate limiting
+      return url.startsWith('/webhook') || url === '/health';
+    },
   });
 
   // Auth plugin — JWT verification on all routes except public
