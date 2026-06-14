@@ -2,7 +2,66 @@ import prisma from '../db/prisma.js';
 import { evolutionClient } from '../whatsapp/evolution.client.js';
 import { getActiveAgent } from '../agent/agent.prompts.js';
 import { getFollowupQueue } from '../queue/queues.js';
-import { getVehicleData } from '../scraper/scraper.service.js';
+
+const LEADS_API_URL = 'https://dhqmwf73sb.execute-api.us-east-1.amazonaws.com/prd/advertisementLeads';
+const LEADS_API_TIMEOUT_MS = 10000;
+
+interface LeadsApiResponse {
+  customer: {
+    name: string;
+    phone: string;
+    email: string;
+    fantasyName: string;
+    companyName: string;
+  };
+  lead: {
+    id: number;
+    advertisementId: number;
+  };
+}
+
+/**
+ * Send lead data to the autoscar leads API and get seller info back.
+ */
+async function sendLeadToApi(leadPhone: string, leadName: string, vehicleUrl: string): Promise<LeadsApiResponse | null> {
+  try {
+    const res = await fetch(LEADS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        leadPhone: leadPhone.replace(/\D/g, ''),
+        leadName,
+        link: vehicleUrl,
+      }),
+      signal: AbortSignal.timeout(LEADS_API_TIMEOUT_MS),
+    });
+
+    if (!res.ok) {
+      console.log(JSON.stringify({
+        level: 'warn',
+        msg: '[seller-notify] leads API returned error',
+        status: res.status,
+      }));
+      return null;
+    }
+
+    const data = await res.json() as LeadsApiResponse;
+    console.log(JSON.stringify({
+      level: 'info',
+      msg: '[seller-notify] leads API success',
+      sellerPhone: data.customer?.phone,
+      sellerName: data.customer?.fantasyName,
+    }));
+    return data;
+  } catch (err) {
+    console.log(JSON.stringify({
+      level: 'error',
+      msg: '[seller-notify] leads API failed',
+      error: err instanceof Error ? err.message : String(err),
+    }));
+    return null;
+  }
+}
 
 const SHORT_LINK_BASE = 'https://autoscar.com.br/carros/';
 
@@ -175,32 +234,16 @@ export async function notifySellersGroupForLead(
 
   const agent = await getActiveAgent().catch(() => null);
 
-  // Priority 1: Try to get seller's WhatsApp from the vehicle listing
+  // Send lead to API and get seller info
   let vehicleSellerPhone: string | null = null;
   let vehicleSellerName: string | null = null;
-  if (lead.vehicleUrl?.trim()) {
-    try {
-      const vehicleResult = await getVehicleData(lead.vehicleUrl);
-      const sellerWa = vehicleResult.data.sellerWhatsapp || vehicleResult.data.sellerPhone;
-      if (sellerWa) {
-        vehicleSellerPhone = normalizeDestination(sellerWa);
-        vehicleSellerName = vehicleResult.data.sellerName || null;
-        console.log(JSON.stringify({
-          level: 'info',
-          msg: '[seller-notify] found vehicle seller',
-          leadId,
-          sellerPhone: vehicleSellerPhone,
-          sellerName: vehicleSellerName,
-        }));
-      }
-    } catch (err) {
-      console.log(JSON.stringify({
-        level: 'warn',
-        msg: '[seller-notify] failed to get vehicle seller',
-        leadId,
-        vehicleUrl: lead.vehicleUrl,
-        error: err instanceof Error ? err.message : String(err),
-      }));
+  const leadPhone = lead.contactPhone?.trim() || lead.phone;
+
+  if (lead.vehicleUrl?.trim() && lead.name?.trim() && leadPhone) {
+    const apiResult = await sendLeadToApi(leadPhone, lead.name, lead.vehicleUrl);
+    if (apiResult?.customer?.phone) {
+      vehicleSellerPhone = normalizeDestination(apiResult.customer.phone);
+      vehicleSellerName = apiResult.customer.fantasyName || apiResult.customer.name || null;
     }
   }
 
