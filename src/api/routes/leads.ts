@@ -78,6 +78,10 @@ const noteSchema = z.object({
   content: z.string(),
 });
 
+const bulkDeleteSchema = z.object({
+  ids: z.array(z.string()).min(1, 'At least one ID is required'),
+});
+
 export default async function leadsRoutes(fastify: FastifyInstance) {
   // GET /leads?pipelineId=&stageId=&search=&humanOverride=&dateFrom=&dateTo=
   fastify.get('/leads', async (request, reply) => {
@@ -254,6 +258,24 @@ export default async function leadsRoutes(fastify: FastifyInstance) {
 
     fastify.io.emit('lead:deleted', { leadId: id });
     return { deleted: true };
+  });
+
+  // POST /leads/bulk-delete
+  fastify.post('/leads/bulk-delete', async (request, reply) => {
+    const { ids } = bulkDeleteSchema.parse(request.body);
+
+    // Delete related records first (foreign key constraints)
+    await prisma.message.deleteMany({ where: { conversation: { leadId: { in: ids } } } });
+    await prisma.conversation.deleteMany({ where: { leadId: { in: ids } } });
+    await prisma.leadNote.deleteMany({ where: { leadId: { in: ids } } });
+    const result = await prisma.lead.deleteMany({ where: { id: { in: ids } } });
+
+    // Emit socket events for each deleted lead
+    for (const id of ids) {
+      fastify.io.emit('lead:deleted', { leadId: id });
+    }
+
+    return { deleted: result.count };
   });
 
   // POST /leads/:id/notes

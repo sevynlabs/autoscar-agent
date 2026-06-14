@@ -140,7 +140,7 @@ export default function LeadsListPage() {
 
     setDeleting(true);
     try {
-      await Promise.all(Array.from(selectedIds).map(id => api.delete(`/leads/${id}`)));
+      await api.post('/leads/bulk-delete', { ids: Array.from(selectedIds) });
       setSelectedIds(new Set());
       queryClient.invalidateQueries({ queryKey: ['leads-list'] });
     } catch (err) {
