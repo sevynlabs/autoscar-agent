@@ -36,6 +36,7 @@ services:
       - redis
     networks:
       - autoscar-net
+      - coolify
 
   frontend:
     build: ./frontend
@@ -56,6 +57,7 @@ services:
       - app
     networks:
       - autoscar-net
+      - coolify
 
 volumes:
   redis_data:
@@ -63,3 +65,5 @@ volumes:
 networks:
   autoscar-net:
     driver: bridge
+  coolify:
+    external: true
