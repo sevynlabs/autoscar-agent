@@ -25,12 +25,15 @@ interface LeadsApiResponse {
  */
 async function sendLeadToApi(leadPhone: string, leadName: string, vehicleUrl: string): Promise<LeadsApiResponse | null> {
   try {
+    // Remove emojis and special unicode characters that may cause API issues
+    const sanitizedName = leadName.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]/gu, '').trim();
+
     const res = await fetch(LEADS_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         leadPhone: leadPhone.replace(/\D/g, ''),
-        leadName,
+        leadName: sanitizedName || leadName,
         link: vehicleUrl,
       }),
       signal: AbortSignal.timeout(LEADS_API_TIMEOUT_MS),
