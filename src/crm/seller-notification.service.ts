@@ -116,13 +116,23 @@ function publicCrmUrl(): string {
  *  - anything containing '@' (group ...@g.us or contact JID) → used as-is
  *  - otherwise → stripped to digits and treated as a phone number; Evolution
  *    accepts a bare international number (e.g. 5531999999999)
+ *  - Brazilian numbers starting with 0 (e.g. 034999714473) get 55 prefix
  */
 function normalizeDestination(raw: string | null | undefined): string | null {
   const v = raw?.trim();
   if (!v) return null;
   if (v.includes('@')) return v;
-  const digits = v.replace(/\D/g, '');
-  return digits.length >= 8 ? digits : null;
+  let digits = v.replace(/\D/g, '');
+  if (digits.length < 8) return null;
+  // Brazilian number starting with 0 (e.g. 034999714473) → add 55 and remove leading 0
+  if (digits.startsWith('0') && digits.length >= 10 && digits.length <= 12) {
+    digits = '55' + digits.slice(1);
+  }
+  // Brazilian number without country code (10-11 digits) → add 55
+  if (digits.length >= 10 && digits.length <= 11 && !digits.startsWith('55')) {
+    digits = '55' + digits;
+  }
+  return digits;
 }
 
 /**
