@@ -23,19 +23,22 @@ async function main() {
     console.log('Default pipeline seeded');
   }
 
-  // Seed admin user
-  const adminExists = await prisma.user.findUnique({ where: { email: 'admin@autoscar.com.br' } });
-  if (!adminExists) {
-    await prisma.user.create({
-      data: {
-        email: 'admin@autoscar.com.br',
-        passwordHash: hashSync('autoscar2026', 10),
-        name: 'Admin',
-        role: 'admin',
-      },
-    });
-    console.log('Admin user seeded');
-  }
+  // Seed admin user (upsert to ensure correct credentials)
+  await prisma.user.upsert({
+    where: { email: 'admin@autoscar.com.br' },
+    update: {
+      passwordHash: hashSync('autoscar2026', 10),
+      name: 'Admin',
+      role: 'admin',
+    },
+    create: {
+      email: 'admin@autoscar.com.br',
+      passwordHash: hashSync('autoscar2026', 10),
+      name: 'Admin',
+      role: 'admin',
+    },
+  });
+  console.log('Admin user seeded/updated');
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

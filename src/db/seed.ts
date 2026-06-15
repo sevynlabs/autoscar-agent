@@ -62,17 +62,20 @@ export async function ensureSeedData() {
     console.log('[seed] Default pipeline created');
   }
 
-  // Ensure admin user exists
-  const admin = await prisma.user.findUnique({ where: { email: 'admin@autoscar.com.br' } });
-  if (!admin) {
-    await prisma.user.create({
-      data: {
-        email: 'admin@autoscar.com.br',
-        passwordHash: await bcrypt.hash('autoscar2026', 10),
-        name: 'Admin',
-        role: 'admin',
-      },
-    });
-    console.log('[seed] Admin user created');
-  }
+  // Ensure admin user exists (upsert to guarantee correct credentials)
+  await prisma.user.upsert({
+    where: { email: 'admin@autoscar.com.br' },
+    update: {
+      passwordHash: await bcrypt.hash('autoscar2026', 10),
+      name: 'Admin',
+      role: 'admin',
+    },
+    create: {
+      email: 'admin@autoscar.com.br',
+      passwordHash: await bcrypt.hash('autoscar2026', 10),
+      name: 'Admin',
+      role: 'admin',
+    },
+  });
+  console.log('[seed] Admin user created/updated');
 }
