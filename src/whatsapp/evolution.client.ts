@@ -242,4 +242,26 @@ export const evolutionClient = {
       return [];
     }
   },
+
+  /**
+   * Get current webhook configuration for an instance
+   */
+  async getWebhook(instanceName: string): Promise<{
+    enabled: boolean;
+    url: string | null;
+    events: string[];
+  } | null> {
+    const client = getClient();
+    try {
+      const { data } = await client.get(`/webhook/find/${instanceName}`);
+      return {
+        enabled: data?.webhook?.enabled ?? data?.enabled ?? false,
+        url: data?.webhook?.url ?? data?.url ?? null,
+        events: data?.webhook?.events ?? data?.events ?? [],
+      };
+    } catch (err) {
+      console.error(`[evolution] Failed to get webhook for ${instanceName}:`, err);
+      return null;
+    }
+  },
 };

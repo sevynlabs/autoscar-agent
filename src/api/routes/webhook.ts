@@ -26,6 +26,16 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
     const event = body.event;
     const instance = body.instance;
 
+    // Log all incoming events for debugging
+    console.log(JSON.stringify({
+      level: 'debug',
+      msg: '[webhook] Event received',
+      event,
+      instance,
+      hasData: !!body.data,
+      dataKeys: body.data ? Object.keys(body.data) : [],
+    }));
+
     fastify.log.info({ event, instance }, 'Webhook received');
 
     // ---- CONNECTION_UPDATE ----
