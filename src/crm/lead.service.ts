@@ -49,9 +49,32 @@ export async function updateLead(
     vehicleUrl?: string;
   },
 ) {
+  // If vehicleUrl is being updated, check if it's different from the current one.
+  // If so, reset sellerNotifiedAt to allow a new notification to the seller of the new vehicle.
+  let finalData: typeof data & { sellerNotifiedAt?: null } = { ...data };
+
+  if (data.vehicleUrl) {
+    const currentLead = await prisma.lead.findUnique({
+      where: { id: leadId },
+      select: { vehicleUrl: true },
+    });
+
+    // If vehicle URL changed, reset notification status to allow new notification
+    if (currentLead && currentLead.vehicleUrl !== data.vehicleUrl) {
+      finalData.sellerNotifiedAt = null;
+      console.log(JSON.stringify({
+        level: 'info',
+        msg: '[lead-service] vehicle URL changed — resetting notification status',
+        leadId,
+        oldUrl: currentLead.vehicleUrl,
+        newUrl: data.vehicleUrl,
+      }));
+    }
+  }
+
   const updated = await prisma.lead.update({
     where: { id: leadId },
-    data,
+    data: finalData,
     include: { stage: true },
   });
   emitLeadUpdated(updated);

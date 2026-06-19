@@ -68,21 +68,35 @@ INSTRUCOES OBRIGATORIAS:
   if (!codeMatch) {
     const autoscarUrl = detectAutoscarUrl(ctx.userMessage);
     if (autoscarUrl && ctx.lead) {
-      try {
-        const { updateLead } = await import('../crm/lead.service.js');
-        await updateLead(ctx.lead.id, { vehicleUrl: autoscarUrl });
-        ctx.lead.vehicleUrl = autoscarUrl;
-        console.log(JSON.stringify({
-          level: 'info',
-          msg: '[agent] auto-detected autoscar URL',
-          leadId: ctx.lead.id,
-          url: autoscarUrl,
-        }));
+      // Only update if lead doesn't already have a vehicle URL
+      // (message worker may have already captured it)
+      if (!ctx.lead.vehicleUrl?.trim()) {
+        try {
+          const { updateLead } = await import('../crm/lead.service.js');
+          await updateLead(ctx.lead.id, { vehicleUrl: autoscarUrl });
+          ctx.lead.vehicleUrl = autoscarUrl;
+          console.log(JSON.stringify({
+            level: 'info',
+            msg: '[agent] auto-detected autoscar URL — saved to lead',
+            leadId: ctx.lead.id,
+            url: autoscarUrl,
+          }));
+        } catch (err) {
+          console.log(JSON.stringify({
+            level: 'error',
+            msg: '[agent] failed to save autoscar URL to lead',
+            leadId: ctx.lead.id,
+            url: autoscarUrl,
+            error: err instanceof Error ? err.message : String(err),
+          }));
+        }
+      }
 
-        // Inject system message to instruct agent to use this URL
-        messages.push({
-          role: 'system',
-          content: `URL DE VEICULO DETECTADA: o lead enviou um link do autoscar.com.br
+      // Inject system message to instruct agent to use this URL
+      // (always inject, even if URL was already saved by worker)
+      messages.push({
+        role: 'system',
+        content: `URL DE VEICULO DETECTADA: o lead enviou um link do autoscar.com.br
 URL_DO_VEICULO: ${autoscarUrl}
 
 INSTRUCOES OBRIGATORIAS:
@@ -90,9 +104,23 @@ INSTRUCOES OBRIGATORIAS:
 - NAO revele preco, detalhes nem o link do veiculo enquanto nao tiver coletado NOME e TELEFONE do lead (siga a ORDEM OBRIGATORIA)
 - Ja esta decidido qual e o veiculo — nao pergunte ao lead qual carro ele quer
 - Se scrape_vehicle falhar, ainda assim use o link ${autoscarUrl} (somente depois de coletar nome + telefone)`,
-        });
-      } catch { /* non-critical */ }
+      });
     }
+  }
+
+  // If lead has a vehicle URL already captured (from session start or previous message)
+  // but no URL was detected in THIS message, remind the agent about the existing vehicle
+  if (!codeMatch && !detectAutoscarUrl(ctx.userMessage) && ctx.lead?.vehicleUrl?.trim()) {
+    messages.push({
+      role: 'system',
+      content: `VEICULO DE INTERESSE JA CAPTURADO: o lead iniciou a conversa interessado neste veiculo:
+URL_DO_VEICULO: ${ctx.lead.vehicleUrl}
+
+REGRA OBRIGATORIA:
+- Este e o veiculo principal do lead — use-o ao qualificar e notificar vendedores
+- NAO pergunte qual veiculo o lead quer — ja sabemos que e este
+- Quando qualificar, o notify_sellers_group ja vai incluir este link automaticamente`,
+    });
   }
 
   const missingIdentity = await detectMissingIdentity(ctx.lead, ctx.conversationId);

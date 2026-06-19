@@ -1,6 +1,6 @@
 import { Worker, type Job } from 'bullmq';
 import { runAgentTurn } from '../../agent/agent.service.js';
-import { getActiveAgent, isChannelEnabled, isInstanceEnabled } from '../../agent/agent.prompts.js';
+import { getActiveAgent, isChannelEnabled, isInstanceEnabled, detectAutoscarUrl, detectTriggerCodeMatch } from '../../agent/agent.prompts.js';
 import { loadOrCreateConversation } from '../../conversation/conversation.service.js';
 import { getChannel } from '../../channels/channel.manager.js';
 import prisma from '../../db/prisma.js';
@@ -64,20 +64,74 @@ export function startMessageWorker(): Worker {
         // 3. Check if agent responds on this channel + instance
         const activeAgent = await getActiveAgent();
 
-        // 3.1 Auto-assign the agent's trigger vehicle URL to the lead when
-        // there's exactly one configured and the lead doesn't have one yet.
-        // Guarantees the sellers-group notification always carries the link.
-        if (
-          activeAgent?.triggerVehicleUrls?.length === 1 &&
-          conversation.lead &&
-          !conversation.lead.vehicleUrl?.trim()
-        ) {
-          const triggerUrl = activeAgent.triggerVehicleUrls[0];
-          await prisma.lead.update({
-            where: { id: conversation.lead.id },
-            data: { vehicleUrl: triggerUrl },
-          }).catch(() => { /* non-critical */ });
-          conversation.lead.vehicleUrl = triggerUrl;
+        // 3.1 Auto-assign vehicle URL from various sources (in priority order):
+        // 1. Trigger code match (user sent a registered code)
+        // 2. Autoscar URL in message (user sent a vehicle link)
+        // 3. Single trigger vehicle (agent has exactly one vehicle configured)
+        // This guarantees the sellers-group notification always carries the link.
+        if (conversation.lead && !conversation.lead.vehicleUrl?.trim()) {
+          let vehicleUrl: string | null = null;
+
+          // Priority 1: Check for trigger code match
+          const codeMatch = detectTriggerCodeMatch(
+            message,
+            activeAgent?.triggerVehicleUrls,
+            activeAgent?.triggerVehicleCodes,
+          );
+          if (codeMatch) {
+            vehicleUrl = codeMatch.url;
+            console.log(JSON.stringify({
+              level: 'info',
+              msg: '[worker] trigger code match — capturing vehicle URL early',
+              leadId: conversation.lead.id,
+              code: codeMatch.code,
+              url: vehicleUrl,
+            }));
+          }
+
+          // Priority 2: Check for autoscar URL in message
+          if (!vehicleUrl) {
+            const autoscarUrl = detectAutoscarUrl(message);
+            if (autoscarUrl) {
+              vehicleUrl = autoscarUrl;
+              console.log(JSON.stringify({
+                level: 'info',
+                msg: '[worker] autoscar URL detected — capturing vehicle URL early',
+                leadId: conversation.lead.id,
+                url: vehicleUrl,
+              }));
+            }
+          }
+
+          // Priority 3: Single trigger vehicle fallback
+          if (!vehicleUrl && activeAgent?.triggerVehicleUrls?.length === 1) {
+            vehicleUrl = activeAgent.triggerVehicleUrls[0];
+            console.log(JSON.stringify({
+              level: 'info',
+              msg: '[worker] single trigger vehicle — auto-assigning URL',
+              leadId: conversation.lead.id,
+              url: vehicleUrl,
+            }));
+          }
+
+          // Save the vehicle URL if found
+          if (vehicleUrl) {
+            try {
+              await prisma.lead.update({
+                where: { id: conversation.lead.id },
+                data: { vehicleUrl },
+              });
+              conversation.lead.vehicleUrl = vehicleUrl;
+            } catch (err) {
+              console.log(JSON.stringify({
+                level: 'error',
+                msg: '[worker] failed to save vehicle URL',
+                leadId: conversation.lead.id,
+                url: vehicleUrl,
+                error: err instanceof Error ? err.message : String(err),
+              }));
+            }
+          }
         }
         if (!isChannelEnabled(activeAgent, channelName)) {
           console.log(JSON.stringify({ level: 'info', msg: 'Agent disabled for this channel', channel: channelName, phone: phoneNumber }));

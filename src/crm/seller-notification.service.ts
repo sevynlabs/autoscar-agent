@@ -1,6 +1,6 @@
 import prisma from '../db/prisma.js';
 import { evolutionClient } from '../whatsapp/evolution.client.js';
-import { getActiveAgent } from '../agent/agent.prompts.js';
+import { getActiveAgent, isVehicleUrl } from '../agent/agent.prompts.js';
 import { getFollowupQueue } from '../queue/queues.js';
 
 const LEADS_API_URL = 'https://dhqmwf73sb.execute-api.us-east-1.amazonaws.com/prd/advertisementLeads';
@@ -208,7 +208,9 @@ export async function buildLeadSummary(
 
 /**
  * Fire a sellers group notification for a lead and mark sellerNotifiedAt.
- * Safe to call multiple times — only sends once per lead (unless force=true).
+ * Now allows multiple notifications — each time the vehicle changes, a new
+ * notification is sent to the appropriate seller. The blocking was removed
+ * to support leads interested in multiple vehicles from different sellers.
  */
 export async function notifySellersGroupForLead(
   leadId: string,
@@ -235,9 +237,10 @@ export async function notifySellersGroupForLead(
     return { sent: false, reason: 'missing name or phone' };
   }
 
-  if (!opts.force && lead.sellerNotifiedAt) {
-    return { sent: false, reason: 'already notified' };
-  }
+  // NOTE: Blocking removed. Each vehicle interest generates a notification
+  // to the seller of that vehicle. The same lead can be sent to multiple
+  // sellers if they're interested in vehicles from different stores.
+  // The lastNotifiedVehicleUrl field tracks which URL was last notified.
 
   const instance = await prisma.whatsAppInstance.findFirst({
     where: { status: 'connected' },
@@ -252,11 +255,38 @@ export async function notifySellersGroupForLead(
   let vehicleSellerName: string | null = null;
   const leadPhone = lead.contactPhone?.trim() || lead.phone;
 
-  if (lead.vehicleUrl?.trim() && lead.name?.trim() && leadPhone) {
-    const apiResult = await sendLeadToApi(leadPhone, lead.name, lead.vehicleUrl);
+  // Validate vehicle URL before sending to API
+  const hasValidVehicleUrl = isVehicleUrl(lead.vehicleUrl);
+  if (lead.vehicleUrl?.trim() && !hasValidVehicleUrl) {
+    console.log(JSON.stringify({
+      level: 'warn',
+      msg: '[seller-notify] vehicle URL may be invalid (not a vehicle-specific URL)',
+      leadId,
+      vehicleUrl: lead.vehicleUrl,
+      hint: 'Expected URL format: autoscar.com.br/carros/... or autoscar.com.br/comprar/...',
+    }));
+  }
+
+  if (hasValidVehicleUrl && lead.name?.trim() && leadPhone) {
+    const apiResult = await sendLeadToApi(leadPhone, lead.name, lead.vehicleUrl!);
     if (apiResult?.customer?.phone) {
       vehicleSellerPhone = normalizeDestination(apiResult.customer.phone);
       vehicleSellerName = apiResult.customer.fantasyName || apiResult.customer.name || null;
+      console.log(JSON.stringify({
+        level: 'info',
+        msg: '[seller-notify] seller found for vehicle',
+        leadId,
+        vehicleUrl: lead.vehicleUrl,
+        sellerPhone: vehicleSellerPhone,
+        sellerName: vehicleSellerName,
+      }));
+    } else {
+      console.log(JSON.stringify({
+        level: 'warn',
+        msg: '[seller-notify] no seller found for vehicle URL',
+        leadId,
+        vehicleUrl: lead.vehicleUrl,
+      }));
     }
   }
 

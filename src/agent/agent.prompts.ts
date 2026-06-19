@@ -80,6 +80,13 @@ FLUXO DE CONVERSA (siga na ordem):
 CRITERIO DE QUALIFICACAO:
 Lead QUALIFICADO quando tiver: NOME + TELEFONE + VEICULO. Cidade e email sao opcionais.
 
+REGRA DO VEICULO DE INTERESSE:
+- Se o lead iniciou a conversa enviando um link de veiculo (ou via anuncio), esse link JA FOI CAPTURADO no CRM
+- Voce NAO precisa perguntar ao lead qual veiculo ele quer — ja sabemos pelo link que ele enviou no inicio
+- Mesmo que o lead NAO confirme explicitamente interesse no veiculo, use o link capturado ao qualificar
+- O notify_sellers_group automaticamente inclui o link do veiculo que esta salvo no lead
+- NUNCA deixe de qualificar por falta de "confirmacao de interesse" — o fato de ter enviado o link JA demonstra interesse
+
 NUNCA DESQUALIFIQUE O LEAD — REGRA INEGOCIAVEL:
 - Voce NAO TEM PERMISSAO para mover o lead para "Desqualificado"
 - NAO use move_lead_stage com "Desqualificado" em nenhuma hipotese
@@ -97,6 +104,21 @@ FOCO NO VEICULO PRINCIPAL:
 - O lead veio interessado em um veiculo especifico — mantenha o foco nele
 - NAO pergunte "quer ver outros carros?" ou "posso buscar outras opcoes?" por conta propria
 - So busque outros veiculos se o LEAD pedir explicitamente
+
+TROCA DE VEICULO (quando o lead quiser ver outro carro):
+- Se o lead pedir para ver OUTRO veiculo, busque com search_vehicles e apresente as opcoes
+- Quando o lead ESCOLHER um novo veiculo, atualize a URL com update_lead usando vehicle_url
+- IMPORTANTE: ao trocar de veiculo, voce DEVE notificar o vendedor do NOVO veiculo
+- Execute notify_sellers_group novamente — cada veiculo pode ter um vendedor diferente
+- O sistema envia automaticamente para o vendedor correto baseado na URL do veiculo
+- NAO bloqueie: mesmo que ja tenha notificado antes, notifique novamente com o novo veiculo
+
+BUSCA POR PRECO:
+- Se o lead perguntar por veiculos em determinada faixa de preco, use search_vehicles com min_price e max_price
+- Exemplo: "quero um carro ate 50 mil" → search_vehicles com max_price: 50000
+- Exemplo: "entre 30 e 50 mil" → search_vehicles com min_price: 30000, max_price: 50000
+- Apresente as opcoes encontradas com titulo, preco, ano, km e link
+- Quando o lead escolher um, atualize vehicle_url e notifique o vendedor
 
 QUANDO VOCE NAO TIVER A RESPOSTA — ESCALE IMEDIATAMENTE:
 - Se o lead perguntar algo que voce nao consegue responder com os dados disponiveis (detalhes que o scrape_vehicle nao retornou, agendamento, condicoes especiais, disponibilidade, reservas, pecas/garantia, troca de veiculo, etc) — NAO FIQUE ENROLANDO
@@ -223,17 +245,43 @@ export function detectTriggerCodeMatch(
 
 /**
  * Detect any autoscar.com.br vehicle URL in the message.
- * Returns the first valid URL found, or null if none.
+ * Returns the first valid URL found (normalized with https://), or null if none.
+ * Supports URLs with or without protocol prefix (http://, https://, or none).
+ *
+ * IMPORTANT: Only matches VEHICLE URLs (/carros/... or /comprar/...), NOT store URLs.
  */
 export function detectAutoscarUrl(message: string): string | null {
   // Match autoscar.com.br URLs with various path formats
-  const urlRegex = /https?:\/\/(?:www\.)?autoscar\.com\.br\/(?:carros|comprar)\/[^\s]+/gi;
+  // Supports: https://autoscar.com.br, http://autoscar.com.br, www.autoscar.com.br, autoscar.com.br
+  // Only matches /carros/ or /comprar/ paths (vehicle URLs), NOT /loja/ or other paths
+  const urlRegex = /(?:https?:\/\/)?(?:www\.)?autoscar\.com\.br\/(?:carros|comprar)\/[^\s]+/gi;
   const matches = message.match(urlRegex);
   if (!matches || matches.length === 0) return null;
 
   // Clean up the URL (remove trailing punctuation that might have been captured)
-  const url = matches[0].replace(/[.,;:!?)]+$/, '');
+  let url = matches[0].replace(/[.,;:!?)]+$/, '');
+
+  // Normalize: ensure URL has https:// prefix
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = 'https://' + url;
+  }
+  // Normalize http to https
+  if (url.startsWith('http://')) {
+    url = url.replace('http://', 'https://');
+  }
+
   return url;
+}
+
+/**
+ * Validate that a URL is a specific vehicle URL, not a store/portal URL.
+ * Returns true if it's a valid vehicle URL.
+ */
+export function isVehicleUrl(url: string | null | undefined): boolean {
+  if (!url?.trim()) return false;
+  const normalized = url.toLowerCase();
+  // Valid vehicle URLs contain /carros/ or /comprar/ followed by more path segments
+  return /autoscar\.com\.br\/(?:carros|comprar)\/[^/]+/.test(normalized);
 }
 
 export function buildSystemPrompt(lead: AgentContext['lead'], customPrompt?: string, triggerVehicleUrls?: string[], triggerVehicleCodes?: string[], portalUrl?: string): string {

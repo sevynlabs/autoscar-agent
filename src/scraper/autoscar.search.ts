@@ -4,6 +4,7 @@ const PHOTO_BASE = 'https://autoscar-storage-prd.s3.amazonaws.com/';
 export interface VehicleSearchResult {
   title: string;
   price: string;
+  priceValue: number;
   year: string;
   km: string;
   url: string;
@@ -12,20 +13,48 @@ export interface VehicleSearchResult {
   state: string;
 }
 
-export async function searchVehicles(query: string, limit = 5): Promise<VehicleSearchResult[]> {
-  console.log(`[scraper-search] API search: "${query}"`);
+export interface SearchOptions {
+  query?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  limit?: number;
+}
+
+export async function searchVehicles(queryOrOptions: string | SearchOptions, limit = 5): Promise<VehicleSearchResult[]> {
+  // Handle both old signature (query string) and new signature (options object)
+  const opts: SearchOptions = typeof queryOrOptions === 'string'
+    ? { query: queryOrOptions, limit }
+    : { ...queryOrOptions, limit: queryOrOptions.limit ?? limit };
+
+  const queryParams = new URLSearchParams();
+  if (opts.query) queryParams.set('search', opts.query);
+  if (opts.minPrice) queryParams.set('minPrice', String(opts.minPrice));
+  if (opts.maxPrice) queryParams.set('maxPrice', String(opts.maxPrice));
+  queryParams.set('limit', String(opts.limit ?? 5));
+
+  console.log(`[scraper-search] API search: ${queryParams.toString()}`);
 
   try {
-    const res = await fetch(`${API_BASE}/advertisement?search=${encodeURIComponent(query)}&limit=${limit}`, {
+    const res = await fetch(`${API_BASE}/advertisement?${queryParams.toString()}`, {
       headers: { 'Accept': 'application/json' },
     });
 
     if (!res.ok) return [];
 
     const json = await res.json() as any;
-    const items = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+    let items = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
 
-    return items.slice(0, limit).map((v: any) => {
+    // Client-side price filtering (in case API doesn't support it)
+    if (opts.minPrice || opts.maxPrice) {
+      items = items.filter((v: any) => {
+        const price = Number(v.price) || 0;
+        if (opts.minPrice && price < opts.minPrice) return false;
+        if (opts.maxPrice && price > opts.maxPrice) return false;
+        return true;
+      });
+    }
+
+    return items.slice(0, opts.limit ?? 5).map((v: any) => {
       const model = v.model ?? {};
       const user = v.user ?? {};
       const photos = v.photoUrl ?? [];
@@ -43,6 +72,7 @@ export async function searchVehicles(query: string, limit = 5): Promise<VehicleS
       return {
         title: `${model.brandName ?? ''} ${model.name ?? ''} ${model.version ?? ''}`.trim(),
         price: v.price ? `R$ ${Number(v.price).toLocaleString('pt-BR')}` : 'Consulte',
+        priceValue: Number(v.price) || 0,
         year: `${model.fabricationYear ?? ''}/${model.modelYear ?? ''}`,
         km: v.mileage ? `${Number(v.mileage).toLocaleString('pt-BR')} km` : '',
         url,
@@ -55,4 +85,15 @@ export async function searchVehicles(query: string, limit = 5): Promise<VehicleS
     console.error('[scraper-search] Error:', err instanceof Error ? err.message : err);
     return [];
   }
+}
+
+/**
+ * Search vehicles by price range.
+ */
+export async function searchByPrice(
+  minPrice: number,
+  maxPrice: number,
+  limit = 5,
+): Promise<VehicleSearchResult[]> {
+  return searchVehicles({ minPrice, maxPrice, limit });
 }

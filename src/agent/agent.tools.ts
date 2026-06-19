@@ -4,7 +4,7 @@ import type {
   ChatCompletionMessageFunctionToolCall,
 } from 'openai/resources/chat/completions';
 import { getVehicleData } from '../scraper/scraper.service.js';
-import { searchVehicles } from '../scraper/autoscar.search.js';
+import { searchVehicles, searchByPrice } from '../scraper/autoscar.search.js';
 import { upsertLead, updateLead, moveToStage, addNote } from '../crm/lead.service.js';
 import { getDefaultPipeline, getStageByName } from '../crm/pipeline.service.js';
 import { evolutionClient } from '../whatsapp/evolution.client.js';
@@ -17,14 +17,15 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'search_vehicles',
-      description: 'Busca veiculos disponiveis no portal autoscar.com.br por modelo, marca ou tipo. Retorna lista com titulo, preco, ano, km, url e foto. Use quando o lead perguntar sobre opcoes de veiculos ou quiser ver o que tem disponivel.',
+      description: 'Busca veiculos disponiveis no portal autoscar.com.br por modelo, marca, tipo ou faixa de preco. Retorna lista com titulo, preco, ano, km, url e foto. Use quando o lead perguntar sobre opcoes de veiculos, quiser ver o que tem disponivel ou buscar por preco.',
       parameters: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'Termo de busca: modelo, marca ou tipo do veiculo (ex: "civic", "corolla", "hilux", "suv")' },
+          query: { type: 'string', description: 'Termo de busca: modelo, marca ou tipo do veiculo (ex: "civic", "corolla", "hilux", "suv"). Opcional se buscar apenas por preco.' },
+          min_price: { type: 'number', description: 'Preco minimo em reais (ex: 50000 para R$ 50.000)' },
+          max_price: { type: 'number', description: 'Preco maximo em reais (ex: 80000 para R$ 80.000)' },
           limit: { type: 'number', description: 'Quantidade maxima de resultados (padrao 5)' },
         },
-        required: ['query'],
       },
     },
   },
@@ -123,7 +124,12 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
 
 // ---------- Zod schemas for argument validation ----------
 
-const SearchVehiclesArgs = z.object({ query: z.string(), limit: z.number().optional() });
+const SearchVehiclesArgs = z.object({
+  query: z.string().optional(),
+  min_price: z.number().optional(),
+  max_price: z.number().optional(),
+  limit: z.number().optional(),
+});
 const ScrapeVehicleArgs = z.object({ url: z.string() });
 const CreateLeadArgs = z.object({
   name: z.string().optional(),
@@ -153,13 +159,28 @@ export async function executeToolCall(
 
   switch (toolCall.function.name) {
     case 'search_vehicles': {
-      const { query, limit } = SearchVehiclesArgs.parse(args);
-      const results = await searchVehicles(query, limit ?? 5);
+      const { query, min_price, max_price, limit } = SearchVehiclesArgs.parse(args);
+
+      // Build search description for logging/error messages
+      const searchDesc = [
+        query ? `"${query}"` : null,
+        min_price ? `min R$ ${min_price.toLocaleString('pt-BR')}` : null,
+        max_price ? `max R$ ${max_price.toLocaleString('pt-BR')}` : null,
+      ].filter(Boolean).join(', ') || 'todos';
+
+      const results = await searchVehicles({
+        query: query || undefined,
+        minPrice: min_price,
+        maxPrice: max_price,
+        limit: limit ?? 5,
+      });
+
       if (results.length === 0) {
-        return { found: 0, message: `Nenhum veiculo encontrado para "${query}" no portal autoscar.com.br` };
+        return { found: 0, message: `Nenhum veiculo encontrado para ${searchDesc} no portal autoscar.com.br` };
       }
       return {
         found: results.length,
+        searchCriteria: searchDesc,
         vehicles: results.map(v => ({
           title: v.title,
           price: v.price,
