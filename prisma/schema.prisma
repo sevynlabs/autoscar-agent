@@ -12,7 +12,11 @@ datasource db {
 model WhatsAppInstance {
   id                  String   @id @default(cuid())
   name                String   @unique
-  evolutionInstanceId String
+  provider            String   @default("evolution") // "evolution" | "cloud_api"
+  evolutionInstanceId String?  // Required for Evolution API
+  phoneNumberId       String?  // Meta Phone Number ID (Cloud API)
+  businessAccountId   String?  // Meta Business Account ID (Cloud API)
+  accessToken         String?  // Meta Access Token (Cloud API)
   phoneNumber         String?
   status              String   @default("disconnected")
   tenantId            String?

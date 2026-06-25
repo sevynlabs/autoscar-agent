@@ -100,6 +100,121 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
     // ---- Ignore other events ----
     return reply.send({ status: 'ignored', event });
   });
+
+  // ---- Cloud API Webhook Verification (GET) ----
+  fastify.get<{
+    Querystring: { 'hub.mode'?: string; 'hub.verify_token'?: string; 'hub.challenge'?: string }
+  }>('/webhook/cloud-api', async (request, reply) => {
+    const mode = request.query['hub.mode'];
+    const token = request.query['hub.verify_token'];
+    const challenge = request.query['hub.challenge'];
+
+    const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'autoscar-verify-token';
+
+    if (mode === 'subscribe' && token === verifyToken) {
+      console.log('[cloud-api-webhook] Verification successful');
+      return reply.send(challenge);
+    }
+
+    console.warn('[cloud-api-webhook] Verification failed', { mode, token });
+    return reply.status(403).send('Forbidden');
+  });
+
+  // ---- Cloud API Webhook Messages (POST) ----
+  fastify.post('/webhook/cloud-api', async (request, reply) => {
+    const body = request.body as any;
+
+    console.log(JSON.stringify({
+      level: 'debug',
+      msg: '[cloud-api-webhook] Event received',
+      hasEntry: !!body?.entry,
+    }));
+
+    // Meta sends messages in entry[].changes[].value.messages[]
+    const entries = body?.entry || [];
+
+    for (const entry of entries) {
+      const changes = entry.changes || [];
+
+      for (const change of changes) {
+        if (change.field !== 'messages') continue;
+
+        const value = change.value;
+        if (!value) continue;
+
+        // Get phone number ID to find the instance
+        const phoneNumberId = value.metadata?.phone_number_id;
+        if (!phoneNumberId) continue;
+
+        // Find instance by phoneNumberId
+        const instance = await prisma.whatsAppInstance.findFirst({
+          where: { phoneNumberId, provider: 'cloud_api' },
+        });
+
+        if (!instance) {
+          console.warn('[cloud-api-webhook] No instance found for phoneNumberId:', phoneNumberId);
+          continue;
+        }
+
+        // Process incoming messages
+        const messages = value.messages || [];
+        const contacts = value.contacts || [];
+
+        for (const msg of messages) {
+          // Skip non-text messages for now
+          if (msg.type !== 'text') continue;
+
+          const from = msg.from; // Phone number of sender
+          const text = msg.text?.body;
+          const messageId = msg.id;
+
+          if (!text || !from) continue;
+
+          // Get contact name if available
+          const contact = contacts.find((c: any) => c.wa_id === from);
+          const pushName = contact?.profile?.name || undefined;
+
+          console.log(JSON.stringify({
+            level: 'info',
+            msg: '[cloud-api-webhook] Message received',
+            from,
+            preview: text.substring(0, 50),
+            messageId,
+          }));
+
+          const jobData: MessageJobData = {
+            instance: instance.name,
+            phoneNumber: from,
+            message: text,
+            messageId,
+            pushName,
+          };
+
+          const queue = getMessageQueue();
+          await queue.add('incoming-message', jobData, {
+            jobId: `msg-${instance.name}-${messageId}`,
+            removeOnComplete: 100,
+            removeOnFail: 50,
+          });
+        }
+
+        // Process status updates (delivery, read receipts)
+        const statuses = value.statuses || [];
+        for (const status of statuses) {
+          console.log(JSON.stringify({
+            level: 'debug',
+            msg: '[cloud-api-webhook] Status update',
+            messageId: status.id,
+            status: status.status,
+            recipient: status.recipient_id,
+          }));
+        }
+      }
+    }
+
+    // Meta requires 200 response
+    return reply.send({ status: 'ok' });
+  });
 };
 
 export default webhookRoutes;

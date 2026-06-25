@@ -1,10 +1,20 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { createInstance, listInstances, getQrCode, deleteInstance, getConnectionState, reconfigureWebhook } from '../../whatsapp/instance.service.js';
+import {
+  createInstance,
+  createCloudApiInstance,
+  listInstances,
+  getQrCode,
+  deleteInstance,
+  getConnectionState,
+  reconfigureWebhook,
+  getInstance,
+  updateCloudApiCredentials,
+} from '../../whatsapp/instance.service.js';
 import { evolutionClient } from '../../whatsapp/evolution.client.js';
 import prisma from '../../db/prisma.js';
 
 const instanceRoutes: FastifyPluginAsync = async (fastify) => {
-  // POST /instances — Full autonomous setup (create + webhook + events)
+  // POST /instances — Full autonomous setup for Evolution API (create + webhook + events)
   fastify.post<{ Body: { name: string; webhookUrl?: string } }>('/instances', async (request, reply) => {
     const { name, webhookUrl } = request.body;
     if (!name || typeof name !== 'string') {
@@ -18,14 +28,74 @@ const instanceRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // POST /instances/cloud-api — Create Cloud API instance
+  fastify.post<{
+    Body: {
+      name: string;
+      phoneNumberId: string;
+      businessAccountId: string;
+      accessToken: string;
+      phoneNumber?: string;
+    }
+  }>('/instances/cloud-api', async (request, reply) => {
+    const { name, phoneNumberId, businessAccountId, accessToken, phoneNumber } = request.body;
+
+    if (!name || !phoneNumberId || !businessAccountId || !accessToken) {
+      return reply.status(400).send({
+        error: 'name, phoneNumberId, businessAccountId, and accessToken are required',
+      });
+    }
+
+    try {
+      const instance = await createCloudApiInstance({
+        name,
+        phoneNumberId,
+        businessAccountId,
+        accessToken,
+        phoneNumber,
+      });
+      return reply.status(201).send(instance);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message ?? 'Failed to create Cloud API instance' });
+    }
+  });
+
   // GET /instances — List all instances with live status
   fastify.get('/instances', async () => {
     return listInstances();
   });
 
-  // GET /instances/:name/qr — Get QR code
+  // GET /instances/:name — Get instance details
+  fastify.get<{ Params: { name: string } }>('/instances/:name', async (request, reply) => {
+    const { name } = request.params;
+    const instance = await getInstance(name);
+
+    if (!instance) {
+      return reply.status(404).send({ error: 'Instance not found' });
+    }
+
+    // Enrich with connection state
+    const state = await getConnectionState(name);
+
+    return {
+      ...instance,
+      connectionState: state,
+      // Don't expose access token in API responses
+      accessToken: instance.accessToken ? '***' : null,
+    };
+  });
+
+  // GET /instances/:name/qr — Get QR code (Evolution only)
   fastify.get<{ Params: { name: string } }>('/instances/:name/qr', async (request, reply) => {
     const { name } = request.params;
+
+    const instance = await getInstance(name);
+    if (instance?.provider === 'cloud_api') {
+      return reply.status(400).send({
+        error: 'Cloud API instances do not use QR codes',
+      });
+    }
+
     try {
       const qrCode = await getQrCode(name);
       return { qrCode };
@@ -48,9 +118,20 @@ const instanceRoutes: FastifyPluginAsync = async (fastify) => {
     return { deleted: true };
   });
 
-  // GET /instances/:name/info — Profile info (number, photo, name)
-  fastify.get<{ Params: { name: string } }>('/instances/:name/info', async (request) => {
+  // GET /instances/:name/info — Profile info (number, photo, name) - Evolution only
+  fastify.get<{ Params: { name: string } }>('/instances/:name/info', async (request, reply) => {
     const { name } = request.params;
+
+    const instance = await getInstance(name);
+    if (instance?.provider === 'cloud_api') {
+      return {
+        profileName: name,
+        phoneNumber: instance.phoneNumber || '',
+        profilePictureUrl: null,
+        provider: 'cloud_api',
+      };
+    }
+
     const info = await evolutionClient.getInstanceInfo(name);
     if (info.phoneNumber) {
       await prisma.whatsAppInstance.updateMany({
@@ -58,7 +139,7 @@ const instanceRoutes: FastifyPluginAsync = async (fastify) => {
         data: { phoneNumber: info.phoneNumber },
       });
     }
-    return info;
+    return { ...info, provider: 'evolution' };
   });
 
   // POST /instances/:name/webhook — Reconfigure webhook URL
@@ -71,11 +152,42 @@ const instanceRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // GET /instances/:name/groups — List WhatsApp groups
+  // PATCH /instances/:name/credentials — Update Cloud API credentials
+  fastify.patch<{
+    Params: { name: string };
+    Body: {
+      phoneNumberId?: string;
+      businessAccountId?: string;
+      accessToken?: string;
+    }
+  }>('/instances/:name/credentials', async (request, reply) => {
+    const { name } = request.params;
+    const credentials = request.body;
+
+    try {
+      const updated = await updateCloudApiCredentials(name, credentials);
+      return {
+        ...updated,
+        accessToken: updated.accessToken ? '***' : null,
+      };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  // GET /instances/:name/groups — List WhatsApp groups (Evolution only)
   fastify.get<{ Params: { name: string }; Querystring: { search?: string } }>(
     '/instances/:name/groups',
-    async (request) => {
+    async (request, reply) => {
       const { name } = request.params;
+
+      const instance = await getInstance(name);
+      if (instance?.provider === 'cloud_api') {
+        return reply.status(400).send({
+          error: 'Cloud API does not support group listing via this endpoint',
+        });
+      }
+
       const { search } = request.query as { search?: string };
       let groups = await evolutionClient.fetchGroups(name);
       if (search) {
@@ -94,11 +206,21 @@ const instanceRoutes: FastifyPluginAsync = async (fastify) => {
     };
   });
 
-  // GET /instances/:name/webhook/diagnose — Check current webhook config and suggest fixes
+  // GET /instances/:name/webhook/diagnose — Check current webhook config and suggest fixes (Evolution only)
   fastify.get<{ Params: { name: string } }>(
     '/instances/:name/webhook/diagnose',
-    async (request) => {
+    async (request, reply) => {
       const { name } = request.params;
+
+      const instance = await getInstance(name);
+      if (instance?.provider === 'cloud_api') {
+        return {
+          provider: 'cloud_api',
+          message: 'Cloud API webhooks are managed in Meta Developer Console',
+          webhookUrl: `${process.env.APP_PUBLIC_URL || process.env.WEBHOOK_URL}/webhook/cloud-api`,
+        };
+      }
+
       const current = await evolutionClient.getWebhook(name);
       const expectedUrl = `${process.env.WEBHOOK_URL || process.env.APP_PUBLIC_URL || process.env.APP_BASE_URL}/webhook/whatsapp`;
       const requiredEvents = ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'];
@@ -135,11 +257,19 @@ const instanceRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /instances/:name/webhook/fix — Reconfigure webhook with correct settings
+  // POST /instances/:name/webhook/fix — Reconfigure webhook with correct settings (Evolution only)
   fastify.post<{ Params: { name: string } }>(
     '/instances/:name/webhook/fix',
-    async (request) => {
+    async (request, reply) => {
       const { name } = request.params;
+
+      const instance = await getInstance(name);
+      if (instance?.provider === 'cloud_api') {
+        return reply.status(400).send({
+          error: 'Cloud API webhooks are managed in Meta Developer Console',
+        });
+      }
+
       const baseUrl = process.env.WEBHOOK_URL || process.env.APP_PUBLIC_URL || process.env.APP_BASE_URL;
 
       if (!baseUrl) {
