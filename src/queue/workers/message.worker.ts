@@ -48,10 +48,57 @@ export function startMessageWorker(): Worker {
           data: { followupAttempts: 0 },
         });
 
-        // 2. Load or create conversation (with channel)
-        const conversation = await loadOrCreateConversation(phoneNumber, channelName);
+        // 2. Get active agent first to detect vehicle URL
+        const activeAgent = await getActiveAgent();
 
-        // 2.1 Save the WhatsApp pushName on the lead if we still don't have a name.
+        // 2.1 Detect vehicle URL from message BEFORE creating conversation
+        // This allows creating separate leads for different vehicles
+        let detectedVehicleUrl: string | null = null;
+
+        // Priority 1: Check for trigger code match
+        const codeMatch = detectTriggerCodeMatch(
+          message,
+          activeAgent?.triggerVehicleUrls,
+          activeAgent?.triggerVehicleCodes,
+        );
+        if (codeMatch) {
+          detectedVehicleUrl = codeMatch.url;
+          console.log(JSON.stringify({
+            level: 'info',
+            msg: '[worker] trigger code match detected',
+            code: codeMatch.code,
+            url: detectedVehicleUrl,
+          }));
+        }
+
+        // Priority 2: Check for autoscar URL in message
+        if (!detectedVehicleUrl) {
+          const autoscarUrl = detectAutoscarUrl(message);
+          if (autoscarUrl) {
+            detectedVehicleUrl = autoscarUrl;
+            console.log(JSON.stringify({
+              level: 'info',
+              msg: '[worker] autoscar URL detected',
+              url: detectedVehicleUrl,
+            }));
+          }
+        }
+
+        // Priority 3: Single trigger vehicle fallback (only if no vehicle detected)
+        if (!detectedVehicleUrl && activeAgent?.triggerVehicleUrls?.length === 1) {
+          detectedVehicleUrl = activeAgent.triggerVehicleUrls[0];
+          console.log(JSON.stringify({
+            level: 'info',
+            msg: '[worker] single trigger vehicle — auto-assigning URL',
+            url: detectedVehicleUrl,
+          }));
+        }
+
+        // 3. Load or create conversation (with channel + vehicle URL)
+        // If vehicle URL is provided, will find/create lead for that specific vehicle
+        const conversation = await loadOrCreateConversation(phoneNumber, channelName, 30, detectedVehicleUrl);
+
+        // 3.1 Save the WhatsApp pushName on the lead if we still don't have a name.
         // This is the name the contact set on their own WhatsApp account.
         if (pushName && conversation.lead && !conversation.lead.name?.trim()) {
           await prisma.lead.update({
@@ -61,78 +108,7 @@ export function startMessageWorker(): Worker {
           conversation.lead.name = pushName;
         }
 
-        // 3. Check if agent responds on this channel + instance
-        const activeAgent = await getActiveAgent();
-
-        // 3.1 Auto-assign vehicle URL from various sources (in priority order):
-        // 1. Trigger code match (user sent a registered code)
-        // 2. Autoscar URL in message (user sent a vehicle link)
-        // 3. Single trigger vehicle (agent has exactly one vehicle configured)
-        // This guarantees the sellers-group notification always carries the link.
-        if (conversation.lead && !conversation.lead.vehicleUrl?.trim()) {
-          let vehicleUrl: string | null = null;
-
-          // Priority 1: Check for trigger code match
-          const codeMatch = detectTriggerCodeMatch(
-            message,
-            activeAgent?.triggerVehicleUrls,
-            activeAgent?.triggerVehicleCodes,
-          );
-          if (codeMatch) {
-            vehicleUrl = codeMatch.url;
-            console.log(JSON.stringify({
-              level: 'info',
-              msg: '[worker] trigger code match — capturing vehicle URL early',
-              leadId: conversation.lead.id,
-              code: codeMatch.code,
-              url: vehicleUrl,
-            }));
-          }
-
-          // Priority 2: Check for autoscar URL in message
-          if (!vehicleUrl) {
-            const autoscarUrl = detectAutoscarUrl(message);
-            if (autoscarUrl) {
-              vehicleUrl = autoscarUrl;
-              console.log(JSON.stringify({
-                level: 'info',
-                msg: '[worker] autoscar URL detected — capturing vehicle URL early',
-                leadId: conversation.lead.id,
-                url: vehicleUrl,
-              }));
-            }
-          }
-
-          // Priority 3: Single trigger vehicle fallback
-          if (!vehicleUrl && activeAgent?.triggerVehicleUrls?.length === 1) {
-            vehicleUrl = activeAgent.triggerVehicleUrls[0];
-            console.log(JSON.stringify({
-              level: 'info',
-              msg: '[worker] single trigger vehicle — auto-assigning URL',
-              leadId: conversation.lead.id,
-              url: vehicleUrl,
-            }));
-          }
-
-          // Save the vehicle URL if found
-          if (vehicleUrl) {
-            try {
-              await prisma.lead.update({
-                where: { id: conversation.lead.id },
-                data: { vehicleUrl },
-              });
-              conversation.lead.vehicleUrl = vehicleUrl;
-            } catch (err) {
-              console.log(JSON.stringify({
-                level: 'error',
-                msg: '[worker] failed to save vehicle URL',
-                leadId: conversation.lead.id,
-                url: vehicleUrl,
-                error: err instanceof Error ? err.message : String(err),
-              }));
-            }
-          }
-        }
+        // 4. Check if agent responds on this channel + instance
         if (!isChannelEnabled(activeAgent, channelName)) {
           console.log(JSON.stringify({ level: 'info', msg: 'Agent disabled for this channel', channel: channelName, phone: phoneNumber }));
           return;
