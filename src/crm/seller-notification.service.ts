@@ -2,6 +2,7 @@ import prisma from '../db/prisma.js';
 import { evolutionClient } from '../whatsapp/evolution.client.js';
 import { getActiveAgent, isVehicleUrl } from '../agent/agent.prompts.js';
 import { getFollowupQueue } from '../queue/queues.js';
+import { CloudApiAdapter } from '../whatsapp/adapters/cloud-api.adapter.js';
 
 const LEADS_API_URL = 'https://dhqmwf73sb.execute-api.us-east-1.amazonaws.com/prd/advertisementLeads';
 const LEADS_API_TIMEOUT_MS = 10000;
@@ -109,6 +110,63 @@ function publicCrmUrl(): string {
     process.env.FRONTEND_PUBLIC_URL ||
     'https://autoscar.crmupx.com'
   ).replace(/\/+$/, '');
+}
+
+/**
+ * Send seller notification via Cloud API using approved template.
+ * Template: novo_lead_veiculo
+ * Variables: {{1}}=cliente, {{2}}=telefone, {{3}}=veiculo, {{4}}=link
+ */
+async function sendCloudApiSellerNotification(
+  phoneNumber: string,
+  leadName: string,
+  leadPhone: string,
+  vehicleDescription: string,
+  vehicleUrl: string,
+): Promise<boolean> {
+  const cloudInstance = await prisma.whatsAppInstance.findFirst({
+    where: { provider: 'cloud_api', status: 'connected' },
+  });
+
+  if (!cloudInstance?.accessToken || !cloudInstance?.phoneNumberId) {
+    return false;
+  }
+
+  try {
+    const adapter = new CloudApiAdapter({
+      accessToken: cloudInstance.accessToken,
+      phoneNumberId: cloudInstance.phoneNumberId,
+    });
+
+    await adapter.sendTemplate(phoneNumber, 'novo_lead_veiculo', 'pt_BR', [
+      {
+        type: 'body',
+        parameters: [
+          { type: 'text', text: leadName },
+          { type: 'text', text: leadPhone },
+          { type: 'text', text: vehicleDescription },
+          { type: 'text', text: vehicleUrl },
+        ],
+      },
+    ]);
+
+    console.log(JSON.stringify({
+      level: 'info',
+      msg: '[seller-notify] Cloud API template sent',
+      to: phoneNumber,
+      template: 'novo_lead_veiculo',
+    }));
+
+    return true;
+  } catch (err) {
+    console.log(JSON.stringify({
+      level: 'error',
+      msg: '[seller-notify] Cloud API template failed',
+      to: phoneNumber,
+      error: err instanceof Error ? err.message : String(err),
+    }));
+    return false;
+  }
 }
 
 /**
@@ -311,8 +369,34 @@ export async function notifySellersGroupForLead(
 
   let anySent = false;
   const errors: string[] = [];
+
+  // Prepare lead data for Cloud API template
+  const leadDisplayPhone = lead.contactPhone?.trim() || lead.phone;
+  const shortUrl = buildShortVehicleUrl(
+    lead.vehicleUrl,
+    agent?.triggerVehicleUrls,
+    agent?.triggerVehicleCodes,
+  );
+  const vehicleDescription = shortUrl || lead.vehicleUrl || 'Veiculo no portal';
+
   for (const dest of destinations) {
     try {
+      // Try Cloud API template for phone numbers (not groups)
+      if (!dest.includes('@') && lead.name && leadDisplayPhone) {
+        const cloudSent = await sendCloudApiSellerNotification(
+          dest,
+          lead.name,
+          leadDisplayPhone,
+          vehicleDescription,
+          shortUrl || lead.vehicleUrl || 'https://autoscar.com.br',
+        );
+        if (cloudSent) {
+          anySent = true;
+          continue;
+        }
+      }
+
+      // Fallback to Evolution API (for groups or if Cloud API unavailable)
       await evolutionClient.sendText(instance.name, dest, summary);
       anySent = true;
     } catch (err) {
