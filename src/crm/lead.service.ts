@@ -13,9 +13,10 @@ export async function upsertLead(data: {
 
   const lead = await prisma.lead.upsert({
     where: {
-      phone_pipelineId: {
+      phone_pipelineId_vehicleUrl: {
         phone: data.phone,
         pipelineId: pipeline.id,
+        vehicleUrl: data.vehicleUrl ?? '',
       },
     },
     create: {

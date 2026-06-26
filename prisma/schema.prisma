@@ -94,7 +94,7 @@ model Lead {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  @@unique([phone, pipelineId])
+  @@unique([phone, pipelineId, vehicleUrl])
   @@index([stageId])
   @@index([pipelineId])
   @@index([createdAt])
