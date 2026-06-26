@@ -129,8 +129,22 @@ async function sendCloudApiSellerNotification(
   });
 
   if (!cloudInstance?.accessToken || !cloudInstance?.phoneNumberId) {
+    console.log(JSON.stringify({
+      level: 'warn',
+      msg: '[seller-notify] Cloud API instance not found or missing credentials',
+    }));
     return false;
   }
+
+  console.log(JSON.stringify({
+    level: 'info',
+    msg: '[seller-notify] Sending Cloud API template',
+    to: phoneNumber,
+    leadName,
+    leadPhone,
+    vehicleDescription,
+    vehicleUrl,
+  }));
 
   try {
     const adapter = new CloudApiAdapter({
