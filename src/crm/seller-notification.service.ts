@@ -1,8 +1,9 @@
 import prisma from '../db/prisma.js';
 import { evolutionClient } from '../whatsapp/evolution.client.js';
 import { getActiveAgent, isVehicleUrl } from '../agent/agent.prompts.js';
-import { getFollowupQueue } from '../queue/queues.js';
+import { getFollowupQueue, getSellerNotificationQueue } from '../queue/queues.js';
 import { CloudApiAdapter } from '../whatsapp/adapters/cloud-api.adapter.js';
+import { SELLER_NOTIFICATION_DELAY_MS, type SellerNotificationJobData } from '../queue/jobs/seller-notification.job.js';
 
 const LEADS_API_URL = 'https://dhqmwf73sb.execute-api.us-east-1.amazonaws.com/prd/advertisementLeads';
 const LEADS_API_TIMEOUT_MS = 10000;
@@ -276,6 +277,97 @@ export async function buildLeadSummary(
   }
 
   return lines.join('\n');
+}
+
+/**
+ * Schedule a seller notification with a 3-minute delay.
+ * This allows the conversation to complete before notifying the seller.
+ * If the vehicle URL changes before the delay, the notification is skipped
+ * and a new one will be scheduled for the new vehicle.
+ */
+export async function scheduleSellerNotification(
+  leadId: string,
+  opts: { reason?: string } = {},
+): Promise<{ scheduled: boolean; reason?: string }> {
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    select: { id: true, vehicleUrl: true, sellerNotifiedAt: true, name: true, phone: true, contactPhone: true },
+  });
+
+  if (!lead) {
+    return { scheduled: false, reason: 'lead not found' };
+  }
+
+  // Check if already notified for this vehicle
+  if (lead.sellerNotifiedAt) {
+    console.log(JSON.stringify({
+      level: 'info',
+      msg: '[seller-notify] Already notified, skipping schedule',
+      leadId,
+      sellerNotifiedAt: lead.sellerNotifiedAt,
+    }));
+    return { scheduled: false, reason: 'already notified' };
+  }
+
+  // Check if lead has required data
+  const hasUsablePhone = !!(
+    lead.contactPhone?.trim() ||
+    (lead.phone && !lead.phone.startsWith('web:'))
+  );
+  if (!lead.name?.trim() || !hasUsablePhone) {
+    console.log(JSON.stringify({
+      level: 'info',
+      msg: '[seller-notify] Missing name or phone, skipping schedule',
+      leadId,
+      hasName: !!lead.name?.trim(),
+      hasPhone: hasUsablePhone,
+    }));
+    return { scheduled: false, reason: 'missing name or phone' };
+  }
+
+  const queue = getSellerNotificationQueue();
+  const jobId = `seller-notify-${leadId}`;
+
+  // Remove any existing job for this lead (in case vehicle changed)
+  try {
+    const existingJob = await queue.getJob(jobId);
+    if (existingJob) {
+      await existingJob.remove();
+      console.log(JSON.stringify({
+        level: 'info',
+        msg: '[seller-notify] Removed existing scheduled job',
+        leadId,
+        jobId,
+      }));
+    }
+  } catch {
+    // Job doesn't exist, that's fine
+  }
+
+  // Schedule new notification
+  const jobData: SellerNotificationJobData = {
+    leadId,
+    vehicleUrl: lead.vehicleUrl,
+    reason: opts.reason,
+  };
+
+  await queue.add(jobId, jobData, {
+    jobId,
+    delay: SELLER_NOTIFICATION_DELAY_MS,
+    removeOnComplete: true,
+    removeOnFail: false,
+  });
+
+  console.log(JSON.stringify({
+    level: 'info',
+    msg: '[seller-notify] Scheduled notification with delay',
+    leadId,
+    vehicleUrl: lead.vehicleUrl,
+    delayMs: SELLER_NOTIFICATION_DELAY_MS,
+    jobId,
+  }));
+
+  return { scheduled: true };
 }
 
 /**

@@ -7,7 +7,6 @@ import prisma from '../../db/prisma.js';
 import { getFollowupQueue } from '../queues.js';
 import { emitNewMessage, emitConversationUpdated, emitLeadMoved } from '../../realtime/emitter.js';
 import { fireWebhooks } from '../../webhooks/webhook.service.js';
-import { notifySellersGroupForLead } from '../../crm/seller-notification.service.js';
 import { runPostTurn } from '../../conversation/post-turn.js';
 import type { MessageJobData } from '../jobs/message.job.js';
 

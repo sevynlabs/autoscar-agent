@@ -4,6 +4,7 @@ let messageQueue: Queue | null = null;
 let followupQueue: Queue | null = null;
 let followupWorkflowQueue: Queue | null = null;
 let reengagementQueue: Queue | null = null;
+let sellerNotificationQueue: Queue | null = null;
 
 function getRedisUrl(): string {
   const url = process.env.REDIS_URL;
@@ -37,4 +38,11 @@ export function getReengagementQueue(): Queue {
     reengagementQueue = new Queue('reengagement', { connection: { url: getRedisUrl() } });
   }
   return reengagementQueue!;
+}
+
+export function getSellerNotificationQueue(): Queue {
+  if (!sellerNotificationQueue) {
+    sellerNotificationQueue = new Queue('seller-notification', { connection: { url: getRedisUrl() } });
+  }
+  return sellerNotificationQueue!;
 }

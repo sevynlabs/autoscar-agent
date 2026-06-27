@@ -1,6 +1,6 @@
 import prisma from '../db/prisma.js';
 import { emitLeadMoved } from '../realtime/emitter.js';
-import { notifySellersGroupForLead } from '../crm/seller-notification.service.js';
+import { scheduleSellerNotification } from '../crm/seller-notification.service.js';
 
 /**
  * Deterministic post-turn enforcement — shared by the WhatsApp message worker
@@ -89,7 +89,7 @@ export async function runPostTurn(leadId: string | undefined): Promise<void> {
     if (qualifiedStage) {
       await prisma.lead.update({ where: { id: lead.id }, data: { stageId: qualifiedStage.id } });
       emitLeadMoved({ id: lead.id, stageId: qualifiedStage.id });
-      await notifySellersGroupForLead(lead.id).catch(() => {});
+      await scheduleSellerNotification(lead.id, { reason: 'disqualified-reverted' }).catch(() => {});
     }
     return;
   }
@@ -121,21 +121,21 @@ export async function runPostTurn(leadId: string | undefined): Promise<void> {
       emitLeadMoved({ id: lead.id, stageId: qualifiedStage.id });
       console.log(JSON.stringify({
         level: 'info',
-        msg: '[post-turn] Moved to Qualificado, calling notifySellersGroupForLead',
+        msg: '[post-turn] Moved to Qualificado, scheduling seller notification',
         leadId,
       }));
-      const result = await notifySellersGroupForLead(lead.id).catch((err) => {
+      const result = await scheduleSellerNotification(lead.id, { reason: 'qualified' }).catch((err: Error) => {
         console.log(JSON.stringify({
           level: 'error',
-          msg: '[post-turn] notifySellersGroupForLead failed',
+          msg: '[post-turn] scheduleSellerNotification failed',
           leadId,
-          error: err instanceof Error ? err.message : String(err),
+          error: err.message,
         }));
-        return { sent: false, reason: 'exception' };
+        return { scheduled: false, reason: 'exception' };
       });
       console.log(JSON.stringify({
         level: 'info',
-        msg: '[post-turn] notifySellersGroupForLead result',
+        msg: '[post-turn] scheduleSellerNotification result',
         leadId,
         result,
       }));
@@ -147,21 +147,21 @@ export async function runPostTurn(leadId: string | undefined): Promise<void> {
   if (isQualified && !lead.sellerNotifiedAt) {
     console.log(JSON.stringify({
       level: 'info',
-      msg: '[post-turn] Already qualified but not notified, calling notifySellersGroupForLead',
+      msg: '[post-turn] Already qualified but not notified, scheduling seller notification',
       leadId,
     }));
-    const result = await notifySellersGroupForLead(lead.id).catch((err) => {
+    const result = await scheduleSellerNotification(lead.id, { reason: 'qualified-first-entry' }).catch((err: Error) => {
       console.log(JSON.stringify({
         level: 'error',
-        msg: '[post-turn] notifySellersGroupForLead failed',
+        msg: '[post-turn] scheduleSellerNotification failed',
         leadId,
-        error: err instanceof Error ? err.message : String(err),
+        error: err.message,
       }));
-      return { sent: false, reason: 'exception' };
+      return { scheduled: false, reason: 'exception' };
     });
     console.log(JSON.stringify({
       level: 'info',
-      msg: '[post-turn] notifySellersGroupForLead result',
+      msg: '[post-turn] scheduleSellerNotification result',
       leadId,
       result,
     }));
