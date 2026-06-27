@@ -215,3 +215,15 @@ model FollowupConfig {
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 }
+
+// Maps seller phone numbers to WhatsApp group JIDs
+// When a lead's vehicle belongs to a mapped seller, notification goes to the group
+model SellerGroupMapping {
+  id          String   @id @default(cuid())
+  sellerPhone String   @unique // Seller phone (normalized, e.g., 5531999999999)
+  sellerName  String?  // Optional friendly name
+  groupJid    String   // WhatsApp group JID (e.g., 5531999999999-1234567890@g.us)
+  groupName   String?  // Optional group name for reference
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

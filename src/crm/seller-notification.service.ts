@@ -438,6 +438,9 @@ export async function notifySellersGroupForLead(
     }));
   }
 
+  // Track if we should use a mapped group instead of direct phone
+  let sellerGroupJid: string | null = null;
+
   if (hasValidVehicleUrl && lead.name?.trim() && leadPhone) {
     const apiResult = await sendLeadToApi(leadPhone, lead.name, lead.vehicleUrl!);
     if (apiResult?.customer?.phone) {
@@ -451,6 +454,25 @@ export async function notifySellersGroupForLead(
         sellerPhone: vehicleSellerPhone,
         sellerName: vehicleSellerName,
       }));
+
+      // Check if this seller has a mapped group
+      if (vehicleSellerPhone) {
+        const groupMapping = await prisma.sellerGroupMapping.findUnique({
+          where: { sellerPhone: vehicleSellerPhone },
+        });
+        if (groupMapping) {
+          sellerGroupJid = groupMapping.groupJid;
+          console.log(JSON.stringify({
+            level: 'info',
+            msg: '[seller-notify] Using mapped group for seller',
+            leadId,
+            sellerPhone: vehicleSellerPhone,
+            sellerName: vehicleSellerName,
+            groupJid: sellerGroupJid,
+            groupName: groupMapping.groupName,
+          }));
+        }
+      }
     } else {
       console.log(JSON.stringify({
         level: 'warn',
@@ -461,16 +483,22 @@ export async function notifySellersGroupForLead(
     }
   }
 
-  // Build destinations: ALWAYS include group + vehicle seller if found
-  const groupJid = normalizeDestination(agent?.sellersGroupJid || process.env.SELLERS_GROUP_JID);
+  // Build destinations
+  // If seller has a mapped group, use the group instead of direct phone
+  const defaultGroupJid = normalizeDestination(agent?.sellersGroupJid || process.env.SELLERS_GROUP_JID);
   const sellersPhone = normalizeDestination(agent?.sellersPhone);
+
+  // Determine seller destination: use mapped group if available, otherwise use phone
+  const sellerDestination = sellerGroupJid || vehicleSellerPhone;
 
   console.log(JSON.stringify({
     level: 'info',
     msg: '[seller-notify] Building destinations',
     leadId,
     vehicleSellerPhone,
-    groupJid,
+    sellerGroupJid,
+    sellerDestination,
+    defaultGroupJid,
     sellersPhone,
     agentSellersGroupJid: agent?.sellersGroupJid,
     agentSellersPhone: agent?.sellersPhone,
@@ -480,8 +508,8 @@ export async function notifySellersGroupForLead(
   const destinations = Array.from(
     new Set(
       [
-        vehicleSellerPhone,  // Vendedor da listagem (se houver)
-        groupJid,            // Grupo sempre recebe
+        sellerDestination,   // Vendedor: grupo mapeado ou telefone direto
+        defaultGroupJid,     // Grupo geral (se configurado)
         sellersPhone,        // Telefone configurado no agente
       ].filter((d): d is string => !!d),
     ),
