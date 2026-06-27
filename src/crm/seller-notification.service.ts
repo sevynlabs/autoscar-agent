@@ -585,14 +585,26 @@ export async function notifySellersGroupForLead(
       }
 
       // Fallback to Evolution API (for groups or if Cloud API unavailable)
+      // For groups, we need an Evolution API instance (Cloud API doesn't support groups)
+      const evolutionInstance = await prisma.whatsAppInstance.findFirst({
+        where: { status: 'connected', provider: 'evolution' },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      const instanceToUse = dest.includes('@') ? evolutionInstance : instance;
+      if (!instanceToUse) {
+        throw new Error(dest.includes('@') ? 'No Evolution API instance for groups' : 'No WhatsApp instance');
+      }
+
       console.log(JSON.stringify({
         level: 'info',
         msg: '[seller-notify] Using Evolution API fallback',
         leadId,
         dest,
-        instanceName: instance.name,
+        instanceName: instanceToUse.name,
+        provider: instanceToUse.provider,
       }));
-      await evolutionClient.sendText(instance.name, dest, summary);
+      await evolutionClient.sendText(instanceToUse.name, dest, summary);
       console.log(JSON.stringify({
         level: 'info',
         msg: '[seller-notify] Evolution API success',
