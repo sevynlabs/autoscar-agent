@@ -130,4 +130,60 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       throw err;
     }
   });
+
+  // GET /admin/vehicle-seller?url=... — Lookup seller info for a vehicle URL
+  fastify.get<{ Querystring: { url: string } }>('/admin/vehicle-seller', async (request, reply) => {
+    const { url } = request.query;
+
+    if (!url) {
+      return reply.code(400).send({ error: 'url query parameter is required' });
+    }
+
+    try {
+      const res = await fetch('https://dhqmwf73sb.execute-api.us-east-1.amazonaws.com/prd/advertisementLeads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadPhone: '5500000000000', // Dummy phone for lookup
+          leadName: 'Consulta',
+          link: url,
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!res.ok) {
+        return reply.code(res.status).send({ error: 'API returned error', status: res.status });
+      }
+
+      const data = await res.json() as any;
+      const seller = data.customer;
+
+      if (!seller) {
+        return { found: false, message: 'No seller found for this vehicle' };
+      }
+
+      const sellerPhoneNormalized = normalizePhone(seller.phone || '');
+
+      // Check if seller has a group mapping
+      const mapping = await prisma.sellerGroupMapping.findUnique({
+        where: { sellerPhone: sellerPhoneNormalized },
+      });
+
+      return {
+        found: true,
+        seller: {
+          name: seller.name,
+          fantasyName: seller.fantasyName,
+          companyName: seller.companyName,
+          phone: seller.phone,
+          phoneNormalized: sellerPhoneNormalized,
+          email: seller.email,
+        },
+        hasGroupMapping: !!mapping,
+        groupMapping: mapping || null,
+      };
+    } catch (err: any) {
+      return reply.code(500).send({ error: err.message });
+    }
+  });
 }
