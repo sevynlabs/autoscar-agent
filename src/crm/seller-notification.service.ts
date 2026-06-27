@@ -288,6 +288,13 @@ export async function notifySellersGroupForLead(
   leadId: string,
   opts: { reason?: string; force?: boolean } = {},
 ): Promise<{ sent: boolean; reason?: string }> {
+  console.log(JSON.stringify({
+    level: 'info',
+    msg: '[seller-notify] START - notifySellersGroupForLead called',
+    leadId,
+    opts,
+  }));
+
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) return { sent: false, reason: 'lead not found' };
 
@@ -366,6 +373,18 @@ export async function notifySellersGroupForLead(
   const groupJid = normalizeDestination(agent?.sellersGroupJid || process.env.SELLERS_GROUP_JID);
   const sellersPhone = normalizeDestination(agent?.sellersPhone);
 
+  console.log(JSON.stringify({
+    level: 'info',
+    msg: '[seller-notify] Building destinations',
+    leadId,
+    vehicleSellerPhone,
+    groupJid,
+    sellersPhone,
+    agentSellersGroupJid: agent?.sellersGroupJid,
+    agentSellersPhone: agent?.sellersPhone,
+    envSellersGroupJid: process.env.SELLERS_GROUP_JID,
+  }));
+
   const destinations = Array.from(
     new Set(
       [
@@ -375,7 +394,21 @@ export async function notifySellersGroupForLead(
       ].filter((d): d is string => !!d),
     ),
   );
+
+  console.log(JSON.stringify({
+    level: 'info',
+    msg: '[seller-notify] Destinations resolved',
+    leadId,
+    destinations,
+    count: destinations.length,
+  }));
+
   if (destinations.length === 0) {
+    console.log(JSON.stringify({
+      level: 'warn',
+      msg: '[seller-notify] NO DESTINATIONS - check agent config and env vars',
+      leadId,
+    }));
     return { sent: false, reason: 'no sellers destination configured' };
   }
 
@@ -394,9 +427,23 @@ export async function notifySellersGroupForLead(
   const vehicleDescription = shortUrl || lead.vehicleUrl || 'Veiculo no portal';
 
   for (const dest of destinations) {
+    console.log(JSON.stringify({
+      level: 'info',
+      msg: '[seller-notify] Attempting to send to destination',
+      leadId,
+      dest,
+      isGroup: dest.includes('@'),
+    }));
+
     try {
       // Try Cloud API template for phone numbers (not groups)
       if (!dest.includes('@') && lead.name && leadDisplayPhone) {
+        console.log(JSON.stringify({
+          level: 'info',
+          msg: '[seller-notify] Trying Cloud API for phone destination',
+          leadId,
+          dest,
+        }));
         const cloudSent = await sendCloudApiSellerNotification(
           dest,
           lead.name,
@@ -404,6 +451,13 @@ export async function notifySellersGroupForLead(
           vehicleDescription,
           shortUrl || lead.vehicleUrl || 'https://autoscar.com.br',
         );
+        console.log(JSON.stringify({
+          level: 'info',
+          msg: '[seller-notify] Cloud API result',
+          leadId,
+          dest,
+          cloudSent,
+        }));
         if (cloudSent) {
           anySent = true;
           continue;
@@ -411,9 +465,29 @@ export async function notifySellersGroupForLead(
       }
 
       // Fallback to Evolution API (for groups or if Cloud API unavailable)
+      console.log(JSON.stringify({
+        level: 'info',
+        msg: '[seller-notify] Using Evolution API fallback',
+        leadId,
+        dest,
+        instanceName: instance.name,
+      }));
       await evolutionClient.sendText(instance.name, dest, summary);
+      console.log(JSON.stringify({
+        level: 'info',
+        msg: '[seller-notify] Evolution API success',
+        leadId,
+        dest,
+      }));
       anySent = true;
     } catch (err) {
+      console.log(JSON.stringify({
+        level: 'error',
+        msg: '[seller-notify] Failed to send to destination',
+        leadId,
+        dest,
+        error: err instanceof Error ? err.message : String(err),
+      }));
       errors.push(`${dest}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
