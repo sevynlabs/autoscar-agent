@@ -47,5 +47,20 @@ VALUES (
   NOW()
 );
 
+-- ========== Curinga Seminovos ==========
+DELETE FROM "SellerGroupMapping" WHERE "sellerEmail" = 'seminovos@curinga.com.br';
+
+INSERT INTO "SellerGroupMapping" ("id", "sellerPhone", "sellerEmail", "sellerName", "groupJid", "groupName", "createdAt", "updatedAt")
+VALUES (
+  gen_random_uuid()::text,
+  NULL,
+  'seminovos@curinga.com.br',
+  'Curinga Seminovos',
+  '120363397466057093@g.us',
+  'Curinga Seminovos',
+  NOW(),
+  NOW()
+);
+
 -- Verifica os resultados
 SELECT * FROM "SellerGroupMapping" ORDER BY "createdAt" DESC;
