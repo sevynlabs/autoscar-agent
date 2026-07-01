@@ -62,5 +62,20 @@ VALUES (
   NOW()
 );
 
+-- ========== New Car Veículos ==========
+DELETE FROM "SellerGroupMapping" WHERE "sellerEmail" = 'robsonnewcar@hotmail.com';
+
+INSERT INTO "SellerGroupMapping" ("id", "sellerPhone", "sellerEmail", "sellerName", "groupJid", "groupName", "createdAt", "updatedAt")
+VALUES (
+  gen_random_uuid()::text,
+  NULL,
+  'robsonnewcar@hotmail.com',
+  'New Car Veículos',
+  '120363428385494350@g.us',
+  'New Car Veículos',
+  NOW(),
+  NOW()
+);
+
 -- Verifica os resultados
 SELECT * FROM "SellerGroupMapping" ORDER BY "createdAt" DESC;
