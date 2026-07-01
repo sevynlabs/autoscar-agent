@@ -49,26 +49,34 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   });
 
   // POST /admin/seller-groups — Create a new seller-to-group mapping
+  // Supports mapping by email (priority) or phone
   fastify.post<{
     Body: {
-      sellerPhone: string;
+      sellerPhone?: string;
+      sellerEmail?: string;
       sellerName?: string;
       groupJid: string;
       groupName?: string;
     };
   }>('/admin/seller-groups', async (request, reply) => {
-    const { sellerPhone, sellerName, groupJid, groupName } = request.body;
+    const { sellerPhone, sellerEmail, sellerName, groupJid, groupName } = request.body;
 
-    if (!sellerPhone || !groupJid) {
-      return reply.code(400).send({ error: 'sellerPhone and groupJid are required' });
+    if (!groupJid) {
+      return reply.code(400).send({ error: 'groupJid is required' });
     }
 
-    const normalizedPhone = normalizePhone(sellerPhone);
+    if (!sellerPhone && !sellerEmail) {
+      return reply.code(400).send({ error: 'sellerPhone or sellerEmail is required' });
+    }
+
+    const normalizedPhone = sellerPhone ? normalizePhone(sellerPhone) : null;
+    const normalizedEmail = sellerEmail?.trim().toLowerCase() || null;
 
     try {
       const mapping = await prisma.sellerGroupMapping.create({
         data: {
           sellerPhone: normalizedPhone,
+          sellerEmail: normalizedEmail,
           sellerName,
           groupJid,
           groupName,
@@ -77,7 +85,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       return reply.code(201).send(mapping);
     } catch (err: any) {
       if (err.code === 'P2002') {
-        return reply.code(409).send({ error: 'Seller phone already mapped' });
+        return reply.code(409).send({ error: 'Seller phone or email already mapped' });
       }
       throw err;
     }
@@ -88,16 +96,18 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     Params: { id: string };
     Body: {
       sellerPhone?: string;
+      sellerEmail?: string;
       sellerName?: string;
       groupJid?: string;
       groupName?: string;
     };
   }>('/admin/seller-groups/:id', async (request, reply) => {
     const { id } = request.params;
-    const { sellerPhone, sellerName, groupJid, groupName } = request.body;
+    const { sellerPhone, sellerEmail, sellerName, groupJid, groupName } = request.body;
 
     const data: any = {};
-    if (sellerPhone) data.sellerPhone = normalizePhone(sellerPhone);
+    if (sellerPhone !== undefined) data.sellerPhone = sellerPhone ? normalizePhone(sellerPhone) : null;
+    if (sellerEmail !== undefined) data.sellerEmail = sellerEmail?.trim().toLowerCase() || null;
     if (sellerName !== undefined) data.sellerName = sellerName;
     if (groupJid) data.groupJid = groupJid;
     if (groupName !== undefined) data.groupName = groupName;
@@ -163,11 +173,25 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       }
 
       const sellerPhoneNormalized = normalizePhone(seller.phone || '');
+      const sellerEmailNormalized = seller.email?.trim().toLowerCase() || null;
 
-      // Check if seller has a group mapping
-      const mapping = await prisma.sellerGroupMapping.findUnique({
-        where: { sellerPhone: sellerPhoneNormalized },
-      });
+      // Check if seller has a group mapping (email takes priority)
+      let mapping = null;
+      let mappedBy: 'email' | 'phone' | null = null;
+
+      if (sellerEmailNormalized) {
+        mapping = await prisma.sellerGroupMapping.findUnique({
+          where: { sellerEmail: sellerEmailNormalized },
+        });
+        if (mapping) mappedBy = 'email';
+      }
+
+      if (!mapping && sellerPhoneNormalized) {
+        mapping = await prisma.sellerGroupMapping.findFirst({
+          where: { sellerPhone: sellerPhoneNormalized },
+        });
+        if (mapping) mappedBy = 'phone';
+      }
 
       return {
         found: true,
@@ -178,8 +202,10 @@ export default async function adminRoutes(fastify: FastifyInstance) {
           phone: seller.phone,
           phoneNormalized: sellerPhoneNormalized,
           email: seller.email,
+          emailNormalized: sellerEmailNormalized,
         },
         hasGroupMapping: !!mapping,
+        mappedBy,
         groupMapping: mapping || null,
       };
     } catch (err: any) {

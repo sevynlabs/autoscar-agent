@@ -440,11 +440,13 @@ export async function notifySellersGroupForLead(
 
   // Track if we should use a mapped group instead of direct phone
   let sellerGroupJid: string | null = null;
+  let vehicleSellerEmail: string | null = null;
 
   if (hasValidVehicleUrl && lead.name?.trim() && leadPhone) {
     const apiResult = await sendLeadToApi(leadPhone, lead.name, lead.vehicleUrl!);
     if (apiResult?.customer?.phone) {
       vehicleSellerPhone = normalizeDestination(apiResult.customer.phone);
+      vehicleSellerEmail = apiResult.customer.email?.trim().toLowerCase() || null;
       vehicleSellerName = apiResult.customer.fantasyName || apiResult.customer.name || null;
       console.log(JSON.stringify({
         level: 'info',
@@ -452,26 +454,56 @@ export async function notifySellersGroupForLead(
         leadId,
         vehicleUrl: lead.vehicleUrl,
         sellerPhone: vehicleSellerPhone,
+        sellerEmail: vehicleSellerEmail,
         sellerName: vehicleSellerName,
       }));
 
       // Check if this seller has a mapped group
-      if (vehicleSellerPhone) {
-        const groupMapping = await prisma.sellerGroupMapping.findUnique({
+      // Priority: email first (more specific), then phone
+      let groupMapping = null;
+
+      // 1. Try to find by email first (more specific)
+      if (vehicleSellerEmail) {
+        groupMapping = await prisma.sellerGroupMapping.findUnique({
+          where: { sellerEmail: vehicleSellerEmail },
+        });
+        if (groupMapping) {
+          console.log(JSON.stringify({
+            level: 'info',
+            msg: '[seller-notify] Found group mapping by email',
+            leadId,
+            sellerEmail: vehicleSellerEmail,
+          }));
+        }
+      }
+
+      // 2. Fall back to phone if no email mapping found
+      if (!groupMapping && vehicleSellerPhone) {
+        groupMapping = await prisma.sellerGroupMapping.findFirst({
           where: { sellerPhone: vehicleSellerPhone },
         });
         if (groupMapping) {
-          sellerGroupJid = groupMapping.groupJid;
           console.log(JSON.stringify({
             level: 'info',
-            msg: '[seller-notify] Using mapped group for seller',
+            msg: '[seller-notify] Found group mapping by phone',
             leadId,
             sellerPhone: vehicleSellerPhone,
-            sellerName: vehicleSellerName,
-            groupJid: sellerGroupJid,
-            groupName: groupMapping.groupName,
           }));
         }
+      }
+
+      if (groupMapping) {
+        sellerGroupJid = groupMapping.groupJid;
+        console.log(JSON.stringify({
+          level: 'info',
+          msg: '[seller-notify] Using mapped group for seller',
+          leadId,
+          sellerPhone: vehicleSellerPhone,
+          sellerEmail: vehicleSellerEmail,
+          sellerName: vehicleSellerName,
+          groupJid: sellerGroupJid,
+          groupName: groupMapping.groupName,
+        }));
       }
     } else {
       console.log(JSON.stringify({
