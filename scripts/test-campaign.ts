@@ -34,4 +34,9 @@ assert.equal(r.cleanUrl, 'https://autoscar.com.br/carros/onix?cor=azul');
 r = extractCampaign('https://autoscar.com.br/carros/onix?camp=' + 'A'.repeat(100), 'x');
 assert.equal(r.campaignCode?.length, 64);
 
+// 8. Unparseable URL → left as-is, code still found via message fallback
+r = extractCampaign('not-a-valid-url', 'quero o carro camp: FOO');
+assert.equal(r.campaignCode, 'FOO');
+assert.equal(r.cleanUrl, 'not-a-valid-url');
+
 console.log('campaign parse: all assertions passed');
