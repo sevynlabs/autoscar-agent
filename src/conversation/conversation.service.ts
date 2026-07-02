@@ -107,6 +107,7 @@ export async function loadOrCreateConversation(
       creditStatus: lead.creditStatus,
       paymentMethod: lead.paymentMethod,
       vehicleUrl: lead.vehicleUrl,
+      campaignCode: lead.campaignCode,
       stage: lead.stage,
     },
   };

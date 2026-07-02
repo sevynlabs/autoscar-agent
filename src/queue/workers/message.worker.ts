@@ -9,6 +9,7 @@ import { emitNewMessage, emitConversationUpdated, emitLeadMoved } from '../../re
 import { fireWebhooks } from '../../webhooks/webhook.service.js';
 import { runPostTurn } from '../../conversation/post-turn.js';
 import type { MessageJobData } from '../jobs/message.job.js';
+import { extractCampaign } from '../../whatsapp/campaign.js';
 
 let worker: Worker | null = null;
 
@@ -93,6 +94,20 @@ export function startMessageWorker(): Worker {
           }));
         }
 
+        // Extract the campaign code from the ad's pre-filled message and
+        // normalize the vehicle URL (strip campaign/tracking params) so the
+        // lead identity and the autoscar seller lookup stay keyed on the
+        // clean vehicle URL.
+        const { cleanUrl, campaignCode } = extractCampaign(detectedVehicleUrl, message);
+        detectedVehicleUrl = cleanUrl;
+        if (campaignCode) {
+          console.log(JSON.stringify({
+            level: 'info',
+            msg: '[worker] campaign code detected',
+            campaignCode,
+          }));
+        }
+
         // 3. Load or create conversation (with channel + vehicle URL)
         // If vehicle URL is provided, will find/create lead for that specific vehicle
         const conversation = await loadOrCreateConversation(phoneNumber, channelName, 30, detectedVehicleUrl);
@@ -105,6 +120,17 @@ export function startMessageWorker(): Worker {
             data: { name: pushName },
           }).catch(() => { /* non-critical */ });
           conversation.lead.name = pushName;
+        }
+
+        // Persist the campaign code on first touch only — the code appears
+        // only in the first message, and the notification runs ~3 min later
+        // in another worker, so it must live on the lead.
+        if (campaignCode && conversation.lead && !conversation.lead.campaignCode) {
+          await prisma.lead.update({
+            where: { id: conversation.lead.id },
+            data: { campaignCode },
+          }).catch(() => { /* non-critical */ });
+          conversation.lead.campaignCode = campaignCode;
         }
 
         // 4. Check if agent responds on this channel + instance
