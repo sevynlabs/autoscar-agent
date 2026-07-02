@@ -78,6 +78,7 @@ model Lead {
   creditStatus  String?
   paymentMethod String?
   vehicleUrl    String?
+  campaignCode  String?
   stageId       String?
   stage         Stage?        @relation(fields: [stageId], references: [id])
   pipelineId    String?
