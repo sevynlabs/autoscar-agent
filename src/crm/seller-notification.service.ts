@@ -259,6 +259,12 @@ export async function buildLeadSummary(
   lines.push(`📞 Telefone: ${displayPhone}`);
   lines.push(`📍 Cidade: ${lead.city?.trim() || 'não informada'}`);
   lines.push(`🚗 Veículo: ${shortUrl || 'não informado'}`);
+  // Paid-traffic tag: present only when the lead arrived via an ad whose
+  // pre-filled message carried a campaign code. 📢 avoids colliding with the
+  // 📣 header above.
+  if (lead.campaignCode) {
+    lines.push(`📢 Campanha: ${lead.campaignCode}`);
+  }
 
   // Interest notes
   if (lead.notes.length > 0) {
