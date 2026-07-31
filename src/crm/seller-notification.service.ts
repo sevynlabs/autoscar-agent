@@ -526,7 +526,10 @@ export async function notifySellersGroupForLead(
   const defaultGroupJid = normalizeDestination(agent?.sellersGroupJid || process.env.SELLERS_GROUP_JID);
   const sellersPhone = normalizeDestination(agent?.sellersPhone);
 
-  // Determine seller destination: use mapped group if available, otherwise use phone
+  // Determine the seller destination. A mapped group is authoritative; when
+  // the API identifies a seller without a group mapping, notify that seller
+  // directly. Only use the configured defaults when the vehicle seller cannot
+  // be resolved, otherwise the lead may be sent to unrelated sellers too.
   const sellerDestination = sellerGroupJid || vehicleSellerPhone;
 
   console.log(JSON.stringify({
@@ -543,15 +546,11 @@ export async function notifySellersGroupForLead(
     envSellersGroupJid: process.env.SELLERS_GROUP_JID,
   }));
 
-  const destinations = Array.from(
-    new Set(
-      [
-        sellerDestination,   // Vendedor: grupo mapeado ou telefone direto
-        defaultGroupJid,     // Grupo geral (se configurado)
-        sellersPhone,        // Telefone configurado no agente
-      ].filter((d): d is string => !!d),
-    ),
-  );
+  const destinations = Array.from(new Set(
+    sellerDestination
+      ? [sellerDestination]
+      : [defaultGroupJid, sellersPhone].filter((d): d is string => !!d),
+  ));
 
   console.log(JSON.stringify({
     level: 'info',
