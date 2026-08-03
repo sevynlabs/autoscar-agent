@@ -320,15 +320,16 @@ export async function scheduleSellerNotification(
     lead.contactPhone?.trim() ||
     (lead.phone && !lead.phone.startsWith('web:'))
   );
-  if (!lead.name?.trim() || !hasUsablePhone) {
+  if (!lead.name?.trim() || !hasUsablePhone || !lead.vehicleUrl?.trim()) {
     console.log(JSON.stringify({
       level: 'info',
-      msg: '[seller-notify] Missing name or phone, skipping schedule',
+      msg: '[seller-notify] Missing name, phone, or vehicle, skipping schedule',
       leadId,
       hasName: !!lead.name?.trim(),
       hasPhone: hasUsablePhone,
+      hasVehicle: !!lead.vehicleUrl?.trim(),
     }));
-    return { scheduled: false, reason: 'missing name or phone' };
+    return { scheduled: false, reason: 'missing name, phone, or vehicle' };
   }
 
   const queue = getSellerNotificationQueue();
@@ -403,15 +404,16 @@ export async function notifySellersGroupForLead(
     lead.contactPhone?.trim() ||
     (lead.phone && !lead.phone.startsWith('web:'))
   );
-  if (!lead.name?.trim() || !hasUsablePhone) {
+  if (!lead.name?.trim() || !hasUsablePhone || !lead.vehicleUrl?.trim()) {
     console.log(JSON.stringify({
       level: 'info',
-      msg: '[seller-notify] blocked — missing name or phone',
+      msg: '[seller-notify] blocked — missing name, phone, or vehicle',
       leadId,
       hasName: Boolean(lead.name?.trim()),
       hasPhone: hasUsablePhone,
+      hasVehicle: Boolean(lead.vehicleUrl?.trim()),
     }));
-    return { sent: false, reason: 'missing name or phone' };
+    return { sent: false, reason: 'missing name, phone, or vehicle' };
   }
 
   // NOTE: Blocking removed. Each vehicle interest generates a notification
@@ -450,7 +452,7 @@ export async function notifySellersGroupForLead(
 
   if (hasValidVehicleUrl && lead.name?.trim() && leadPhone) {
     const apiResult = await sendLeadToApi(leadPhone, lead.name, lead.vehicleUrl!);
-    if (apiResult?.customer?.phone) {
+    if (apiResult?.customer && (apiResult.customer.phone || apiResult.customer.email)) {
       vehicleSellerPhone = normalizeDestination(apiResult.customer.phone);
       vehicleSellerEmail = apiResult.customer.email?.trim().toLowerCase() || null;
       vehicleSellerName = apiResult.customer.fantasyName || apiResult.customer.name || null;
@@ -523,9 +525,6 @@ export async function notifySellersGroupForLead(
 
   // Build destinations
   // If seller has a mapped group, use the group instead of direct phone
-  const defaultGroupJid = normalizeDestination(agent?.sellersGroupJid || process.env.SELLERS_GROUP_JID);
-  const sellersPhone = normalizeDestination(agent?.sellersPhone);
-
   // Determine the seller destination. A mapped group is authoritative; when
   // the API identifies a seller without a group mapping, notify that seller
   // directly. Only use the configured defaults when the vehicle seller cannot
@@ -539,17 +538,18 @@ export async function notifySellersGroupForLead(
     vehicleSellerPhone,
     sellerGroupJid,
     sellerDestination,
-    defaultGroupJid,
-    sellersPhone,
     agentSellersGroupJid: agent?.sellersGroupJid,
     agentSellersPhone: agent?.sellersPhone,
     envSellersGroupJid: process.env.SELLERS_GROUP_JID,
   }));
 
+  // Never route a vehicle lead to a generic store group when the vehicle
+  // seller could not be resolved. That fallback can send Rigonato leads to
+  // whichever store happens to be configured as the global default (e.g. Saga).
   const destinations = Array.from(new Set(
     sellerDestination
       ? [sellerDestination]
-      : [defaultGroupJid, sellersPhone].filter((d): d is string => !!d),
+      : [],
   ));
 
   console.log(JSON.stringify({
