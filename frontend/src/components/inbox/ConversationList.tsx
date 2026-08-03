@@ -105,10 +105,13 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
           const isSelected = selectedId === conv.id;
 
           return (
-            <div key={conv.id} onClick={() => onSelect(conv.id)}
+            <button key={conv.id} type="button" onClick={() => onSelect(conv.id)}
+              aria-pressed={isSelected}
+              aria-label={`Abrir conversa de ${conv.lead.name || leadPhone(conv.lead) || 'Lead'}`}
               className={`px-3 py-3 cursor-pointer transition-all duration-150 border-l-2 ${
                 isSelected ? 'bg-red-50/50 dark:bg-red-500/5 border-l-red-500' : 'border-l-transparent hover:bg-neutral-50 dark:hover:bg-white/[0.02]'
-              }`}>
+              } w-full text-left`}
+            >
               <div className="flex items-start gap-2.5">
                 <div className="relative flex-shrink-0">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -145,7 +148,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
                   )}
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </ScrollArea>

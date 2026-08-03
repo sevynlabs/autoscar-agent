@@ -67,7 +67,7 @@ export function ChatWindow({ conversationId, onBack, onOpenInfo }: ChatWindowPro
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const { data: conversation } = useQuery<ConversationDetail>({
+  const { data: conversation, isLoading: conversationLoading, isError: conversationError } = useQuery<ConversationDetail>({
     queryKey: ['messages', conversationId],
     queryFn: () => api.get(`/conversations/${conversationId}/messages`),
     enabled: !!conversationId,
@@ -91,6 +91,24 @@ export function ChatWindow({ conversationId, onBack, onOpenInfo }: ChatWindowPro
         </div>
         <p className="text-sm">Selecione uma conversa</p>
         <p className="text-xs text-neutral-300 dark:text-neutral-600">Escolha um contato para iniciar</p>
+      </div>
+    );
+  }
+
+  if (conversationLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-sm text-neutral-400">
+        Carregando conversa...
+      </div>
+    );
+  }
+
+  if (conversationError || !conversation) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-sm text-red-500">
+        <MessageSquare className="h-7 w-7" />
+        <p>Não foi possível abrir esta conversa.</p>
+        <p className="text-xs text-neutral-400">Atualize a página e tente novamente.</p>
       </div>
     );
   }
