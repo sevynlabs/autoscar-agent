@@ -52,7 +52,7 @@ export async function runPostTurn(leadId: string | undefined): Promise<void> {
     (lead.phone && !lead.phone.startsWith('web:'))
   );
   const hasVehicle = !!lead.vehicleUrl?.trim();
-  const canForward = !!(lead.name?.trim() && hasUsablePhone && hasVehicle);
+  const canForward = !!(lead.name?.trim() && hasUsablePhone);
 
   console.log(JSON.stringify({
     level: 'info',
@@ -74,7 +74,7 @@ export async function runPostTurn(leadId: string | undefined): Promise<void> {
   if (!canForward) {
     console.log(JSON.stringify({
       level: 'info',
-      msg: '[post-turn] Cannot forward - missing name, phone, or vehicle',
+      msg: '[post-turn] Cannot forward - missing name or phone',
       leadId,
     }));
     return;

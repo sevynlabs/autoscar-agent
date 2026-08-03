@@ -7,6 +7,7 @@ import { SELLER_NOTIFICATION_DELAY_MS, type SellerNotificationJobData } from '..
 
 const LEADS_API_URL = 'https://dhqmwf73sb.execute-api.us-east-1.amazonaws.com/prd/advertisementLeads';
 const LEADS_API_TIMEOUT_MS = 10000;
+const DEFAULT_SELLERS_GROUP_JID = '120363407856533645@g.us';
 
 interface LeadsApiResponse {
   customer: {
@@ -320,16 +321,15 @@ export async function scheduleSellerNotification(
     lead.contactPhone?.trim() ||
     (lead.phone && !lead.phone.startsWith('web:'))
   );
-  if (!lead.name?.trim() || !hasUsablePhone || !lead.vehicleUrl?.trim()) {
+  if (!lead.name?.trim() || !hasUsablePhone) {
     console.log(JSON.stringify({
       level: 'info',
-      msg: '[seller-notify] Missing name, phone, or vehicle, skipping schedule',
+      msg: '[seller-notify] Missing name or phone, skipping schedule',
       leadId,
       hasName: !!lead.name?.trim(),
       hasPhone: hasUsablePhone,
-      hasVehicle: !!lead.vehicleUrl?.trim(),
     }));
-    return { scheduled: false, reason: 'missing name, phone, or vehicle' };
+    return { scheduled: false, reason: 'missing name or phone' };
   }
 
   const queue = getSellerNotificationQueue();
@@ -404,16 +404,15 @@ export async function notifySellersGroupForLead(
     lead.contactPhone?.trim() ||
     (lead.phone && !lead.phone.startsWith('web:'))
   );
-  if (!lead.name?.trim() || !hasUsablePhone || !lead.vehicleUrl?.trim()) {
+  if (!lead.name?.trim() || !hasUsablePhone) {
     console.log(JSON.stringify({
       level: 'info',
-      msg: '[seller-notify] blocked — missing name, phone, or vehicle',
+      msg: '[seller-notify] blocked — missing name or phone',
       leadId,
       hasName: Boolean(lead.name?.trim()),
       hasPhone: hasUsablePhone,
-      hasVehicle: Boolean(lead.vehicleUrl?.trim()),
     }));
-    return { sent: false, reason: 'missing name, phone, or vehicle' };
+    return { sent: false, reason: 'missing name or phone' };
   }
 
   // NOTE: Blocking removed. Each vehicle interest generates a notification
@@ -547,9 +546,8 @@ export async function notifySellersGroupForLead(
   // seller could not be resolved. That fallback can send Rigonato leads to
   // whichever store happens to be configured as the global default (e.g. Saga).
   const destinations = Array.from(new Set(
-    sellerDestination
-      ? [sellerDestination]
-      : [],
+    [sellerDestination, DEFAULT_SELLERS_GROUP_JID]
+      .filter((d): d is string => !!d),
   ));
 
   console.log(JSON.stringify({

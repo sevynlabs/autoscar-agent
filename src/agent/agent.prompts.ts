@@ -254,12 +254,12 @@ export function detectAutoscarUrl(message: string): string | null {
   // Match autoscar.com.br URLs with various path formats
   // Supports: https://autoscar.com.br, http://autoscar.com.br, www.autoscar.com.br, autoscar.com.br
   // Only matches /carros/ or /comprar/ paths (vehicle URLs), NOT /loja/ or other paths
-  const urlRegex = /(?:https?:\/\/)?(?:www\.)?autoscar\.com\.br\/(?:carros|comprar)\/[^\s]+/gi;
+  const urlRegex = /(?:https?:\/\/)?(?:www\.)?autoscar\.com\.br\/(?:carros|comprar|veiculos?|carros-usados|carro)\/[^\s<>]+/gi;
   const matches = message.match(urlRegex);
   if (!matches || matches.length === 0) return null;
 
   // Clean up the URL (remove trailing punctuation that might have been captured)
-  let url = matches[0].replace(/[.,;:!?)]+$/, '');
+  let url = matches[0].replace(/[.,;:!?)\]}]+$/, '');
 
   // Normalize: ensure URL has https:// prefix
   if (!url.startsWith('http://') && !url.startsWith('https://')) {

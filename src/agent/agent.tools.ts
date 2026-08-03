@@ -274,10 +274,10 @@ export async function executeToolCall(
           ctx.lead.contactPhone?.trim() ||
           (ctx.lead.phone && !ctx.lead.phone.startsWith('web:'))
         );
-        if (!ctx.lead.name?.trim() || !hasUsablePhone || !ctx.lead.vehicleUrl?.trim()) {
+        if (!ctx.lead.name?.trim() || !hasUsablePhone) {
           return {
             error:
-              'Nao e permitido qualificar sem NOME, TELEFONE e VEICULO do lead. Continue coletando esses dados antes de qualificar.',
+              'Nao e permitido qualificar sem NOME e TELEFONE do lead. Continue coletando esses dados antes de qualificar.',
           };
         }
       }
