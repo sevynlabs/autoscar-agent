@@ -84,6 +84,10 @@ function buildShortVehicleUrl(
   const url = vehicleUrl?.trim();
   if (!url) return null;
 
+  // A /loja/ link identifies the store, not a vehicle. Preserve it exactly
+  // instead of treating its trailing store ID as a vehicle ID.
+  if (/autoscar\.com\.br\/loja\//i.test(url)) return url;
+
   // 1. Match against configured trigger URLs to use the exact registered code
   if (triggerUrls && triggerCodes) {
     for (let i = 0; i < triggerUrls.length; i++) {
