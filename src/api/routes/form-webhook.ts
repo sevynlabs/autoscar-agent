@@ -8,7 +8,7 @@ const formLeadSchema = z.object({
   name: z.string().optional(),
   email: z.string().email().optional(),
   city: z.string().optional(),
-  vehicleUrl: z.string().optional(),
+  vehicle: z.string().optional(), // modelo do veículo desejado
   message: z.string().optional(),
 });
 
@@ -41,7 +41,7 @@ const formWebhookRoutes: FastifyPluginAsync = async (fastify) => {
         phone_pipelineId_vehicleUrl: {
           phone,
           pipelineId: pipeline.id,
-          vehicleUrl: data.vehicleUrl ?? '',
+          vehicleUrl: '',
         },
       },
       create: {
@@ -49,7 +49,6 @@ const formWebhookRoutes: FastifyPluginAsync = async (fastify) => {
         name: data.name ?? null,
         email: data.email ?? null,
         city: data.city ?? null,
-        vehicleUrl: data.vehicleUrl ?? null,
         pipelineId: pipeline.id,
         stageId: novoStage?.id ?? null,
       },
@@ -60,12 +59,16 @@ const formWebhookRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    // Adiciona nota se tiver mensagem
-    if (data.message) {
+    // Adiciona nota com veículo e/ou mensagem
+    const noteParts: string[] = [];
+    if (data.vehicle) noteParts.push(`Veículo: ${data.vehicle}`);
+    if (data.message) noteParts.push(data.message);
+
+    if (noteParts.length > 0) {
       await prisma.leadNote.create({
         data: {
           leadId: lead.id,
-          content: data.message,
+          content: noteParts.join('\n'),
           type: 'system',
         },
       });
