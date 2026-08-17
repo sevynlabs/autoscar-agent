@@ -6,6 +6,7 @@ import authPlugin from './plugins/auth.js';
 import { socketPlugin } from './plugins/socket.js';
 import instanceRoutes from './routes/instance.js';
 import webhookRoutes from './routes/webhook.js';
+import formWebhookRoutes from './routes/form-webhook.js';
 import scraperRoutes from './routes/scraper.js';
 import leadsRoutes from './routes/leads.js';
 import pipelinesRoutes from './routes/pipelines.js';
@@ -70,9 +71,10 @@ export async function buildServer() {
   // Instance management routes
   await fastify.register(instanceRoutes);
 
-  // Webhook routes (public — Evolution API + Instagram)
+  // Webhook routes (public — Evolution API + Instagram + Form)
   await fastify.register(webhookRoutes);
   await fastify.register(instagramWebhookRoutes);
+  await fastify.register(formWebhookRoutes);
 
   // Public web chat (Typebot-style /atendimento page)
   await fastify.register(webchatRoutes);
