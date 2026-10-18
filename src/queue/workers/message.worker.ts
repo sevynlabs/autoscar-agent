@@ -30,6 +30,9 @@ export function startMessageWorker(): Worker {
           level: 'info',
           msg: 'Processing message',
           jobId: job.id,
+          instance,
+          channel: channelName,
+          attempt: job.attemptsMade + 1,
           phone: phoneNumber,
           preview: message.substring(0, 50),
         }),
@@ -50,6 +53,14 @@ export function startMessageWorker(): Worker {
 
         // 2. Get active agent first to detect vehicle URL
         const activeAgent = await getActiveAgent();
+        console.log(JSON.stringify({
+          level: activeAgent ? 'info' : 'warn',
+          msg: activeAgent ? 'Active agent loaded' : 'No active agent found',
+          jobId: job.id,
+          agentId: activeAgent?.id,
+          agentChannels: activeAgent?.channels,
+          agentInstances: activeAgent?.instances,
+        }));
 
         // 2.1 Detect vehicle URL from message BEFORE creating conversation
         // This allows creating separate leads for different vehicles
@@ -135,11 +146,11 @@ export function startMessageWorker(): Worker {
 
         // 4. Check if agent responds on this channel + instance
         if (!isChannelEnabled(activeAgent, channelName)) {
-          console.log(JSON.stringify({ level: 'info', msg: 'Agent disabled for this channel', channel: channelName, phone: phoneNumber }));
+          console.log(JSON.stringify({ level: 'warn', msg: 'Agent disabled for this channel', jobId: job.id, channel: channelName, agentChannels: activeAgent?.channels, phone: phoneNumber }));
           return;
         }
         if (!isInstanceEnabled(activeAgent, instance)) {
-          console.log(JSON.stringify({ level: 'info', msg: 'Agent not assigned to this instance', instance, phone: phoneNumber }));
+          console.log(JSON.stringify({ level: 'warn', msg: 'Agent not assigned to this instance', jobId: job.id, instance, agentInstances: activeAgent?.instances, phone: phoneNumber }));
           return;
         }
 
@@ -148,11 +159,20 @@ export function startMessageWorker(): Worker {
           where: { phone: phoneNumber },
         });
         if (lead?.humanOverride === true) {
-          console.log(JSON.stringify({ level: 'info', msg: 'Human override active, skipping AI', phone: phoneNumber }));
+          console.log(JSON.stringify({ level: 'info', msg: 'Human override active, skipping AI', jobId: job.id, leadId: lead.id, phone: phoneNumber }));
           return;
         }
 
         // 5. Run agentic loop
+        console.log(JSON.stringify({
+          level: 'info',
+          msg: 'Running AI turn',
+          jobId: job.id,
+          conversationId: conversation.id,
+          leadId: conversation.lead?.id,
+          historySize: conversation.recentMessages.length,
+        }));
+        const aiStartedAt = Date.now();
         const reply = await runAgentTurn({
           instance,
           phoneNumber,
@@ -162,8 +182,17 @@ export function startMessageWorker(): Worker {
           lead: conversation.lead,
           sellersGroupJid: activeAgent?.sellersGroupJid,
         });
+        console.log(JSON.stringify({
+          level: reply?.trim() ? 'info' : 'warn',
+          msg: reply?.trim() ? 'AI turn finished' : 'AI turn returned empty reply',
+          jobId: job.id,
+          durationMs: Date.now() - aiStartedAt,
+          replyLength: reply?.length ?? 0,
+          preview: reply?.substring(0, 80),
+        }));
 
         // 6. Send reply via appropriate channel + emit real-time events
+        let replySent = false;
         if (reply && reply.trim()) {
           // Emit to frontend regardless of send success
           emitNewMessage({ conversationId: conversation.id });
@@ -172,8 +201,9 @@ export function startMessageWorker(): Worker {
           try {
             const ch = getChannel(channelName);
             await ch.sendText(phoneNumber, instance, reply);
+            replySent = true;
           } catch (sendErr) {
-            console.log(JSON.stringify({ level: 'warn', msg: 'Failed to send reply (channel may be offline)', phone: phoneNumber, error: sendErr instanceof Error ? sendErr.message : String(sendErr) }));
+            console.log(JSON.stringify({ level: 'error', msg: 'Failed to send reply (channel may be offline)', jobId: job.id, instance, channel: channelName, phone: phoneNumber, error: sendErr instanceof Error ? sendErr.message : String(sendErr) }));
           }
         }
 
@@ -210,9 +240,10 @@ export function startMessageWorker(): Worker {
         console.log(
           JSON.stringify({
             level: 'info',
-            msg: 'Agent reply sent',
+            msg: 'Message processed',
             jobId: job.id,
             phone: phoneNumber,
+            replySent,
           }),
         );
       } catch (err) {
@@ -221,8 +252,10 @@ export function startMessageWorker(): Worker {
             level: 'error',
             msg: 'Unexpected error processing message',
             jobId: job.id,
+            instance,
             phone: phoneNumber,
             error: err instanceof Error ? err.message : String(err),
+            stack: err instanceof Error ? err.stack : undefined,
           }),
         );
 
