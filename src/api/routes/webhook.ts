@@ -125,9 +125,16 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
     const body = request.body as any;
 
     console.log(JSON.stringify({
-      level: 'debug',
+      level: 'info',
       msg: '[cloud-api-webhook] Event received',
-      hasEntry: !!body?.entry,
+      object: body?.object,
+      entries: body?.entry?.length ?? 0,
+      changes: (body?.entry || []).flatMap((e: any) => (e.changes || []).map((c: any) => ({
+        field: c.field,
+        phoneNumberId: c.value?.metadata?.phone_number_id,
+        messages: c.value?.messages?.length ?? 0,
+        statuses: c.value?.statuses?.length ?? 0,
+      }))),
     }));
 
     // Meta sends messages in entry[].changes[].value.messages[]
@@ -152,7 +159,11 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
         });
 
         if (!instance) {
-          console.warn('[cloud-api-webhook] No instance found for phoneNumberId:', phoneNumberId);
+          console.log(JSON.stringify({
+            level: 'warn',
+            msg: '[cloud-api-webhook] No instance found for phoneNumberId',
+            phoneNumberId,
+          }));
           continue;
         }
 
@@ -162,7 +173,17 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
 
         for (const msg of messages) {
           // Skip non-text messages for now
-          if (msg.type !== 'text') continue;
+          if (msg.type !== 'text') {
+            console.log(JSON.stringify({
+              level: 'warn',
+              msg: '[cloud-api-webhook] Non-text message ignored',
+              instance: instance.name,
+              from: msg.from,
+              type: msg.type,
+              messageId: msg.id,
+            }));
+            continue;
+          }
 
           const from = msg.from; // Phone number of sender
           const text = msg.text?.body;
@@ -191,22 +212,32 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
           };
 
           const queue = getMessageQueue();
-          await queue.add('incoming-message', jobData, {
+          const job = await queue.add('incoming-message', jobData, {
             jobId: `msg-${instance.name}-${messageId}`,
             removeOnComplete: 100,
             removeOnFail: 50,
           });
+
+          console.log(JSON.stringify({
+            level: 'info',
+            msg: '[cloud-api-webhook] Message enqueued',
+            instance: instance.name,
+            from,
+            jobId: job.id,
+          }));
         }
 
         // Process status updates (delivery, read receipts)
         const statuses = value.statuses || [];
         for (const status of statuses) {
           console.log(JSON.stringify({
-            level: 'debug',
+            level: status.status === 'failed' ? 'error' : 'info',
             msg: '[cloud-api-webhook] Status update',
+            instance: instance.name,
             messageId: status.id,
             status: status.status,
             recipient: status.recipient_id,
+            errors: status.errors,
           }));
         }
       }
