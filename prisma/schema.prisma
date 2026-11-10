@@ -91,6 +91,7 @@ model Lead {
   sellerNotifiedAt     DateTime?
   conversation     Conversation?
   notes            LeadNote[]
+  sellerNotifications SellerNotificationLog[]
   tenantId      String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -231,4 +232,31 @@ model SellerGroupMapping {
   updatedAt   DateTime @updatedAt
 
   @@index([sellerPhone])
+}
+
+// One row per destination attempt when a lead is sent to sellers.
+// Lead fields are snapshotted so the history survives lead edits/deletes.
+model SellerNotificationLog {
+  id              String   @id @default(cuid())
+  leadId          String?
+  lead            Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  leadName        String?
+  leadPhone       String?
+  vehicleUrl      String?
+  sellerName      String? // From leads API (fantasyName or name)
+  sellerPhone     String?
+  sellerEmail     String?
+  groupJid        String? // Mapped seller group, if any
+  groupName       String?
+  destination     String // Phone or group JID actually targeted
+  destinationType String // "seller_group" | "seller_phone" | "default_group"
+  channel         String? // "cloud_api" | "evolution"
+  status          String // "sent" | "failed"
+  error           String?  @db.Text
+  reason          String? // Trigger reason passed to notifySellersGroupForLead
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([leadId])
+  @@index([sellerName])
 }
