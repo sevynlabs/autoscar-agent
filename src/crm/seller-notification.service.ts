@@ -196,7 +196,7 @@ async function sendCloudApiSellerNotification(
  *    accepts a bare international number (e.g. 5531999999999)
  *  - Brazilian numbers starting with 0 (e.g. 034999714473) get 55 prefix
  */
-function normalizeDestination(raw: string | null | undefined): string | null {
+export function normalizeDestination(raw: string | null | undefined): string | null {
   const v = raw?.trim();
   if (!v) return null;
   if (v.includes('@')) return v;
@@ -451,6 +451,7 @@ export async function notifySellersGroupForLead(
 
   // Track if we should use a mapped group instead of direct phone
   let sellerGroupJid: string | null = null;
+  let sellerGroupName: string | null = null;
   let vehicleSellerEmail: string | null = null;
 
   if (hasValidVehicleUrl && lead.name?.trim() && leadPhone) {
@@ -505,6 +506,7 @@ export async function notifySellersGroupForLead(
 
       if (groupMapping) {
         sellerGroupJid = groupMapping.groupJid;
+        sellerGroupName = groupMapping.groupName;
         console.log(JSON.stringify({
           level: 'info',
           msg: '[seller-notify] Using mapped group for seller',
@@ -576,6 +578,47 @@ export async function notifySellersGroupForLead(
   let anySent = false;
   const errors: string[] = [];
 
+  // Persist one history row per destination attempt (powers seller reports).
+  // Never let a logging failure break the notification itself.
+  const logAttempt = async (
+    dest: string,
+    status: 'sent' | 'failed',
+    channel: 'cloud_api' | 'evolution' | null,
+    error?: string,
+  ) => {
+    try {
+      await prisma.sellerNotificationLog.create({
+        data: {
+          leadId,
+          leadName: lead.name,
+          leadPhone: lead.contactPhone?.trim() || lead.phone,
+          vehicleUrl: lead.vehicleUrl,
+          sellerName: vehicleSellerName,
+          sellerPhone: vehicleSellerPhone,
+          sellerEmail: vehicleSellerEmail,
+          groupJid: sellerGroupJid,
+          groupName: sellerGroupName,
+          destination: dest,
+          destinationType: dest === sellerGroupJid
+            ? 'seller_group'
+            : dest === vehicleSellerPhone ? 'seller_phone' : 'default_group',
+          channel,
+          status,
+          error,
+          reason: opts.reason,
+        },
+      });
+    } catch (err) {
+      console.log(JSON.stringify({
+        level: 'error',
+        msg: '[seller-notify] failed to write notification log',
+        leadId,
+        dest,
+        error: err instanceof Error ? err.message : String(err),
+      }));
+    }
+  };
+
   // Prepare lead data for Cloud API template
   const leadDisplayPhone = lead.contactPhone?.trim() || lead.phone;
   const shortUrl = buildShortVehicleUrl(
@@ -619,6 +662,7 @@ export async function notifySellersGroupForLead(
         }));
         if (cloudSent) {
           anySent = true;
+          await logAttempt(dest, 'sent', 'cloud_api');
           continue;
         }
       }
@@ -651,6 +695,7 @@ export async function notifySellersGroupForLead(
         dest,
       }));
       anySent = true;
+      await logAttempt(dest, 'sent', 'evolution');
     } catch (err) {
       console.log(JSON.stringify({
         level: 'error',
@@ -660,6 +705,7 @@ export async function notifySellersGroupForLead(
         error: err instanceof Error ? err.message : String(err),
       }));
       errors.push(`${dest}: ${err instanceof Error ? err.message : String(err)}`);
+      await logAttempt(dest, 'failed', null, err instanceof Error ? err.message : String(err));
     }
   }
 

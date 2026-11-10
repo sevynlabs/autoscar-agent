@@ -212,4 +212,52 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       return reply.code(500).send({ error: err.message });
     }
   });
+
+  // ========== Seller Notification Report ==========
+
+  // GET /admin/seller-notifications/report?from=YYYY-MM-DD&to=YYYY-MM-DD
+  // Leads successfully sent per seller in the period (inclusive, America/Sao_Paulo).
+  // Excludes the generic default group, which receives every lead.
+  fastify.get<{ Querystring: { from?: string; to?: string } }>(
+    '/admin/seller-notifications/report',
+    async (request, reply) => {
+      const { from, to } = request.query;
+      const isDate = (d?: string) => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
+      if (!isDate(from) || !isDate(to)) {
+        return reply.code(400).send({ error: 'from and to are required (YYYY-MM-DD)' });
+      }
+
+      const rows = await prisma.$queryRaw<Array<{
+        sellerName: string | null;
+        sellerEmail: string | null;
+        groupName: string | null;
+        leads: bigint;
+        notifications: bigint;
+      }>>`
+        SELECT "sellerName", "sellerEmail", "groupName",
+               count(DISTINCT coalesce("leadId", "leadPhone")) AS leads,
+               count(*) AS notifications
+        FROM "SellerNotificationLog"
+        WHERE status = 'sent'
+          AND "destinationType" <> 'default_group'
+          AND (("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo') >= ${from}::date
+          AND (("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo') < (${to}::date + 1)
+        GROUP BY "sellerName", "sellerEmail", "groupName"
+        ORDER BY leads DESC
+      `;
+
+      const sellers = rows.map((r) => ({
+        ...r,
+        leads: Number(r.leads),
+        notifications: Number(r.notifications),
+      }));
+
+      return {
+        from,
+        to,
+        totalLeads: sellers.reduce((sum, r) => sum + r.leads, 0),
+        sellers,
+      };
+    },
+  );
 }
