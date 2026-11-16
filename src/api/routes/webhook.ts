@@ -24,7 +24,8 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/webhook/whatsapp', async (request, reply) => {
     const body = request.body as any;
     const event = body.event;
-    const instance = body.instance;
+    // Evolution v2 sends `instance`; Evolution GO sends `instanceName`
+    const instance = body.instance ?? body.instanceName;
 
     // Log all incoming events for debugging
     console.log(JSON.stringify({
@@ -93,6 +94,63 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
           removeOnFail: 50,
         });
       }
+
+      return reply.send({ status: 'queued' });
+    }
+
+    // ================= Evolution GO =================
+
+    // ---- GO: connection events ----
+    if (event === 'Connected' || event === 'PairSuccess') {
+      await prisma.whatsAppInstance.updateMany({ where: { name: instance }, data: { status: 'connected' } });
+      fastify.log.info({ instance, state: 'connected' }, 'Connection updated');
+      return reply.send({ status: 'connection_updated' });
+    }
+    if (event === 'LoggedOut' || event === 'Disconnected' || event === 'ConnectFailure' || event === 'TemporaryBan') {
+      await prisma.whatsAppInstance.updateMany({ where: { name: instance }, data: { status: 'disconnected' } });
+      fastify.log.info({ instance, state: 'disconnected', event }, 'Connection updated');
+      return reply.send({ status: 'connection_updated' });
+    }
+
+    // ---- GO: incoming message ----
+    if (event === 'Message') {
+      const info = body.data?.Info ?? {};
+      const chat: string = info.Chat ?? '';
+      const messageId: string = info.ID ?? `${Date.now()}`;
+
+      if (info.IsFromMe) return reply.send({ status: 'ignored_self' });
+      if (info.IsGroup || chat.endsWith('@g.us')) return reply.send({ status: 'ignored_group' });
+      if (chat === 'status@broadcast' || chat.endsWith('@newsletter')) return reply.send({ status: 'ignored' });
+
+      const text = extractText(body.data?.Message);
+      if (!text) return reply.send({ status: 'ignored_non_text' });
+
+      // Prefer the real phone JID when the chat comes as @lid
+      let jid = chat;
+      if (jid.endsWith('@lid')) {
+        const alt = [info.SenderAlt, info.Sender].find(
+          (j: unknown) => typeof j === 'string' && j.endsWith('@s.whatsapp.net'),
+        );
+        if (alt) jid = alt;
+      }
+      const phoneNumber = extractPhone(jid.replace(/:\d+@/, '@'));
+      const pushName = typeof info.PushName === 'string' ? info.PushName.trim() || undefined : undefined;
+
+      fastify.log.info({ phone: phoneNumber, preview: text.substring(0, 50), messageId, pushName }, 'Message received');
+
+      const jobData: MessageJobData = {
+        instance,
+        phoneNumber,
+        message: text,
+        messageId,
+        pushName,
+      };
+
+      await getMessageQueue().add('incoming-message', jobData, {
+        jobId: `msg-${instance}-${messageId}`,
+        removeOnComplete: 100,
+        removeOnFail: 50,
+      });
 
       return reply.send({ status: 'queued' });
     }
