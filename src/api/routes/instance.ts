@@ -10,7 +10,7 @@ import {
   getInstance,
   updateCloudApiCredentials,
 } from '../../whatsapp/instance.service.js';
-import { evolutionClient } from '../../whatsapp/evolution.client.js';
+import { evolutionClient, EVOLUTION_GO_EVENTS } from '../../whatsapp/evolution.client.js';
 import prisma from '../../db/prisma.js';
 
 const instanceRoutes: FastifyPluginAsync = async (fastify) => {
@@ -223,7 +223,7 @@ const instanceRoutes: FastifyPluginAsync = async (fastify) => {
 
       const current = await evolutionClient.getWebhook(name);
       const expectedUrl = `${process.env.WEBHOOK_URL || process.env.APP_PUBLIC_URL || process.env.APP_BASE_URL}/webhook/whatsapp`;
-      const requiredEvents = ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'];
+      const requiredEvents = EVOLUTION_GO_EVENTS;
 
       const issues: string[] = [];
 
