@@ -1,18 +1,4 @@
-/**
- * Evolution GO client (https://github.com/EvolutionAPI/evolution-go)
- *
- * Auth model:
- *  - Admin routes (/instance/create, /instance/all, /instance/delete) use the
- *    GLOBAL key (EVOLUTION_API_KEY) in the `apikey` header.
- *  - Every other route acts on ONE instance, selected by sending that
- *    instance's own token in the `apikey` header (no instance name in the URL).
- *
- * We keep instance names as the identifier in our DB and resolve name -> token
- * via /instance/all (cached). The public method signatures are unchanged so
- * callers don't need to know which Evolution flavor is behind it.
- */
 import axios, { type AxiosInstance } from 'axios';
-import { randomUUID } from 'node:crypto';
 
 interface CreateInstanceResponse {
   instance: {
@@ -20,6 +6,11 @@ interface CreateInstanceResponse {
     instanceId: string;
     status: string;
   };
+}
+
+interface QrCodeResponse {
+  base64: string;
+  code: string;
 }
 
 interface SendTextResponse {
@@ -31,180 +22,133 @@ interface SendTextResponse {
   status: string;
 }
 
-interface GoInstance {
-  id: string;
-  name: string;
-  token: string;
-  webhook: string;
-  events: string;
-  jid: string;
-  connected: boolean;
+interface ConnectionState {
+  instance: {
+    instanceName: string;
+    state: string; // 'open' | 'close' | 'connecting'
+  };
 }
 
-/** Events we subscribe to on Evolution GO */
-export const EVOLUTION_GO_EVENTS = ['MESSAGE', 'CONNECTION'];
-
-function http(apiKey: string): AxiosInstance {
+function getClient(): AxiosInstance {
   const baseURL = process.env.EVOLUTION_API_URL;
-  if (!baseURL) throw new Error('EVOLUTION_API_URL must be set');
-  return axios.create({
-    baseURL,
-    headers: { 'Content-Type': 'application/json', apikey: apiKey },
-    timeout: 20000,
-  });
-}
+  const apiKey = process.env.EVOLUTION_API_KEY;
 
-function admin(): AxiosInstance {
-  const key = process.env.EVOLUTION_API_KEY;
-  if (!process.env.EVOLUTION_API_URL || !key) {
+  if (!baseURL || !apiKey) {
     throw new Error('EVOLUTION_API_URL and EVOLUTION_API_KEY must be set');
   }
-  return http(key);
-}
 
-// ---- name -> instance (token/id) resolution ----
-const instanceCache = new Map<string, GoInstance>();
-
-async function fetchAll(): Promise<GoInstance[]> {
-  const { data } = await admin().get('/instance/all');
-  const list: GoInstance[] = Array.isArray(data?.data) ? data.data : [];
-  instanceCache.clear();
-  for (const inst of list) instanceCache.set(inst.name, inst);
-  return list;
-}
-
-async function resolve(instanceName: string, fresh = false): Promise<GoInstance> {
-  if (!fresh) {
-    const cached = instanceCache.get(instanceName);
-    if (cached) return cached;
-  }
-  await fetchAll();
-  const inst = instanceCache.get(instanceName);
-  if (!inst) throw new Error(`Evolution GO instance not found: ${instanceName}`);
-  return inst;
-}
-
-async function forInstance(instanceName: string): Promise<AxiosInstance> {
-  const inst = await resolve(instanceName);
-  return http(inst.token);
+  return axios.create({
+    baseURL,
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: apiKey,
+    },
+    timeout: 15000,
+  });
 }
 
 export const evolutionClient = {
   /**
-   * Create a new instance (webhook/connection is started by setWebhook)
+   * Create a new WhatsApp instance using Baileys (QR code only, no API key needed from user)
    */
   async createInstance(instanceName: string): Promise<CreateInstanceResponse> {
-    const { data } = await admin().post('/instance/create', {
-      name: instanceName,
-      token: randomUUID(),
-      advancedSettings: {
-        alwaysOnline: false,
-        rejectCall: false,
-        msgRejectCall: '',
-        readMessages: false,
-        ignoreGroups: true,
-        ignoreStatus: true,
-      },
+    const client = getClient();
+    const { data } = await client.post<CreateInstanceResponse>('/instance/create', {
+      instanceName,
+      integration: 'WHATSAPP-BAILEYS',
+      qrcode: true,
+      rejectCall: false,
+      groupsIgnore: true,
+      alwaysOnline: false,
+      readMessages: false,
+      readStatus: false,
+      syncFullHistory: false,
     });
-    const created = data?.data ?? {};
-    if (created?.name) instanceCache.set(created.name, created);
-    return {
-      instance: {
-        instanceName: created.name ?? instanceName,
-        instanceId: created.id ?? '',
-        status: 'created',
-      },
-    };
+    return data;
   },
 
   /**
-   * Get QR code for connecting WhatsApp (base64 data URL)
+   * Get QR code for connecting WhatsApp (base64 image)
    */
   async getQrCode(instanceName: string): Promise<string> {
-    const client = await forInstance(instanceName);
-    // The QR takes a few seconds to be generated after the instance starts
-    let lastErr: unknown;
-    for (let attempt = 0; attempt < 6; attempt++) {
-      try {
-        const { data } = await client.get('/instance/qr');
-        const raw: string = data?.data?.qrcode ?? '';
-        // Evolution GO stores "data:image/png;base64,...|<raw code>"
-        const base64 = raw.split('|')[0];
-        if (base64) return base64;
-      } catch (err) {
-        lastErr = err;
-        const msg = (err as any)?.response?.data?.error ?? '';
-        if (String(msg).includes('already logged in')) throw err;
-      }
-      await new Promise((r) => setTimeout(r, 2000));
-    }
-    throw lastErr ?? new Error('QR code not available');
+    const client = getClient();
+    const { data } = await client.get<QrCodeResponse>(
+      `/instance/connect/${instanceName}`,
+    );
+    return data.base64;
   },
 
   /**
-   * Connection state, normalized to Evolution v2 vocabulary: 'open' | 'close'
+   * Get connection status of an instance
    */
   async getConnectionState(instanceName: string): Promise<string> {
+    const client = getClient();
     try {
-      const client = await forInstance(instanceName);
-      const { data } = await client.get('/instance/status');
-      const s = data?.data ?? {};
-      return s.Connected && s.LoggedIn ? 'open' : 'close';
+      const { data } = await client.get<ConnectionState>(
+        `/instance/connectionState/${instanceName}`,
+      );
+      return data.instance?.state ?? 'unknown';
     } catch {
       return 'disconnected';
     }
   },
 
   /**
-   * Set webhook URL. On Evolution GO the webhook is configured through
-   * /instance/connect, which also starts the instance if it isn't running.
+   * Set webhook URL for incoming messages
    */
   async setWebhook(instanceName: string, webhookUrl: string): Promise<void> {
-    const client = await forInstance(instanceName);
-    await client.post('/instance/connect', {
-      webhookUrl,
-      subscribe: EVOLUTION_GO_EVENTS,
-      immediate: true,
+    const client = getClient();
+    await client.post(`/webhook/set/${instanceName}`, {
+      webhook: {
+        enabled: true,
+        url: webhookUrl,
+        webhookByEvents: false,
+        webhookBase64: false,
+        events: [
+          'MESSAGES_UPSERT',
+          'MESSAGES_UPDATE',
+          'SEND_MESSAGE',
+          'CONNECTION_UPDATE',
+          'QRCODE_UPDATED',
+          'CONTACTS_UPSERT',
+          'CHATS_UPSERT',
+        ],
+      },
     });
-    await resolve(instanceName, true).catch(() => undefined);
   },
 
   /**
-   * Send text message (number can be digits or a full JID, incl. groups @g.us)
+   * Send text message via WhatsApp
    */
   async sendText(instanceName: string, to: string, text: string): Promise<SendTextResponse> {
-    const client = await forInstance(instanceName);
-    const { data } = await client.post('/send/text', { number: to, text });
-    const info = data?.data?.Info ?? {};
-    return {
-      key: {
-        remoteJid: info.Chat ?? to,
-        fromMe: true,
-        id: info.ID ?? '',
-      },
-      status: data?.message ?? 'success',
-    };
+    const client = getClient();
+    const { data } = await client.post<SendTextResponse>(
+      `/message/sendText/${instanceName}`,
+      { number: to, text },
+    );
+    return data;
   },
 
   /**
-   * Fetch a contact's profile name. WhatsApp only exposes names for verified
-   * business accounts here, so this usually returns name=null.
+   * Fetch a contact's profile info (pushName, etc) from WhatsApp.
+   * Returns null if the endpoint fails or no name is registered.
    */
   async fetchProfile(instanceName: string, jid: string): Promise<{ name: string | null; pictureUrl: string | null } | null> {
+    const client = getClient();
     try {
-      const client = await forInstance(instanceName);
-      const { data } = await client.post('/user/info', { number: [jid] });
-      const users = data?.data?.Users ?? {};
-      const first: any = Object.values(users)[0];
-      const name = first?.VerifiedName?.Details?.verifiedName ?? null;
-      return { name, pictureUrl: null };
+      const { data } = await client.post<{ name?: string; pushName?: string; verifiedName?: string; wuid?: string; picture?: string }>(
+        `/chat/fetchProfile/${instanceName}`,
+        { number: jid },
+      );
+      const name = data?.verifiedName || data?.name || data?.pushName || null;
+      return { name, pictureUrl: data?.picture ?? null };
     } catch {
       return null;
     }
   },
 
   /**
-   * Send media (image) with optional caption
+   * Send media (image) via WhatsApp with optional caption
    */
   async sendMedia(
     instanceName: string,
@@ -212,79 +156,87 @@ export const evolutionClient = {
     mediaUrl: string,
     caption?: string,
   ): Promise<void> {
-    const client = await forInstance(instanceName);
-    await client.post('/send/media', {
+    const client = getClient();
+    await client.post(`/message/sendMedia/${instanceName}`, {
       number: to,
-      type: 'image',
-      url: mediaUrl,
+      mediatype: 'image',
+      mimetype: 'image/jpeg',
+      media: mediaUrl,
       caption: caption ?? '',
-      filename: 'veiculo.jpg',
+      fileName: 'veiculo.jpg',
     });
   },
 
   /**
-   * List all instances
+   * List all instances from Evolution API
    */
   async listInstances(): Promise<{ instanceName: string; status: string }[]> {
+    const client = getClient();
     try {
-      const list = await fetchAll();
-      return list.map((i) => ({ instanceName: i.name, status: i.connected ? 'open' : 'close' }));
+      const { data } = await client.get('/instance/fetchInstances');
+      if (Array.isArray(data)) {
+        return data.map((i: any) => ({
+          instanceName: i.instance?.instanceName ?? i.instanceName ?? 'unknown',
+          status: i.instance?.status ?? i.status ?? 'unknown',
+        }));
+      }
+      return [];
     } catch {
       return [];
     }
   },
 
   /**
-   * Delete an instance
+   * Delete/logout an instance
    */
   async deleteInstance(instanceName: string): Promise<void> {
-    const inst = await resolve(instanceName, true);
-    await admin().delete(`/instance/delete/${inst.id}`);
-    instanceCache.delete(instanceName);
+    const client = getClient();
+    await client.delete(`/instance/delete/${instanceName}`);
   },
 
   /**
    * Logout (disconnect) without deleting
    */
   async logoutInstance(instanceName: string): Promise<void> {
-    const client = await forInstance(instanceName);
-    await client.delete('/instance/logout');
+    const client = getClient();
+    await client.delete(`/instance/logout/${instanceName}`);
   },
 
   /**
-   * Instance profile info (number, name)
+   * Get instance profile info (number, name, picture)
    */
   async getInstanceInfo(instanceName: string): Promise<{ profileName: string; phoneNumber: string; profilePictureUrl: string | null }> {
+    const client = getClient();
     try {
-      const inst = await resolve(instanceName, true);
-      let profileName = '';
-      try {
-        const { data } = await http(inst.token).get('/instance/status');
-        profileName = data?.data?.Name ?? '';
-      } catch {}
-      // jid looks like "5511999999999:14@s.whatsapp.net"
-      const phoneNumber = (inst.jid || '').split('@')[0].split(':')[0];
-      return { profileName, phoneNumber, profilePictureUrl: null };
+      const { data } = await client.get(`/instance/fetchInstances`, {
+        params: { instanceName },
+      });
+      const inst = Array.isArray(data) ? data[0] : data;
+      return {
+        profileName: inst?.instance?.profileName ?? inst?.profileName ?? '',
+        phoneNumber: inst?.instance?.owner?.split('@')[0] ?? inst?.owner?.split('@')[0] ?? '',
+        profilePictureUrl: inst?.instance?.profilePictureUrl ?? inst?.profilePictureUrl ?? null,
+      };
     } catch {
       return { profileName: '', phoneNumber: '', profilePictureUrl: null };
     }
   },
 
   /**
-   * Fetch all WhatsApp groups the instance participates in
+   * Fetch all WhatsApp groups for an instance
    */
   async fetchGroups(instanceName: string): Promise<{ id: string; subject: string; size: number }[]> {
+    const client = getClient();
     try {
-      const client = await forInstance(instanceName);
-      const { data } = await client.get('/group/list');
-      const list = Array.isArray(data?.data)
-        ? data.data
-        : Array.isArray(data?.data?.Groups) ? data.data.Groups : [];
-      return list.map((g: any) => ({
-        id: g.JID ?? g.jid ?? '',
-        subject: g.Name ?? g.GroupName ?? g.name ?? 'Sem nome',
-        size: Array.isArray(g.Participants) ? g.Participants.length : 0,
-      }));
+      const { data } = await client.get(`/group/fetchAllGroups/${instanceName}?getParticipants=false`);
+      if (Array.isArray(data)) {
+        return data.map((g: any) => ({
+          id: g.id ?? g.jid ?? '',
+          subject: g.subject ?? g.name ?? 'Sem nome',
+          size: g.size ?? g.participants?.length ?? 0,
+        }));
+      }
+      return [];
     } catch (err) {
       console.error(`[evolution] Failed to fetch groups for ${instanceName}:`, err);
       return [];
@@ -292,19 +244,20 @@ export const evolutionClient = {
   },
 
   /**
-   * Current webhook configuration for an instance
+   * Get current webhook configuration for an instance
    */
   async getWebhook(instanceName: string): Promise<{
     enabled: boolean;
     url: string | null;
     events: string[];
   } | null> {
+    const client = getClient();
     try {
-      const inst = await resolve(instanceName, true);
+      const { data } = await client.get(`/webhook/find/${instanceName}`);
       return {
-        enabled: !!inst.webhook,
-        url: inst.webhook || null,
-        events: (inst.events || '').split(',').filter(Boolean),
+        enabled: data?.webhook?.enabled ?? data?.enabled ?? false,
+        url: data?.webhook?.url ?? data?.url ?? null,
+        events: data?.webhook?.events ?? data?.events ?? [],
       };
     } catch (err) {
       console.error(`[evolution] Failed to get webhook for ${instanceName}:`, err);
