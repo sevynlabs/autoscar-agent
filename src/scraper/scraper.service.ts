@@ -49,7 +49,7 @@ export interface VehicleResult {
  * Extract advertisement ID from autoscar URL
  * Supports: /comprar/288509, /comprar/288509/toyota-hilux, etc.
  */
-function extractAdId(url: string): string | null {
+export function extractAdId(url: string): string | null {
   // Match /comprar/123456 in URL
   const comprarMatch = url.match(/\/comprar\/(\d+)/);
   if (comprarMatch) return comprarMatch[1];

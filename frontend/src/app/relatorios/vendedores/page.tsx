@@ -71,6 +71,7 @@ const sellerKey = (r: NotificationRow) =>
   (r.sellerEmail || r.sellerPhone || r.sellerName || r.destination).toLowerCase();
 
 function channelLabel(r: NotificationRow): string {
+  if (r.channel === 'backfill') return 'Histórico (estimado)';
   if (r.destinationType === 'seller_group') return 'Grupo WhatsApp';
   if (r.channel === 'cloud_api') return 'Template (Cloud API)';
   if (r.channel === 'evolution') return 'Texto (Evolution)';
@@ -143,6 +144,7 @@ export default function SellerReportPage() {
       sellers: filtered.filter(s => s.leads > 0).length,
       templates: sentRows.filter(r => r.channel === 'cloud_api').length,
       failed: rows.length - sentRows.length,
+      backfill: sentRows.filter(r => r.channel === 'backfill').length,
     };
   }, [filtered]);
 
@@ -203,6 +205,12 @@ export default function SellerReportPage() {
       )}
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">Erro ao carregar o relatório: {(error as Error).message}</p>
+      )}
+      {totals.backfill > 0 && (
+        <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-white/[0.03] border border-neutral-200 dark:border-white/[0.06] rounded-lg px-3 py-2">
+          Inclui {totals.backfill.toLocaleString('pt-BR')} envio(s) de <strong>histórico estimado</strong>, anteriores a 10/11/2026: o vendedor
+          foi identificado pelo dono atual do anúncio e pode não ter recebido o lead diretamente.
+        </p>
       )}
       {data?.truncated && (
         <p className="text-sm text-amber-600 dark:text-amber-400">O período tem mais de 5.000 envios; mostrando os mais recentes. Reduza o intervalo de datas.</p>

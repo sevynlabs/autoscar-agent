@@ -217,7 +217,8 @@ export default async function adminRoutes(fastify: FastifyInstance) {
 
   // GET /admin/seller-notifications/report?from=YYYY-MM-DD&to=YYYY-MM-DD
   // Leads successfully sent per seller in the period (inclusive, America/Sao_Paulo).
-  // Excludes the generic default group, which receives every lead.
+  // Excludes the generic default group (receives every lead) and backfilled
+  // rows whose seller could not be resolved (destinationType 'unknown').
   fastify.get<{ Querystring: { from?: string; to?: string } }>(
     '/admin/seller-notifications/report',
     async (request, reply) => {
@@ -239,7 +240,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
                count(*) AS notifications
         FROM "SellerNotificationLog"
         WHERE status = 'sent'
-          AND "destinationType" <> 'default_group'
+          AND "destinationType" NOT IN ('default_group', 'unknown')
           AND (("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo') >= ${from}::date
           AND (("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo') < (${to}::date + 1)
         GROUP BY "sellerName", "sellerEmail", "groupName"
@@ -265,7 +266,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   // Every send attempt to a seller (phone template or mapped group) in the
   // period, newest first — powers the per-seller report page. Includes failed
   // attempts so template delivery problems are visible. Excludes the generic
-  // default group, which receives every lead.
+  // default group and unresolved backfill rows (destinationType 'unknown').
   fastify.get<{ Querystring: { from?: string; to?: string } }>(
     '/admin/seller-notifications',
     async (request, reply) => {
@@ -299,7 +300,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
                destination, "destinationType", channel, status, error, reason,
                "createdAt"
         FROM "SellerNotificationLog"
-        WHERE "destinationType" <> 'default_group'
+        WHERE "destinationType" NOT IN ('default_group', 'unknown')
           AND (("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo') >= ${from}::date
           AND (("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo') < (${to}::date + 1)
         ORDER BY "createdAt" DESC

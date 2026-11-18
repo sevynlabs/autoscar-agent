@@ -250,7 +250,7 @@ model SellerNotificationLog {
   groupName       String?
   destination     String // Phone or group JID actually targeted
   destinationType String // "seller_group" | "seller_phone" | "default_group"
-  channel         String? // "cloud_api" | "evolution"
+  channel         String? // "cloud_api" | "evolution" | "backfill" (estimated history)
   status          String // "sent" | "failed"
   error           String?  @db.Text
   reason          String? // Trigger reason passed to notifySellersGroupForLead
