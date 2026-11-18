@@ -33,3 +33,6 @@ evolution_instances/
 # Temp
 /tmp/
 *.swp
+
+# Local browser screenshots
+Autoscar CRM - Google Chrome *.png
