@@ -1,11 +1,11 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronRight, Download, Search, Send, Store, MessageSquare, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, Search, Send, Store, MessageSquare, AlertTriangle, RotateCw } from 'lucide-react';
 
 interface NotificationRow {
   id: string;
@@ -98,6 +98,36 @@ export default function SellerReportPage() {
     enabled: validRange,
   });
 
+  const queryClient = useQueryClient();
+  const [resendError, setResendError] = useState<Record<string, string>>({});
+  const resend = useMutation({
+    mutationFn: (id: string) => api.post(`/admin/seller-notifications/${id}/resend`),
+    onMutate: (id) => setResendError(e => { const { [id]: _, ...rest } = e; return rest; }),
+    onError: (err, id) => {
+      // api.ts throws "API <status>: <text> - <body>"; show the backend's { error }
+      const msg = (err as Error).message;
+      let text = msg;
+      try { text = JSON.parse(msg.slice(msg.indexOf('{'))).error || msg; } catch { /* keep raw */ }
+      setResendError(e => ({ ...e, [id]: text }));
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['seller-notifications'] }),
+  });
+
+  // Failed rows later delivered to the same destination (e.g. via "Reenviar")
+  // no longer count as failures and don't show the button again.
+  const resolvedIds = useMemo(() => {
+    const rows = data?.notifications ?? [];
+    const lastSent = new Map<string, string>();
+    for (const r of rows) {
+      if (r.status !== 'sent') continue;
+      const k = `${leadKey(r)}|${r.destination}`;
+      if (!lastSent.has(k) || r.createdAt > lastSent.get(k)!) lastSent.set(k, r.createdAt);
+    }
+    return new Set(rows
+      .filter(r => r.status !== 'sent' && (lastSent.get(`${leadKey(r)}|${r.destination}`) ?? '') > r.createdAt)
+      .map(r => r.id));
+  }, [data]);
+
   const sellers = useMemo<SellerGroup[]>(() => {
     const map = new Map<string, SellerGroup>();
     for (const r of data?.notifications ?? []) {
@@ -118,7 +148,7 @@ export default function SellerReportPage() {
       if (r.status === 'sent') {
         g.sent++;
         if (!g.lastSentAt || r.createdAt > g.lastSentAt) g.lastSentAt = r.createdAt;
-      } else {
+      } else if (!resolvedIds.has(r.id)) {
         g.failed++;
       }
     }
@@ -126,7 +156,7 @@ export default function SellerReportPage() {
       g.leads = new Set(g.rows.filter(r => r.status === 'sent').map(leadKey)).size;
     }
     return [...map.values()].sort((a, b) => b.leads - a.leads || b.failed - a.failed);
-  }, [data]);
+  }, [data, resolvedIds]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -143,10 +173,10 @@ export default function SellerReportPage() {
       leads: new Set(sentRows.map(leadKey)).size,
       sellers: filtered.filter(s => s.leads > 0).length,
       templates: sentRows.filter(r => r.channel === 'cloud_api').length,
-      failed: rows.length - sentRows.length,
+      failed: rows.filter(r => r.status !== 'sent' && !resolvedIds.has(r.id)).length,
       backfill: sentRows.filter(r => r.channel === 'backfill').length,
     };
-  }, [filtered]);
+  }, [filtered, resolvedIds]);
 
   const exportCsv = () => {
     const header = ['Data/hora', 'Vendedor', 'E-mail vendedor', 'Telefone vendedor', 'Grupo', 'Lead', 'Telefone lead', 'Veículo', 'Canal', 'Status', 'Erro'];
@@ -322,8 +352,26 @@ export default function SellerReportPage() {
                                     <td className="py-2 pr-4 whitespace-nowrap">{channelLabel(r)}</td>
                                     <td className="py-2" title={r.error ?? undefined}>
                                       {r.status === 'sent'
-                                        ? <span className="text-green-600 dark:text-green-400">Enviado</span>
-                                        : <span className="text-amber-600 dark:text-amber-400">Falhou{r.error ? ` — ${r.error.slice(0, 80)}` : ''}</span>}
+                                        ? <span className="text-green-600 dark:text-green-400">Enviado{r.reason === 'resend' ? ' (reenvio)' : ''}</span>
+                                        : (
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <span className={resolvedIds.has(r.id) ? 'text-neutral-400 line-through' : 'text-amber-600 dark:text-amber-400'}>
+                                              Falhou{r.error ? ` — ${r.error.slice(0, 80)}` : ''}
+                                            </span>
+                                            {resolvedIds.has(r.id)
+                                              ? <span className="text-green-600 dark:text-green-400">Reenviado</span>
+                                              : (
+                                                <button type="button"
+                                                  onClick={e => { e.stopPropagation(); resend.mutate(r.id); }}
+                                                  disabled={resend.isPending}
+                                                  className="inline-flex items-center gap-1 h-6 px-2 rounded-md text-[11px] font-medium border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                                                  <RotateCw className={`h-3 w-3 ${resend.isPending && resend.variables === r.id ? 'animate-spin' : ''}`} />
+                                                  {resend.isPending && resend.variables === r.id ? 'Reenviando...' : 'Reenviar'}
+                                                </button>
+                                              )}
+                                            {resendError[r.id] && <span className="text-red-600 dark:text-red-400">{resendError[r.id]}</span>}
+                                          </div>
+                                        )}
                                     </td>
                                   </tr>
                                 ))}

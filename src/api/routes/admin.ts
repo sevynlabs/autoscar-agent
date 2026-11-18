@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import prisma from '../../db/prisma.js';
+import { resendSellerNotification } from '../../crm/seller-notification.service.js';
 
 /**
  * Normalize phone to digits only with Brazil country code
@@ -313,6 +314,19 @@ export default async function adminRoutes(fastify: FastifyInstance) {
         truncated: rows.length > LIMIT,
         notifications: rows.slice(0, LIMIT),
       };
+    },
+  );
+
+  // POST /admin/seller-notifications/:id/resend — retry a failed send to the
+  // same seller destination (e.g. "No Evolution API instance for groups").
+  fastify.post<{ Params: { id: string } }>(
+    '/admin/seller-notifications/:id/resend',
+    async (request, reply) => {
+      const result = await resendSellerNotification(request.params.id);
+      if (!result.sent) {
+        return reply.code(result.status ?? 500).send({ error: result.error });
+      }
+      return { sent: true };
     },
   );
 }
