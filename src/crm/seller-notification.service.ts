@@ -442,6 +442,66 @@ export async function scheduleSellerNotification(
   return { scheduled: true };
 }
 
+interface DeliveryContent {
+  leadName: string | null;
+  leadDisplayPhone: string | null;
+  vehicleDescription: string;
+  vehicleLink: string;
+  summary: string;
+  /** Instance used for phone destinations when the Cloud API template fails. */
+  phoneInstance: { name: string; provider: string } | null;
+}
+
+/**
+ * Deliver one lead to one destination. Phones get the Cloud API template
+ * first; groups (and phones whose template failed) get the text summary via
+ * Evolution — Cloud API can't post to groups. Throws when nothing was sent.
+ */
+async function deliverToDestination(
+  leadId: string,
+  dest: string,
+  c: DeliveryContent,
+): Promise<'cloud_api' | 'evolution'> {
+  const isGroup = dest.includes('@');
+  console.log(JSON.stringify({
+    level: 'info',
+    msg: '[seller-notify] Attempting to send to destination',
+    leadId,
+    dest,
+    isGroup,
+  }));
+
+  if (!isGroup && c.leadName && c.leadDisplayPhone) {
+    const cloudSent = await sendCloudApiSellerNotification(
+      dest, c.leadName, c.leadDisplayPhone, c.vehicleDescription, c.vehicleLink,
+    );
+    console.log(JSON.stringify({ level: 'info', msg: '[seller-notify] Cloud API result', leadId, dest, cloudSent }));
+    if (cloudSent) return 'cloud_api';
+  }
+
+  const instanceToUse = isGroup
+    ? await prisma.whatsAppInstance.findFirst({
+        where: { status: 'connected', provider: 'evolution' },
+        orderBy: { createdAt: 'asc' },
+      })
+    : c.phoneInstance;
+  if (!instanceToUse) {
+    throw new Error(isGroup ? 'No Evolution API instance for groups' : 'No WhatsApp instance');
+  }
+
+  console.log(JSON.stringify({
+    level: 'info',
+    msg: '[seller-notify] Using Evolution API fallback',
+    leadId,
+    dest,
+    instanceName: instanceToUse.name,
+    provider: instanceToUse.provider,
+  }));
+  await evolutionClient.sendText(instanceToUse.name, dest, c.summary);
+  console.log(JSON.stringify({ level: 'info', msg: '[seller-notify] Evolution API success', leadId, dest }));
+  return 'evolution';
+}
+
 /**
  * Fire a sellers group notification for a lead and mark sellerNotifiedAt.
  * Now allows multiple notifications — each time the vehicle changes, a new
@@ -700,73 +760,17 @@ export async function notifySellersGroupForLead(
   const vehicleDescription = shortUrl || lead.vehicleUrl || 'Veiculo no portal';
 
   for (const dest of destinations) {
-    console.log(JSON.stringify({
-      level: 'info',
-      msg: '[seller-notify] Attempting to send to destination',
-      leadId,
-      dest,
-      isGroup: dest.includes('@'),
-    }));
-
     try {
-      // Try Cloud API template for phone numbers (not groups)
-      if (!dest.includes('@') && lead.name && leadDisplayPhone) {
-        console.log(JSON.stringify({
-          level: 'info',
-          msg: '[seller-notify] Trying Cloud API for phone destination',
-          leadId,
-          dest,
-        }));
-        const cloudSent = await sendCloudApiSellerNotification(
-          dest,
-          lead.name,
-          leadDisplayPhone,
-          vehicleDescription,
-          shortUrl || lead.vehicleUrl || 'https://autoscar.com.br',
-        );
-        console.log(JSON.stringify({
-          level: 'info',
-          msg: '[seller-notify] Cloud API result',
-          leadId,
-          dest,
-          cloudSent,
-        }));
-        if (cloudSent) {
-          anySent = true;
-          await logAttempt(dest, 'sent', 'cloud_api');
-          continue;
-        }
-      }
-
-      // Fallback to Evolution API (for groups or if Cloud API unavailable)
-      // For groups, we need an Evolution API instance (Cloud API doesn't support groups)
-      const evolutionInstance = await prisma.whatsAppInstance.findFirst({
-        where: { status: 'connected', provider: 'evolution' },
-        orderBy: { createdAt: 'asc' },
+      const channel = await deliverToDestination(leadId, dest, {
+        leadName: lead.name,
+        leadDisplayPhone,
+        vehicleDescription,
+        vehicleLink: shortUrl || lead.vehicleUrl || 'https://autoscar.com.br',
+        summary,
+        phoneInstance: instance,
       });
-
-      const instanceToUse = dest.includes('@') ? evolutionInstance : instance;
-      if (!instanceToUse) {
-        throw new Error(dest.includes('@') ? 'No Evolution API instance for groups' : 'No WhatsApp instance');
-      }
-
-      console.log(JSON.stringify({
-        level: 'info',
-        msg: '[seller-notify] Using Evolution API fallback',
-        leadId,
-        dest,
-        instanceName: instanceToUse.name,
-        provider: instanceToUse.provider,
-      }));
-      await evolutionClient.sendText(instanceToUse.name, dest, summary);
-      console.log(JSON.stringify({
-        level: 'info',
-        msg: '[seller-notify] Evolution API success',
-        leadId,
-        dest,
-      }));
       anySent = true;
-      await logAttempt(dest, 'sent', 'evolution');
+      await logAttempt(dest, 'sent', channel);
     } catch (err) {
       console.log(JSON.stringify({
         level: 'error',
@@ -809,4 +813,80 @@ export async function notifySellersGroupForLead(
   }));
 
   return { sent: true };
+}
+
+/**
+ * Retry one failed seller notification (from the per-seller report) to the
+ * SAME destination that failed. Unlike notifySellersGroupForLead it does not
+ * call the Autoscar leads API again (that would register a duplicate lead
+ * with the advertiser) nor re-send to the default group, which already got
+ * the lead. Each retry is logged as a new row with reason 'resend'.
+ */
+export async function resendSellerNotification(
+  logId: string,
+): Promise<{ sent: boolean; error?: string; status?: number }> {
+  const log = await prisma.sellerNotificationLog.findUnique({ where: { id: logId } });
+  if (!log) return { sent: false, error: 'Envio não encontrado', status: 404 };
+  if (log.status !== 'failed') return { sent: false, error: 'Só envios com falha podem ser reenviados', status: 400 };
+  if (log.destinationType !== 'seller_group' && log.destinationType !== 'seller_phone') {
+    return { sent: false, error: 'Destino não é de vendedor', status: 400 };
+  }
+  if (!log.leadId) return { sent: false, error: 'Envio sem lead associado', status: 400 };
+
+  const alreadySent = await prisma.sellerNotificationLog.findFirst({
+    where: { leadId: log.leadId, destination: log.destination, status: 'sent', createdAt: { gt: log.createdAt } },
+    select: { id: true },
+  });
+  if (alreadySent) return { sent: false, error: 'Este lead já foi reenviado para esse destino', status: 409 };
+
+  const lead = await prisma.lead.findUnique({ where: { id: log.leadId } });
+  if (!lead) return { sent: false, error: 'Lead não encontrado', status: 404 };
+
+  const [agent, phoneInstance] = await Promise.all([
+    getActiveAgent().catch(() => null),
+    prisma.whatsAppInstance.findFirst({ where: { status: 'connected' }, orderBy: { createdAt: 'asc' } }),
+  ]);
+  const shortUrl = buildShortVehicleUrl(lead.vehicleUrl, agent?.triggerVehicleUrls, agent?.triggerVehicleCodes);
+  const leadDisplayPhone = lead.contactPhone?.trim() || lead.phone;
+
+  const logRetry = (status: 'sent' | 'failed', channel: 'cloud_api' | 'evolution' | null, error?: string) =>
+    prisma.sellerNotificationLog.create({
+      data: {
+        leadId: lead.id,
+        leadName: lead.name,
+        leadPhone: leadDisplayPhone,
+        vehicleUrl: lead.vehicleUrl,
+        sellerName: log.sellerName,
+        sellerPhone: log.sellerPhone,
+        sellerEmail: log.sellerEmail,
+        groupJid: log.groupJid,
+        groupName: log.groupName,
+        destination: log.destination,
+        destinationType: log.destinationType,
+        channel,
+        status,
+        error,
+        reason: 'resend',
+      },
+    });
+
+  try {
+    const channel = await deliverToDestination(lead.id, log.destination, {
+      leadName: lead.name,
+      leadDisplayPhone,
+      vehicleDescription: shortUrl || lead.vehicleUrl || 'Veiculo no portal',
+      vehicleLink: shortUrl || lead.vehicleUrl || 'https://autoscar.com.br',
+      summary: await buildLeadSummary(lead.id, log.sellerName),
+      phoneInstance,
+    });
+    await logRetry('sent', channel);
+    await prisma.lead.update({ where: { id: lead.id }, data: { sellerNotifiedAt: new Date() } });
+    console.log(JSON.stringify({ level: 'info', msg: '[seller-notify] resend ok', leadId: lead.id, logId, channel }));
+    return { sent: true };
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    await logRetry('failed', null, error);
+    console.log(JSON.stringify({ level: 'error', msg: '[seller-notify] resend failed', leadId: lead.id, logId, error }));
+    return { sent: false, error, status: 502 };
+  }
 }
