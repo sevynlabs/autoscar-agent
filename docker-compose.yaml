@@ -1,5 +1,5 @@
 # Production compose for Coolify deployment
-# Postgres is external (Coolify managed)
+# Postgres is external (Supabase) — backed up daily by the db-backup service
 # Evolution API is external
 # Coolify proxy handles SSL + domain routing → frontend:3000
 
@@ -69,8 +69,46 @@ services:
     networks:
       - autoscar-net
 
+  # Daily pg_dump of the production database (Supabase). Coolify's built-in
+  # backups only cover Coolify-managed databases, so this sidecar does it:
+  # one dump at startup, then every day at 03:00 (America/Sao_Paulo), keeping
+  # the newest BACKUP_KEEP files in the db_backups volume. Output goes to the
+  # container logs ("[backup] ok ..." / "[backup] FAILED").
+  # Restore: pg_restore --no-owner -d "<url>" autoscar_<date>.dump
+  db-backup:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - BACKUP_KEEP=14
+      - TZ=America/Sao_Paulo
+    volumes:
+      - db_backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /usr/local/bin/backup.sh <<'EOF'
+        #!/bin/sh
+        f=/backups/autoscar_$$(date +%Y-%m-%d_%H%M).dump
+        if pg_dump "$$DATABASE_URL" -n public -Fc --no-owner --no-privileges -f "$$f.tmp"; then
+          mv "$$f.tmp" "$$f"
+          echo "[backup] ok $$f $$(du -h "$$f" | cut -f1)"
+        else
+          rm -f "$$f.tmp"
+          echo "[backup] FAILED"
+        fi
+        ls -1t /backups/autoscar_*.dump 2>/dev/null | tail -n +$$((BACKUP_KEEP + 1)) | xargs -r rm -f
+        EOF
+        chmod +x /usr/local/bin/backup.sh
+        /usr/local/bin/backup.sh
+        echo "0 3 * * * /usr/local/bin/backup.sh > /proc/1/fd/1 2>&1" > /etc/crontabs/root
+        exec crond -f -l 8
+    networks:
+      - autoscar-net
+
 volumes:
   redis_data:
+  db_backups:
 
 networks:
   autoscar-net:
