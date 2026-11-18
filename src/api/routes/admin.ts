@@ -260,4 +260,58 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       };
     },
   );
+
+  // GET /admin/seller-notifications?from=YYYY-MM-DD&to=YYYY-MM-DD
+  // Every send attempt to a seller (phone template or mapped group) in the
+  // period, newest first — powers the per-seller report page. Includes failed
+  // attempts so template delivery problems are visible. Excludes the generic
+  // default group, which receives every lead.
+  fastify.get<{ Querystring: { from?: string; to?: string } }>(
+    '/admin/seller-notifications',
+    async (request, reply) => {
+      const { from, to } = request.query;
+      const isDate = (d?: string) => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
+      if (!isDate(from) || !isDate(to)) {
+        return reply.code(400).send({ error: 'from and to are required (YYYY-MM-DD)' });
+      }
+
+      const LIMIT = 5000;
+      const rows = await prisma.$queryRaw<Array<{
+        id: string;
+        leadId: string | null;
+        leadName: string | null;
+        leadPhone: string | null;
+        vehicleUrl: string | null;
+        sellerName: string | null;
+        sellerPhone: string | null;
+        sellerEmail: string | null;
+        groupName: string | null;
+        destination: string;
+        destinationType: string;
+        channel: string | null;
+        status: string;
+        error: string | null;
+        reason: string | null;
+        createdAt: Date;
+      }>>`
+        SELECT id, "leadId", "leadName", "leadPhone", "vehicleUrl",
+               "sellerName", "sellerPhone", "sellerEmail", "groupName",
+               destination, "destinationType", channel, status, error, reason,
+               "createdAt"
+        FROM "SellerNotificationLog"
+        WHERE "destinationType" <> 'default_group'
+          AND (("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo') >= ${from}::date
+          AND (("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo') < (${to}::date + 1)
+        ORDER BY "createdAt" DESC
+        LIMIT ${LIMIT + 1}
+      `;
+
+      return {
+        from,
+        to,
+        truncated: rows.length > LIMIT,
+        notifications: rows.slice(0, LIMIT),
+      };
+    },
+  );
 }
