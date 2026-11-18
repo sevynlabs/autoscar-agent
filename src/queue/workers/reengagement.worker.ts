@@ -148,7 +148,8 @@ export async function forceQualify(lead: LeadWithRelations): Promise<void> {
     qualifiedStage = await prisma.stage.findFirst({
       where: {
         pipelineId: lead.pipelineId,
-        name: { contains: 'qualificado', mode: 'insensitive' },
+        // Exclude "Desqualificado" — it also contains "qualificado"
+        name: { contains: 'qualificado', mode: 'insensitive', not: { contains: 'des' } },
       },
     });
     if (qualifiedStage && lead.stageId !== qualifiedStage.id) {
