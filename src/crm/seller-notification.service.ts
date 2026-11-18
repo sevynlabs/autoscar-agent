@@ -23,6 +23,67 @@ interface LeadsApiResponse {
   };
 }
 
+/** Seller contact fields shared by the leads API and the store lookup. */
+interface SellerContact {
+  name?: string | null;
+  fantasyName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+}
+
+const STORE_API_URL = 'https://dhqmwf73sb.execute-api.us-east-1.amazonaws.com/prd/user';
+
+/**
+ * Extract the store (user) id from an autoscar store page URL:
+ * autoscar.com.br/loja/{uf}/{cidade}/{slug}/{id}[/]
+ */
+export function extractStoreId(url: string | null | undefined): string | null {
+  const m = url?.split(/[?#]/)[0].match(/autoscar\.com\.br\/loja\/[^/]+\/[^/]+\/[^/]+\/(\d+)\/?$/i);
+  return m ? m[1] : null;
+}
+
+/**
+ * Resolve the store behind a store page URL via the read-only user endpoint.
+ * Used when the lead came from a store page (no specific ad), where the leads
+ * API returns no customer. Prefers the store's WhatsApp number (the template
+ * is a WhatsApp message), falling back to its phone.
+ */
+async function resolveStoreSeller(url: string, leadId: string): Promise<SellerContact | null> {
+  const storeId = extractStoreId(url);
+  if (!storeId) return null;
+  try {
+    const res = await fetch(`${STORE_API_URL}/${storeId}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(LEADS_API_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      console.log(JSON.stringify({ level: 'warn', msg: '[seller-notify] store lookup failed', leadId, storeId, status: res.status }));
+      return null;
+    }
+    const u = await res.json() as { name?: string; fantasyName?: string; phone?: string; whatsapp?: string; email?: string };
+    const phone = u.whatsapp?.trim() || u.phone?.trim() || null;
+    if (!phone && !u.email) return null;
+    console.log(JSON.stringify({
+      level: 'info',
+      msg: '[seller-notify] seller resolved from store page',
+      leadId,
+      storeId,
+      sellerName: u.fantasyName || u.name,
+    }));
+    return { name: u.name, fantasyName: u.fantasyName, phone, email: u.email };
+  } catch (err) {
+    console.log(JSON.stringify({
+      level: 'error',
+      msg: '[seller-notify] store lookup error',
+      leadId,
+      storeId,
+      error: err instanceof Error ? err.message : String(err),
+    }));
+    return null;
+  }
+}
+
 /**
  * Send lead data to the autoscar leads API and get seller info back.
  */
@@ -456,10 +517,20 @@ export async function notifySellersGroupForLead(
 
   if (hasValidVehicleUrl && lead.name?.trim() && leadPhone) {
     const apiResult = await sendLeadToApi(leadPhone, lead.name, lead.vehicleUrl!);
-    if (apiResult?.customer && (apiResult.customer.phone || apiResult.customer.email)) {
-      vehicleSellerPhone = normalizeDestination(apiResult.customer.phone);
-      vehicleSellerEmail = apiResult.customer.email?.trim().toLowerCase() || null;
-      vehicleSellerName = apiResult.customer.fantasyName || apiResult.customer.name || null;
+    let customer: SellerContact | null =
+      apiResult?.customer && (apiResult.customer.phone || apiResult.customer.email)
+        ? apiResult.customer
+        : null;
+    // Store-page leads (/loja/...) have no ad, so the leads API returns no
+    // customer. Resolve the store itself so the lead goes to that store
+    // instead of only the generic default group.
+    if (!customer) {
+      customer = await resolveStoreSeller(lead.vehicleUrl!, leadId);
+    }
+    if (customer) {
+      vehicleSellerPhone = normalizeDestination(customer.phone);
+      vehicleSellerEmail = customer.email?.trim().toLowerCase() || null;
+      vehicleSellerName = customer.fantasyName?.trim() || customer.name?.trim() || null;
       console.log(JSON.stringify({
         level: 'info',
         msg: '[seller-notify] seller found for vehicle',
