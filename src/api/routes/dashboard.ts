@@ -12,7 +12,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     const where = from || to ? { createdAt: dateFilter } : {};
 
     // Run independent queries in parallel instead of sequentially
-    const [leadsByStage, totalLeads, lastStage, messageStats, leadsWithConversation, leadsPerDayRaw] = await Promise.all([
+    const [leadsByStage, totalLeads, qualifiedStages, messageStats, leadsWithConversation, leadsPerDayRaw] = await Promise.all([
       // Lead count by stage
       prisma.lead.groupBy({
         by: ['stageId'],
@@ -21,8 +21,15 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       }),
       // Total leads
       prisma.lead.count({ where }),
-      // Last stage for conversion rate
-      prisma.stage.findFirst({ orderBy: { order: 'desc' } }),
+      // "Qualificado" stages (one per pipeline) for conversion rate.
+      // Match by name, excluding "Desqualificado" — the highest-order stage
+      // is Desqualificado, not the success stage.
+      prisma.stage.findMany({
+        where: {
+          name: { contains: 'qualificado', mode: 'insensitive', not: { contains: 'des' } },
+        },
+        select: { id: true },
+      }),
       // Agent message count
       prisma.message.aggregate({
         _count: true,
@@ -51,8 +58,10 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     }));
 
     // Conversion rate
-    const qualifiedCount = lastStage
-      ? await prisma.lead.count({ where: { ...where, stageId: lastStage.id } })
+    const qualifiedCount = qualifiedStages.length > 0
+      ? await prisma.lead.count({
+          where: { ...where, stageId: { in: qualifiedStages.map(s => s.id) } },
+        })
       : 0;
     const conversionRate = totalLeads > 0 ? (qualifiedCount / totalLeads) * 100 : 0;
 
