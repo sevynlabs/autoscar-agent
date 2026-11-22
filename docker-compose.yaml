@@ -48,7 +48,6 @@ services:
       - redis
     networks:
       - autoscar-net
-      - coolify
 
   frontend:
     build: ./frontend
@@ -67,12 +66,8 @@ services:
       start_period: 40s
     depends_on:
       - app
-    # The Coolify proxy routes autoscar.soft7ai.com (UI + /api/* webhooks) to
-    # this container. Join its network explicitly so a redeploy can't leave the
-    # proxy without a route ("503 no available server" → no WhatsApp webhooks).
     networks:
       - autoscar-net
-      - coolify
 
   # Daily pg_dump of the production database (Supabase). Coolify's built-in
   # backups only cover Coolify-managed databases, so this sidecar does it:
@@ -118,5 +113,3 @@ volumes:
 networks:
   autoscar-net:
     driver: bridge
-  coolify:
-    external: true
