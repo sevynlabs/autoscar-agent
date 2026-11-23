@@ -79,6 +79,12 @@ model Lead {
   paymentMethod String?
   vehicleUrl    String?
   campaignCode  String?
+  // Last click-to-WhatsApp Meta ad that opened a chat for this lead
+  adSourceId    String?
+  adSourceUrl   String?
+  adHeadline    String?
+  adCtwaClid    String?
+  adClickedAt   DateTime?
   stageId       String?
   stage         Stage?        @relation(fields: [stageId], references: [id])
   pipelineId    String?
@@ -101,6 +107,7 @@ model Lead {
   @@index([pipelineId])
   @@index([createdAt])
   @@index([updatedAt])
+  @@index([adClickedAt])
 }
 
 model LeadNote {
