@@ -2,22 +2,37 @@ import type { FastifyPluginAsync } from 'fastify';
 import { getMessageQueue } from '../../queue/queues.js';
 import prisma from '../../db/prisma.js';
 import type { MessageJobData } from '../../queue/jobs/message.job.js';
+import { parseCloudApiMessage, parseEvolutionMessage, type ParsedInbound } from '../../whatsapp/inbound.js';
+
+/**
+ * One log line per inbound message, written BEFORE any filter, so every
+ * message Meta/Evolution delivered can be reconciled (e.g. against
+ * "conversations started" in Meta Ads Manager) — including the skipped ones.
+ */
+function logInbound(fields: {
+  provider: 'cloud_api' | 'evolution';
+  instance: string;
+  from: string;
+  messageId: string;
+  parsed: ParsedInbound;
+  outcome: 'queued' | 'skipped';
+}) {
+  const { parsed, ...rest } = fields;
+  console.log(JSON.stringify({
+    level: 'info',
+    msg: '[inbound] message',
+    ...rest,
+    type: parsed.type,
+    skipReason: parsed.skipReason,
+    fromAd: !!parsed.referral,
+    adSourceId: parsed.referral?.sourceId ?? undefined,
+    ctwaClid: parsed.referral?.ctwaClid ?? undefined,
+  }));
+}
 
 function extractPhone(remoteJid: string): string {
   // Handle both @s.whatsapp.net and @lid formats
   return remoteJid.replace(/@s\.whatsapp\.net$/, '').replace(/@lid$/, '');
-}
-
-function extractText(msg: any): string | null {
-  if (!msg) return null;
-  // Evolution v2 various message formats
-  return (
-    msg.conversation ??
-    msg.extendedTextMessage?.text ??
-    msg.message?.conversation ??
-    msg.message?.extendedTextMessage?.text ??
-    null
-  );
 }
 
 const webhookRoutes: FastifyPluginAsync = async (fastify) => {
@@ -65,15 +80,24 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
         const fromMe = key.fromMe ?? false;
         const messageId = key.id ?? `${Date.now()}`;
 
-        // Skip self, group, status
+        // Skip self, group, status (not lead conversations — not logged)
         if (fromMe) continue;
         if (remoteJid.endsWith('@g.us')) continue;
         if (remoteJid === 'status@broadcast') continue;
 
-        const text = extractText(msg) ?? extractText(msg.message);
+        const phoneNumber = extractPhone(remoteJid);
+        const parsed = parseEvolutionMessage(msg);
+        logInbound({
+          provider: 'evolution',
+          instance,
+          from: phoneNumber,
+          messageId,
+          parsed,
+          outcome: parsed.text ? 'queued' : 'skipped',
+        });
+        const text = parsed.text;
         if (!text) continue;
 
-        const phoneNumber = extractPhone(remoteJid);
         const pushName = typeof msg.pushName === 'string' ? msg.pushName.trim() || undefined : undefined;
 
         fastify.log.info({ phone: phoneNumber, preview: text.substring(0, 50), messageId, pushName }, 'Message received');
@@ -84,6 +108,7 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
           message: text,
           messageId,
           pushName,
+          referral: parsed.referral,
         };
 
         const queue = getMessageQueue();
@@ -152,7 +177,12 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
         });
 
         if (!instance) {
-          console.warn('[cloud-api-webhook] No instance found for phoneNumberId:', phoneNumberId);
+          console.warn(JSON.stringify({
+            level: 'warn',
+            msg: '[cloud-api-webhook] No instance found for phoneNumberId — messages dropped',
+            phoneNumberId,
+            droppedMessages: (value.messages || []).length,
+          }));
           continue;
         }
 
@@ -161,14 +191,21 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
         const contacts = value.contacts || [];
 
         for (const msg of messages) {
-          // Skip non-text messages for now
-          if (msg.type !== 'text') continue;
-
           const from = msg.from; // Phone number of sender
-          const text = msg.text?.body;
           const messageId = msg.id;
+          if (!from) continue;
 
-          if (!text || !from) continue;
+          const parsed = parseCloudApiMessage(msg);
+          logInbound({
+            provider: 'cloud_api',
+            instance: instance.name,
+            from,
+            messageId,
+            parsed,
+            outcome: parsed.text ? 'queued' : 'skipped',
+          });
+          const text = parsed.text;
+          if (!text) continue;
 
           // Get contact name if available
           const contact = contacts.find((c: any) => c.wa_id === from);
@@ -188,6 +225,7 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
             message: text,
             messageId,
             pushName,
+            referral: parsed.referral,
           };
 
           const queue = getMessageQueue();

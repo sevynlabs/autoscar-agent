@@ -22,7 +22,7 @@ export function startMessageWorker(): Worker {
   worker = new Worker(
     'messages',
     async (job: Job) => {
-      const { instance, phoneNumber, message, pushName, channel: msgChannel } = job.data as MessageJobData;
+      const { instance, phoneNumber, message, pushName, referral, channel: msgChannel } = job.data as MessageJobData;
       const channelName = msgChannel ?? 'whatsapp';
 
       console.log(
@@ -131,6 +131,28 @@ export function startMessageWorker(): Worker {
             data: { campaignCode },
           }).catch(() => { /* non-critical */ });
           conversation.lead.campaignCode = campaignCode;
+        }
+
+        // Record the click-to-WhatsApp ad that opened this chat. Last touch:
+        // a returning contact who clicks a new ad is re-attributed to it, so
+        // adClickedAt counts ad conversations per day like Meta does.
+        if (referral && conversation.lead) {
+          await prisma.lead.update({
+            where: { id: conversation.lead.id },
+            data: {
+              adSourceId: referral.sourceId,
+              adSourceUrl: referral.sourceUrl,
+              adHeadline: referral.headline,
+              adCtwaClid: referral.ctwaClid,
+              adClickedAt: new Date(),
+            },
+          }).catch(() => { /* non-critical */ });
+          console.log(JSON.stringify({
+            level: 'info',
+            msg: '[worker] ad referral recorded',
+            leadId: conversation.lead.id,
+            adSourceId: referral.sourceId,
+          }));
         }
 
         // 4. Check if agent responds on this channel + instance

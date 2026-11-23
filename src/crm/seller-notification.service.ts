@@ -331,6 +331,10 @@ export async function buildLeadSummary(
   if (lead.campaignCode) {
     lines.push(`📢 Campanha: ${lead.campaignCode}`);
   }
+  // Meta click-to-WhatsApp ad that opened the chat.
+  if (lead.adSourceId || lead.adHeadline) {
+    lines.push(`📱 Anúncio Meta: ${lead.adHeadline?.trim() || lead.adSourceId}`);
+  }
 
   // Interest notes
   if (lead.notes.length > 0) {
