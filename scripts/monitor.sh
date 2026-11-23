@@ -1,7 +1,7 @@
 #!/bin/bash
 # Monitor autoscar health and auto-fix network issues
 
-HEALTH_URL="https://autoscar.soft7ai.com/api/health"
+HEALTH_URL="https://crm.autoscar.com.br/api/health"
 NETWORK_NAME="gkogk0gos4oc4ogcwwsscwc8_autoscar-net"
 LOG_FILE="/var/log/autoscar-monitor.log"
 
