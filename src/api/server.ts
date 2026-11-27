@@ -24,6 +24,7 @@ import followupConfigRoutes from './routes/followup-config.js';
 import reengagementRoutes from './routes/reengagement.js';
 import adminRoutes from './routes/admin.js';
 import webchatRoutes from './routes/webchat.js';
+import systemRoutes from './routes/system.js';
 
 export async function buildServer() {
   const fastify = Fastify({
@@ -107,6 +108,9 @@ export async function buildServer() {
 
   // Admin routes (CRM reset, etc.)
   await fastify.register(adminRoutes);
+
+  // System status for the panel (AI health alert)
+  await fastify.register(systemRoutes);
 
   // External API (API key auth, separate from JWT)
   await fastify.register(externalApiRoutes);

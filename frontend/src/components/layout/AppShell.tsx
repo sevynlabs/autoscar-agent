@@ -5,6 +5,7 @@ import { useEffect, useState, ReactNode } from 'react';
 import { Menu, X } from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
 import { Sidebar } from './Sidebar';
+import { AgentHealthBanner } from './AgentHealthBanner';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -85,6 +86,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto pt-14 lg:pt-0 pb-[env(safe-area-inset-bottom)]">
+        <AgentHealthBanner />
         {children}
       </main>
     </div>

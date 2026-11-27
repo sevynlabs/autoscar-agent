@@ -10,6 +10,7 @@ import { fireWebhooks } from '../../webhooks/webhook.service.js';
 import { runPostTurn } from '../../conversation/post-turn.js';
 import type { MessageJobData } from '../jobs/message.job.js';
 import { extractCampaign } from '../../whatsapp/campaign.js';
+import { recordAgentFailure, recordAgentSuccess, appendAgentLog, errorDetail } from '../../agent/agent-health.js';
 
 let worker: Worker | null = null;
 
@@ -184,6 +185,8 @@ export function startMessageWorker(): Worker {
           lead: conversation.lead,
           sellersGroupJid: activeAgent?.sellersGroupJid,
         });
+        // AI answered — clear any outage alert shown in the panel.
+        await recordAgentSuccess();
 
         // 6. Send reply via appropriate channel + emit real-time events
         if (reply && reply.trim()) {
@@ -196,6 +199,16 @@ export function startMessageWorker(): Worker {
             await ch.sendText(phoneNumber, instance, reply);
           } catch (sendErr) {
             console.log(JSON.stringify({ level: 'warn', msg: 'Failed to send reply (channel may be offline)', phone: phoneNumber, error: sendErr instanceof Error ? sendErr.message : String(sendErr) }));
+            await appendAgentLog({
+              level: 'error',
+              source: 'send',
+              message: 'A IA respondeu, mas a mensagem não foi entregue no WhatsApp (canal offline ou instância desconectada).',
+              detail: errorDetail(sendErr),
+              phone: phoneNumber,
+              leadId: conversation.lead?.id,
+              conversationId: conversation.id,
+              instance,
+            });
           }
         }
 
@@ -247,6 +260,9 @@ export function startMessageWorker(): Worker {
             error: err instanceof Error ? err.message : String(err),
           }),
         );
+
+        // Show the outage in the CRM panel (panel only — never to sellers).
+        await recordAgentFailure(err, { phone: phoneNumber, instance });
 
         // Send fallback message to lead via appropriate channel
         try {
