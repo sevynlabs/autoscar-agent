@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, LayoutDashboard, List, MessageSquare, Settings, Webhook, Users, LogOut, Bot, Sun, Moon, Phone, MessageCircle, Store } from 'lucide-react';
+import { BarChart3, LayoutDashboard, List, MessageSquare, Settings, Webhook, Users, LogOut, Bot, Sun, Moon, Phone, MessageCircle, Store, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ const navItems = [
   { href: '/inbox', label: 'Inbox', icon: MessageSquare },
   { href: '/relatorios/vendedores', label: 'Leads por Vendedor', icon: Store },
   { href: '/settings/agent', label: 'Agente IA', icon: Bot },
+  { href: '/relatorios/logs-ia', label: 'Logs da IA', icon: AlertTriangle },
   { href: '/settings/followup', label: 'Follow-up', icon: MessageCircle },
   { href: '/settings/channels', label: 'Canais', icon: Phone },
   { href: '/settings/pipeline', label: 'Pipeline', icon: Settings },

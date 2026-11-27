@@ -84,11 +84,13 @@ export async function loadOrCreateConversation(
     update: {},
   });
 
-  const messages = await prisma.message.findMany({
+  // Most recent `limit` messages, in chronological order. (Ordering asc with
+  // `take` would return the OLDEST messages, so long chats lost recent context.)
+  const messages = (await prisma.message.findMany({
     where: { conversationId: conversation.id },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
     take: limit,
-  });
+  })).reverse();
 
   const recentMessages: ChatCompletionMessageParam[] = messages.map((msg) => ({
     role: msg.role === 'lead' ? 'user' : 'assistant',

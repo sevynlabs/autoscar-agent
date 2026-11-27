@@ -4,6 +4,7 @@ import { appendMessages } from '../conversation/conversation.service.js';
 import { buildSystemPrompt, detectMissingIdentity, detectTriggerCodeMatch, detectAutoscarUrl, getActiveAgent } from './agent.prompts.js';
 import { AGENT_TOOLS, executeToolCall } from './agent.tools.js';
 import type { AgentContext } from './agent.types.js';
+import { appendAgentLog } from './agent-health.js';
 
 const MAX_ITERATIONS = 10;
 
@@ -185,6 +186,17 @@ REGRA OBRIGATORIA:
       } catch (err) {
         const errorContent = err instanceof Error ? err.message : String(err);
         console.log(JSON.stringify({ level: 'error', msg: 'Tool call failed', tool: toolCall.function.name, error: errorContent }));
+        await appendAgentLog({
+          level: 'warn',
+          source: 'tool',
+          message: `Ferramenta da IA falhou: ${toolCall.function.name}`,
+          detail: errorContent,
+          tool: toolCall.function.name,
+          phone: ctx.phoneNumber,
+          leadId: ctx.lead?.id,
+          conversationId: ctx.conversationId,
+          instance: ctx.instance,
+        });
         messages.push({
           role: 'tool',
           tool_call_id: toolCall.id,
@@ -196,6 +208,15 @@ REGRA OBRIGATORIA:
 
   // MAX_ITERATIONS — fallback
   const fallback = 'Desculpe, tive um problema tecnico. Um vendedor vai entrar em contato em breve.';
+  await appendAgentLog({
+    level: 'error',
+    source: 'fallback',
+    message: `A IA entrou em loop de ferramentas (${MAX_ITERATIONS} tentativas) e enviou a mensagem de problema técnico ao lead.`,
+    phone: ctx.phoneNumber,
+    leadId: ctx.lead?.id,
+    conversationId: ctx.conversationId,
+    instance: ctx.instance,
+  });
   await appendMessages(ctx.conversationId, [{ role: 'agent', content: fallback }]);
   return fallback;
 }
